@@ -9,6 +9,8 @@ try {
     $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
     $env:DOTNET_GENERATE_ASPNET_CERTIFICATE = 'false'
     if (-not $SkipChecks) {
+        & powershell -NoProfile -ExecutionPolicy Bypass -File Checks/ConfigMigrationChecks.ps1
+        if ($LASTEXITCODE -ne 0) { throw 'Configuration migration checks failed' }
         dotnet run --project Checks/Checks.csproj -c Release
         if ($LASTEXITCODE -ne 0) { throw 'Checks failed' }
     }
@@ -25,6 +27,7 @@ try {
     $payloadFiles = @('CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md')
     foreach ($file in $payloadFiles) { Copy-Item -LiteralPath (Join-Path $publishRoot $file) -Destination $payloadRoot }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'installer/install.cmd') -Destination $payloadRoot
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'installer/Update-Config.ps1') -Destination $payloadRoot
     $sedPath = Join-Path $PSScriptRoot '.build/installer/CodexLimits.sed'
     $sed = @"
 [Version]
@@ -57,6 +60,7 @@ FILE3="CodexLimits.deps.json"
 FILE4="CodexLimits.runtimeconfig.json"
 FILE5="config.example.json"
 FILE6="README.md"
+FILE7="Update-Config.ps1"
 [SourceFiles]
 SourceFiles0=$payloadRoot\
 [SourceFiles0]
@@ -67,6 +71,7 @@ SourceFiles0=$payloadRoot\
 %FILE4%=
 %FILE5%=
 %FILE6%=
+%FILE7%=
 "@
     Set-Content -LiteralPath $sedPath -Value $sed -NoNewline
     & "$env:WINDIR\System32\iexpress.exe" /N $sedPath
