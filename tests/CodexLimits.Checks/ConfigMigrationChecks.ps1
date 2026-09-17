@@ -1,9 +1,10 @@
 $ErrorActionPreference = 'Stop'
-$root = Join-Path $PSScriptRoot ('../.build/config-checks/' + [Guid]::NewGuid().ToString('N'))
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '../..')
+$root = Join-Path $repoRoot ('.build/config-checks/' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 $config = Join-Path $root 'config.json'
-$template = Join-Path $PSScriptRoot '../config.example.json'
-$migration = Join-Path $PSScriptRoot '../installer/Update-Config.ps1'
+$template = Join-Path $repoRoot 'config/config.example.json'
+$migration = Join-Path $repoRoot 'packaging/windows/Update-Config.ps1'
 function Check($Condition, $Message) {
     if (-not $Condition) { throw "FAIL: $Message" }
     Write-Output "PASS: $Message"

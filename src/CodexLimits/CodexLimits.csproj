@@ -7,9 +7,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0</Version>
+    <Version>1.1</Version>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="../config.example.json" Link="config.example.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../config/config.example.json" Link="config.example.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

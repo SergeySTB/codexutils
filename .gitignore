@@ -1,5 +1,8 @@
 **/bin/
 **/obj/
+.vs/
+TestResults/
+artifacts/
 dist/
 releases/
 *.exe
@@ -7,4 +10,7 @@ releases/
 config.json
 auth.json
 *.user
+*.suo
+*.userosscache
+*.sln.docstates
 Screenshot.jpg

@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <ApplicationManifest>../CodexLimits/app.manifest</ApplicationManifest>
+    <ApplicationManifest>../../src/CodexLimits/app.manifest</ApplicationManifest>
   </PropertyGroup>
-  <ItemGroup><ProjectReference Include="../CodexLimits/CodexLimits.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/CodexLimits/CodexLimits.csproj" /></ItemGroup>
 </Project>

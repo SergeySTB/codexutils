@@ -59,7 +59,8 @@
 При ошибке JSON или некорректных параметрах предыдущие настройки сохраняются.
 Редактировать файл во время процедуры входа можно, применять — после её завершения.
 
-Пример всех параметров находится в `config.example.json` рядом с приложением.
+Пример всех параметров находится в `config/config.example.json` в репозитории
+и в `config.example.json` рядом с установленным приложением.
 При установке `%LOCALAPPDATA%\CodexLimits\config.json` обновляется по текущему
 шаблону: существующие значения сохраняются, новые параметры получают значения
 по умолчанию, удалённые параметры исключаются (в том числе внутри аккаунтов и
@@ -105,6 +106,19 @@
 ```powershell
 .\CodexLimits.exe --demo
 ```
+
+## Структура репозитория
+
+| Каталог | Назначение |
+|---|---|
+| `src/CodexLimits` | Исходный код приложения |
+| `tests/CodexLimits.Checks` | Исполняемые проверки логики, интеграции и интерфейса |
+| `packaging/windows` | Сценарии установки и обновления конфигурации |
+| `config` | Эталонная конфигурация |
+| `docs` | Изображения и материалы README |
+| `.github/workflows` | Сборка, проверка и публикация установщика |
+
+`CodexLimits.sln` объединяет приложение и проверки для IDE и командной строки.
 
 ## Авторизация и данные
 
@@ -155,25 +169,25 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 профиль Codex.
 
 Установщик хранится в GitHub Releases, а не в Git. Для публикации после
-согласования версии и отправки коммита создайте релиз с тегом `v<major>.<minor>`
-на этом коммите и прикрепите `dist\CodexLimits-Setup.exe`. Релиз должен быть
-опубликован как стабильный и отмечен Latest. Имя вложения всегда
-`CodexLimits-Setup.exe`, чтобы кнопка автоматически скачивала последнюю версию.
-В разделе Releases можно выбрать **Draft a new release**, указать тег и коммит,
-загрузить EXE, заполнить описание изменений и нажать **Publish release**.
+согласования версии и отправки коммита создайте стабильный релиз с тегом
+`v<major>.<minor>` на этом коммите. Workflow **Windows Package** проверит
+совпадение тега с версией проекта, соберёт установщик и прикрепит к релизу
+`CodexLimits-Setup.exe`. Это постоянное имя позволяет кнопке загрузки всегда
+скачивать последнюю версию. Для pull request и изменений в `main` тот же
+workflow сохраняет проверенный установщик как временный GitHub Actions artifact.
 
-`Checks` — исполняемые проверки без тестовых библиотек: разбор квот, валидация
+`tests/CodexLimits.Checks` — исполняемые проверки без тестовых библиотек: разбор квот, валидация
 настроек, четыре края, ограничения экрана, два независимых дочерних процесса,
 инициализация протокола, OAuth-уведомление, тайм-аут, 429, выход сервера и очистка.
 Тестовые профили создаются только в `.build\checks`.
 
 ```powershell
-dotnet run --project Checks/Checks.csproj -c Release
+dotnet run --project tests/CodexLimits.Checks/CodexLimits.Checks.csproj -c Release
 # Дополнительно: реальный установленный CLI, изолированный пустой профиль, без входа.
-.\Checks\bin\Release\net8.0-windows\Checks.exe --real-codex "C:\path\to\codex.exe"
+.\tests\CodexLimits.Checks\bin\Release\net8.0-windows\CodexLimits.Checks.exe --real-codex "C:\path\to\codex.exe"
 # Реальное наведение на обе иконки у четырёх краёв, проверка карточек, снимки PNG.
 # Только демонстрационные данные, положение курсора восстанавливается после теста.
-.\Checks\bin\Release\net8.0-windows\Checks.exe --widget "$PWD\.build\icon-preview"
+.\tests\CodexLimits.Checks\bin\Release\net8.0-windows\CodexLimits.Checks.exe --widget "$PWD\.build\icon-preview"
 # WPF-окно с демоданными: сохранить PNG и закрыться.
 .\.build\publish\CodexLimits.exe --smoke-test "$PWD\.build\preview.png"
 ```

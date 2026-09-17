@@ -9,14 +9,14 @@ try {
     $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
     $env:DOTNET_GENERATE_ASPNET_CERTIFICATE = 'false'
     if (-not $SkipChecks) {
-        & powershell -NoProfile -ExecutionPolicy Bypass -File Checks/ConfigMigrationChecks.ps1
+        & powershell -NoProfile -ExecutionPolicy Bypass -File tests/CodexLimits.Checks/ConfigMigrationChecks.ps1
         if ($LASTEXITCODE -ne 0) { throw 'Configuration migration checks failed' }
-        dotnet run --project Checks/Checks.csproj -c Release
+        dotnet run --project tests/CodexLimits.Checks/CodexLimits.Checks.csproj -c Release
         if ($LASTEXITCODE -ne 0) { throw 'Checks failed' }
     }
     $publishRoot = Join-Path $PSScriptRoot '.build/publish'
     Remove-Item -LiteralPath $publishRoot -Recurse -Force -ErrorAction SilentlyContinue
-    dotnet publish CodexLimits/CodexLimits.csproj -c Release --self-contained false -o $publishRoot --nologo
+    dotnet publish src/CodexLimits/CodexLimits.csproj -c Release --self-contained false -o $publishRoot --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Publish failed' }
     Copy-Item -LiteralPath README.md -Destination $publishRoot/README.md
     $payloadRoot = Join-Path $PSScriptRoot '.build/installer/payload'
@@ -26,8 +26,8 @@ try {
     New-Item -ItemType Directory -Force -Path $payloadRoot, (Split-Path $setupPath) | Out-Null
     $payloadFiles = @('CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md')
     foreach ($file in $payloadFiles) { Copy-Item -LiteralPath (Join-Path $publishRoot $file) -Destination $payloadRoot }
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'installer/install.cmd') -Destination $payloadRoot
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'installer/Update-Config.ps1') -Destination $payloadRoot
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/install.cmd') -Destination $payloadRoot
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/Update-Config.ps1') -Destination $payloadRoot
     $sedPath = Join-Path $PSScriptRoot '.build/installer/CodexLimits.sed'
     $sed = @"
 [Version]

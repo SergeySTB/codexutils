@@ -1,0 +1,86 @@
+name: Windows Package
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'packaging/**'
+      - 'config/**'
+      - 'build.ps1'
+      - 'CodexLimits.sln'
+      - 'global.json'
+      - 'NuGet.Config'
+      - 'README.md'
+      - '.github/workflows/windows-package.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'packaging/**'
+      - 'config/**'
+      - 'build.ps1'
+      - 'CodexLimits.sln'
+      - 'global.json'
+      - 'NuGet.Config'
+      - 'README.md'
+      - '.github/workflows/windows-package.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  package:
+    name: Build and test installer
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Verify release version
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          [xml]$project = Get-Content src/CodexLimits/CodexLimits.csproj
+          $version = [string]$project.Project.PropertyGroup.Version
+          if ($env:RELEASE_TAG -ne "v$version") {
+            throw "Release tag $env:RELEASE_TAG does not match project version $version"
+          }
+
+      - name: Build, test, and package
+        run: .\build.ps1
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: CodexLimits-Setup-${{ github.sha }}
+          path: dist/CodexLimits-Setup.exe
+          if-no-files-found: error
+
+  release:
+    name: Attach installer to release
+    if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: CodexLimits-Setup-${{ github.sha }}
+          path: dist
+
+      - name: Upload installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" dist/CodexLimits-Setup.exe --clobber
