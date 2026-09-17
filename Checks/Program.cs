@@ -43,6 +43,8 @@ Check(malformed.FiveHour == null && malformed.Weekly is { Remaining: 85, ResetsA
 Check(Parse("""{"rateLimits":{"primary":{"usedPercent":4,"windowDurationMins":15}}}""").FiveHour == null, "unknown durations are not guessed");
 Check(Parse("""{"rateLimits":{"primary":{"usedPercent":-1,"windowDurationMins":300}}}""").FiveHour == null, "negative usage rejected");
 Check(Parse("{}").Weekly == null, "missing data is not zero usage");
+Check(Limits.WasReset(new(new(99, null), new(100, null)), new(new(100, null), new(100, null))), "reset notification detects a limit reaching 100%");
+Check(!Limits.WasReset(new(new(100, null), null), new(new(100, null), new(80, null))), "reset notification ignores unchanged and reduced limits");
 var now = DateTimeOffset.UtcNow;
 Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Ожидается"), "elapsed reset does not invent a replenished quota");
 

@@ -5,6 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Media;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
@@ -274,6 +276,7 @@ public sealed class WidgetWindow : Window
         if (refreshing || demo || closed) return;
         refreshing = true;
         var version = generation;
+        var resetDetected = 0;
         try
         {
             await Task.WhenAll(accounts.Where(a => a.Client != null && !a.SigningIn &&
@@ -283,6 +286,8 @@ public sealed class WidgetWindow : Window
                 {
                     var snapshot = await account.Client!.ReadAsync();
                     if (version != generation || closed) return;
+                    if (settings.NotifyOnLimitReset && account.Snapshot is { } previous && Limits.WasReset(previous.Limits, snapshot.Limits))
+                        Interlocked.Exchange(ref resetDetected, 1);
                     account.Snapshot = snapshot;
                     account.Failed = false;
                     account.Failures = 0;
@@ -306,6 +311,7 @@ public sealed class WidgetWindow : Window
                     if (error is CodexException { Kind: FailureKind.RateLimited }) account.RateLimitUntil = account.NextRefresh;
                 }
             }));
+            if (resetDetected != 0) SystemSounds.Asterisk.Play();
         }
         finally { refreshing = false; if (!closed) UpdateDisplay(); }
     }

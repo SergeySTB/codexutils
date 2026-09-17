@@ -14,5 +14,6 @@
     "alwaysOnTop": true,
     "respectTaskbar": true
   },
-  "refreshSeconds": 60
+  "refreshSeconds": 60,
+  "notifyOnLimitReset": false
 }

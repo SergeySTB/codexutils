@@ -6,6 +6,12 @@ namespace CodexLimits;
 public sealed record LimitWindow(double Remaining, DateTimeOffset? ResetsAt);
 public sealed record Limits(LimitWindow? FiveHour, LimitWindow? Weekly)
 {
+    public static bool WasReset(Limits previous, Limits current) =>
+        WasReset(previous.FiveHour, current.FiveHour) || WasReset(previous.Weekly, current.Weekly);
+
+    private static bool WasReset(LimitWindow? previous, LimitWindow? current) =>
+        previous is { Remaining: < 100 } && current is { Remaining: >= 100 };
+
     public static Limits Parse(JsonElement result)
     {
         JsonElement bucket;

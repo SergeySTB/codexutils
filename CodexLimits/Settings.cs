@@ -30,6 +30,7 @@ public sealed record Settings
     ];
     public WidgetSettings Widget { get; init; } = new();
     public int RefreshSeconds { get; init; } = 60;
+    public bool NotifyOnLimitReset { get; init; }
 
     public static readonly JsonSerializerOptions JsonOptions = new()
     {
