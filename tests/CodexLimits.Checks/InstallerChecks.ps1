@@ -19,6 +19,7 @@ Check ($install.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninst
 Check ($install.Contains("'CommonPrograms'")) 'installer creates an all-users Start menu shortcut'
 Check ($install.Contains("'Update-Config.ps1'")) 'installer migrates the existing user configuration'
 Check ($uninstall.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CodexLimits')) 'uninstaller removes its registry entry'
+Check ($uninstall.Contains("Join-Path `$env:ProgramFiles 'Codex Limits'")) 'uninstaller validates its installation directory'
 Check ($uninstall.Contains('Remove-Item -LiteralPath $destination -Recurse -Force')) 'uninstaller removes the Program Files directory'
 
 foreach ($script in @('packaging/windows/Install.ps1', 'packaging/windows/Uninstall.ps1')) {

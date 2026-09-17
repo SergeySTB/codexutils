@@ -17,9 +17,9 @@ $destination = Join-Path $env:ProgramFiles 'Codex Limits'
 $app = Join-Path $destination 'CodexLimits.exe'
 $legacyApp = Join-Path $env:LOCALAPPDATA 'CodexLimits/app'
 
+Get-Process -Name CodexLimits -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 & (Join-Path $source 'Update-Config.ps1') -TemplatePath (Join-Path $source 'config.example.json')
 
-Get-Process -Name CodexLimits -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $destination | Out-Null
 foreach ($file in @('CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md', 'Uninstall.ps1')) {
     Copy-Item -LiteralPath (Join-Path $source $file) -Destination (Join-Path $destination $file) -Force
