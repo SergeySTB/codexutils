@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\CodexLimits.ico</ApplicationIcon>
     <Version>1.1</Version>
   </PropertyGroup>
   <ItemGroup>

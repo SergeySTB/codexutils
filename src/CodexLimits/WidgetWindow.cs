@@ -28,6 +28,7 @@ public sealed class WidgetWindow : Window
     private readonly bool demo;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly Forms.NotifyIcon tray;
+    private readonly System.Drawing.Icon trayIcon;
     private readonly List<AccountView> accounts = [];
     private Settings settings;
     private string? connectionProblem;
@@ -85,7 +86,8 @@ public sealed class WidgetWindow : Window
               </Setter.Value></Setter>
             </Style>
             """);
-        tray = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Information, Text = "Codex Limits", Visible = true };
+        trayIcon = LoadApplicationIcon();
+        tray = new Forms.NotifyIcon { Icon = trayIcon, Text = "Codex Limits", Visible = true };
         tray.DoubleClick += (_, _) => { Show(); Activate(); };
         SourceInitialized += (_, _) =>
         {
@@ -101,8 +103,18 @@ public sealed class WidgetWindow : Window
             foreach (var account in accounts) { account.Details.IsOpen = false; account.Client?.Dispose(); }
             tray.Visible = false;
             tray.Dispose();
+            trayIcon.Dispose();
         };
         Apply(settings);
+    }
+
+    private static System.Drawing.Icon LoadApplicationIcon()
+    {
+        var path = Environment.ProcessPath;
+        return path == null
+            ? (System.Drawing.Icon)System.Drawing.SystemIcons.Application.Clone()
+            : System.Drawing.Icon.ExtractAssociatedIcon(path)
+                ?? (System.Drawing.Icon)System.Drawing.SystemIcons.Application.Clone();
     }
 
     private void Apply(Settings next)

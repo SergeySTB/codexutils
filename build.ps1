@@ -76,6 +76,38 @@ SourceFiles0=$payloadRoot\
     Set-Content -LiteralPath $sedPath -Value ($sed -replace '\r?\n', "`r`n") -Encoding Default
     $packager = Start-Process -FilePath "$env:WINDIR\System32\iexpress.exe" -ArgumentList '/N /Q CodexLimits.sed' -WorkingDirectory (Split-Path $sedPath) -WindowStyle Hidden -Wait -PassThru
     if ($packager.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $setupPath)) { throw 'Installer build failed' }
+    & powershell -NoProfile -ExecutionPolicy Bypass -File packaging/windows/Set-ExeIcon.ps1 `
+        -ExecutablePath $setupPath -IconPath src/CodexLimits/Assets/CodexLimits.ico
+    if ($LASTEXITCODE -ne 0) { throw 'Installer icon update failed' }
+    $verifyRoot = Join-Path $PSScriptRoot '.build/installer/verify'
+    $cabPath = Join-Path $PSScriptRoot '.build/installer/verify.cab'
+    Remove-Item -LiteralPath $verifyRoot -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $cabPath -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force -Path $verifyRoot | Out-Null
+    try {
+        $installer = [IO.File]::ReadAllBytes($setupPath)
+        $cabOffset = -1
+        $cabLength = 0
+        for ($index = 0; $index -le $installer.Length - 12; $index++) {
+            if ($installer[$index] -eq 0x4D -and $installer[$index + 1] -eq 0x53 -and $installer[$index + 2] -eq 0x43 -and $installer[$index + 3] -eq 0x46) {
+                $candidate = [BitConverter]::ToUInt32($installer, $index + 8)
+                if ($candidate -ge 36 -and [uint64]$index + $candidate -le $installer.Length) { $cabOffset = $index; $cabLength = $candidate; break }
+            }
+        }
+        if ($cabOffset -lt 0) { throw 'Installer cabinet was not found after icon update' }
+        [byte[]]$cabinet = $installer[$cabOffset..($cabOffset + $cabLength - 1)]
+        [IO.File]::WriteAllBytes($cabPath, $cabinet)
+        & "$env:WINDIR\System32\expand.exe" '-F:*' $cabPath $verifyRoot | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Installer extraction check failed' }
+        foreach ($file in @('install.cmd', 'CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md', 'Update-Config.ps1')) {
+            $extracted = Join-Path $verifyRoot $file
+            if (-not (Test-Path -LiteralPath $extracted)) { throw "Installer payload missing: $file" }
+            if ((Get-FileHash -LiteralPath $extracted).Hash -ne (Get-FileHash -LiteralPath (Join-Path $payloadRoot $file)).Hash) { throw "Installer payload changed: $file" }
+        }
+    } finally {
+        Remove-Item -LiteralPath $verifyRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $cabPath -Force -ErrorAction SilentlyContinue
+    }
     Write-Output "Ready: $setupPath"
 } finally {
     $env:DOTNET_CLI_HOME = $previousCliHome
