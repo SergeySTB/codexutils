@@ -11,6 +11,8 @@ try {
     if (-not $SkipChecks) {
         & powershell -NoProfile -ExecutionPolicy Bypass -File tests/CodexLimits.Checks/ConfigMigrationChecks.ps1
         if ($LASTEXITCODE -ne 0) { throw 'Configuration migration checks failed' }
+        & powershell -NoProfile -ExecutionPolicy Bypass -File tests/CodexLimits.Checks/InstallerChecks.ps1
+        if ($LASTEXITCODE -ne 0) { throw 'Installer checks failed' }
         dotnet run --project tests/CodexLimits.Checks/CodexLimits.Checks.csproj -c Release
         if ($LASTEXITCODE -ne 0) { throw 'Checks failed' }
     }
@@ -18,15 +20,20 @@ try {
     Remove-Item -LiteralPath $publishRoot -Recurse -Force -ErrorAction SilentlyContinue
     dotnet publish src/CodexLimits/CodexLimits.csproj -c Release --self-contained false -o $publishRoot --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Publish failed' }
+    [xml]$project = Get-Content -LiteralPath src/CodexLimits/CodexLimits.csproj
+    $version = [string]$project.Project.PropertyGroup.Version
+    if ($version -notmatch '^\d+\.\d+$') { throw "Installer version must use major.minor format: $version" }
     Copy-Item -LiteralPath README.md -Destination $publishRoot/README.md
     $payloadRoot = Join-Path $PSScriptRoot '.build/installer/payload'
-    $setupPath = Join-Path $PSScriptRoot 'dist/CodexLimits-Setup.exe'
+    $setupPath = Join-Path $PSScriptRoot "dist/CodexLimits-Setup_v$version.exe"
     Remove-Item -LiteralPath $payloadRoot -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $setupPath -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Force -Path $payloadRoot, (Split-Path $setupPath) | Out-Null
     $payloadFiles = @('CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md')
     foreach ($file in $payloadFiles) { Copy-Item -LiteralPath (Join-Path $publishRoot $file) -Destination $payloadRoot }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/install.cmd') -Destination $payloadRoot
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/Install.ps1') -Destination $payloadRoot
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/Uninstall.ps1') -Destination $payloadRoot
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/Update-Config.ps1') -Destination $payloadRoot
     $sedPath = Join-Path $PSScriptRoot '.build/installer/CodexLimits.sed'
     $sed = @"
@@ -54,13 +61,15 @@ UserQuietInstCmd=install.cmd
 SourceFiles=SourceFiles
 [Strings]
 FILE0="install.cmd"
-FILE1="CodexLimits.exe"
-FILE2="CodexLimits.dll"
-FILE3="CodexLimits.deps.json"
-FILE4="CodexLimits.runtimeconfig.json"
-FILE5="config.example.json"
-FILE6="README.md"
-FILE7="Update-Config.ps1"
+FILE1="Install.ps1"
+FILE2="Uninstall.ps1"
+FILE3="CodexLimits.exe"
+FILE4="CodexLimits.dll"
+FILE5="CodexLimits.deps.json"
+FILE6="CodexLimits.runtimeconfig.json"
+FILE7="config.example.json"
+FILE8="README.md"
+FILE9="Update-Config.ps1"
 [SourceFiles]
 SourceFiles0=$payloadRoot\
 [SourceFiles0]
@@ -72,6 +81,8 @@ SourceFiles0=$payloadRoot\
 %FILE5%=
 %FILE6%=
 %FILE7%=
+%FILE8%=
+%FILE9%=
 "@
     Set-Content -LiteralPath $sedPath -Value ($sed -replace '\r?\n', "`r`n") -Encoding Default
     $packager = Start-Process -FilePath "$env:WINDIR\System32\iexpress.exe" -ArgumentList '/N /Q CodexLimits.sed' -WorkingDirectory (Split-Path $sedPath) -WindowStyle Hidden -Wait -PassThru
@@ -99,7 +110,7 @@ SourceFiles0=$payloadRoot\
         [IO.File]::WriteAllBytes($cabPath, $cabinet)
         & "$env:WINDIR\System32\expand.exe" '-F:*' $cabPath $verifyRoot | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Installer extraction check failed' }
-        foreach ($file in @('install.cmd', 'CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md', 'Update-Config.ps1')) {
+        foreach ($file in @('install.cmd', 'Install.ps1', 'Uninstall.ps1', 'CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md', 'Update-Config.ps1')) {
             $extracted = Join-Path $verifyRoot $file
             if (-not (Test-Path -LiteralPath $extracted)) { throw "Installer payload missing: $file" }
             if ((Get-FileHash -LiteralPath $extracted).Hash -ne (Get-FileHash -LiteralPath (Join-Path $payloadRoot $file)).Hash) { throw "Installer payload changed: $file" }

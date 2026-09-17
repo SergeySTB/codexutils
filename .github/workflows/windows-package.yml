@@ -63,7 +63,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: CodexLimits-Setup-${{ github.sha }}
-          path: dist/CodexLimits-Setup.exe
+          path: dist/CodexLimits-Setup_*.exe
           if-no-files-found: error
 
   release:
@@ -83,4 +83,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" dist/CodexLimits-Setup.exe --clobber
+        run: gh release upload "$RELEASE_TAG" "dist/CodexLimits-Setup_$RELEASE_TAG.exe" --clobber

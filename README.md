@@ -14,10 +14,12 @@
 
 ## Download
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/latest/download/CodexLimits-Setup.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v1.1/CodexLimits-Setup_v1.1.exe)
 
-Инсталлятор устанавливает `CodexLimits.exe` вместе с нужными файлами и создаёт
-ярлык в меню «Пуск».
+Инсталлятор запрашивает права администратора, устанавливает приложение в
+`C:\Program Files\Codex Limits`, создаёт ярлык в меню «Пуск» и запись в списке
+установленных приложений Windows. Удаление через этот список убирает программу
+и ярлык, но сохраняет ваш `config.json` в профиле пользователя.
 
 Кнопка скачивает установщик из последнего стабильного релиза.
 Все версии и описание изменений доступны на [странице релизов](https://github.com/SergeySTB/codexutils/releases).
@@ -28,7 +30,7 @@
 установленный Codex CLI с командой `app-server`. На машине разработки уже есть
 подходящий .NET. Проверена совместимость с Codex CLI 0.147.0.
 
-1. Запустите `CodexLimits-Setup.exe`.
+1. Запустите скачанный файл установщика.
 2. Нажмите первую иконку (**Л**) и завершите вход в браузере через первый аккаунт ChatGPT.
 3. Затем нажмите вторую иконку (**Р**) и войдите через второй аккаунт. В браузере выберите
    другой аккаунт, если он предлагает ранее использованный. Одновременно запускается
@@ -161,7 +163,7 @@ OpenAI может отдавать только недельное окно ил
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-Результат: `dist\CodexLimits-Setup.exe`. Временные файлы сборки находятся в
+Результат: `dist\CodexLimits-Setup_v<major>.<minor>.exe`. Временные файлы сборки находятся в
 `.build\publish`.
 Это framework-dependent сборка: .NET Desktop Runtime должен быть установлен.
 Файлы DLL и runtimeconfig рядом с EXE нужны для запуска. Скрипт не коммитит и
@@ -172,8 +174,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 согласования версии и отправки коммита создайте стабильный релиз с тегом
 `v<major>.<minor>` на этом коммите. Workflow **Windows Package** проверит
 совпадение тега с версией проекта, соберёт установщик и прикрепит к релизу
-`CodexLimits-Setup.exe`. Это постоянное имя позволяет кнопке загрузки всегда
-скачивать последнюю версию. Для pull request и изменений в `main` тот же
+`CodexLimits-Setup_v<major>.<minor>.exe`. Вместе с повышением версии обновите
+прямую ссылку кнопки загрузки на этот asset. Для pull request и изменений в `main` тот же
 workflow сохраняет проверенный установщик как временный GitHub Actions artifact.
 
 `tests/CodexLimits.Checks` — исполняемые проверки без тестовых библиотек: разбор квот, валидация
