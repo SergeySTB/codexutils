@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+dist/
+.build/
+config.json
+auth.json
+*.user
+Screenshot.jpg

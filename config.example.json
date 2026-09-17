@@ -1,0 +1,18 @@
+{
+  "codexExecutable": "",
+  "accounts": [
+    { "name": "Личный", "codexHome": "%LOCALAPPDATA%/CodexLimits/profiles/personal" },
+    { "name": "Рабочий", "codexHome": "%LOCALAPPDATA%/CodexLimits/profiles/work" }
+  ],
+  "widget": {
+    "widthPx": 88,
+    "heightPx": 44,
+    "monitor": "primary",
+    "edge": "top",
+    "offsetPx": 400,
+    "marginPx": 8,
+    "alwaysOnTop": true,
+    "respectTaskbar": true
+  },
+  "refreshSeconds": 60
+}
