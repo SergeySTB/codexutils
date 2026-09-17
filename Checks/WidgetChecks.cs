@@ -36,6 +36,9 @@ internal static class WidgetChecks
                         window = new WidgetWindow(Path.Combine(outputDirectory, "unused-config.json"), settings, demo: true);
                         window.Show();
                         await Until(() => window.IsLoaded, "widget loaded");
+                        Require(window.ContextMenu?.Items.OfType<MenuItem>().Any(item =>
+                            (string?)item.Header == "Версия " + ProductInfo.Version && !item.IsEnabled) == true,
+                            "current version appears in the menu");
                         var viewbox = (Viewbox)((Border)window.Content).Child;
                         var strip = (StackPanel)viewbox.Child;
                         Require(strip.Children.Count == 2 && strip.Children.OfType<Button>().Count() == 2, "only two account icons on " + edge);

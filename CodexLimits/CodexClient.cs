@@ -108,7 +108,7 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
         // Drain diagnostics without persisting tokens, authorization URLs or raw responses.
         _ = DrainErrorsAsync(current);
         reader = ReadLoopAsync(current);
-        await RequestAsync("initialize", new { clientInfo = new { name = "codex_limits_widget", version = "0.1.0" } });
+        await RequestAsync("initialize", new { clientInfo = new { name = "codex_limits_widget", version = ProductInfo.Version } });
         await SendAsync(new { method = "initialized", @params = new { } });
     }
 

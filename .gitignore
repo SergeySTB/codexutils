@@ -1,6 +1,8 @@
 **/bin/
 **/obj/
 dist/
+releases/
+*.exe
 .build/
 config.json
 auth.json

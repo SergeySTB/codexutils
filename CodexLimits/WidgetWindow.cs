@@ -264,6 +264,9 @@ public sealed class WidgetWindow : Window
         Item("Открыть конфигурацию", OpenConfig);
         Item("Применить конфигурацию", Reload);
         Item("Показать виджет", () => { Show(); Place(); });
+        var version = "Версия " + ProductInfo.Version;
+        context.Items.Add(new MenuItem { Header = version, IsEnabled = false });
+        trayMenu.Items.Add(new Forms.ToolStripMenuItem(version) { Enabled = false });
         Item("Выход", Close);
         ContextMenu = context;
         var old = tray.ContextMenuStrip;

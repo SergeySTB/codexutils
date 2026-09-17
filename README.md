@@ -14,10 +14,13 @@
 
 ## Download
 
-[![Download for Windows](docs/design/download-windows.svg)](releases/CodexLimits-Setup.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/latest/download/CodexLimits-Setup.exe)
 
 Инсталлятор устанавливает `CodexLimits.exe` вместе с нужными файлами и создаёт
 ярлык в меню «Пуск».
+
+Кнопка скачивает установщик из последнего стабильного релиза.
+Все версии и описание изменений доступны на [странице релизов](https://github.com/SergeySTB/codexutils/releases).
 
 ## Запуск
 
@@ -144,12 +147,20 @@ OpenAI может отдавать только недельное окно ил
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-Результат: `releases\CodexLimits-Setup.exe`. Временные файлы сборки находятся в
+Результат: `dist\CodexLimits-Setup.exe`. Временные файлы сборки находятся в
 `.build\publish`.
 Это framework-dependent сборка: .NET Desktop Runtime должен быть установлен.
 Файлы DLL и runtimeconfig рядом с EXE нужны для запуска. Скрипт не коммитит и
 не публикует изменения, не устанавливает автозапуск и не меняет пользовательский
 профиль Codex.
+
+Установщик хранится в GitHub Releases, а не в Git. Для публикации после
+согласования версии и отправки коммита создайте релиз с тегом `v<major>.<minor>`
+на этом коммите и прикрепите `dist\CodexLimits-Setup.exe`. Релиз должен быть
+опубликован как стабильный и отмечен Latest. Имя вложения всегда
+`CodexLimits-Setup.exe`, чтобы кнопка автоматически скачивала последнюю версию.
+В разделе Releases можно выбрать **Draft a new release**, указать тег и коммит,
+загрузить EXE, заполнить описание изменений и нажать **Publish release**.
 
 `Checks` — исполняемые проверки без тестовых библиотек: разбор квот, валидация
 настроек, четыре края, ограничения экрана, два независимых дочерних процесса,

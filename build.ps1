@@ -20,7 +20,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Publish failed' }
     Copy-Item -LiteralPath README.md -Destination $publishRoot/README.md
     $payloadRoot = Join-Path $PSScriptRoot '.build/installer/payload'
-    $setupPath = Join-Path $PSScriptRoot 'releases/CodexLimits-Setup.exe'
+    $setupPath = Join-Path $PSScriptRoot 'dist/CodexLimits-Setup.exe'
     Remove-Item -LiteralPath $payloadRoot -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $setupPath -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Force -Path $payloadRoot, (Split-Path $setupPath) | Out-Null
@@ -73,10 +73,9 @@ SourceFiles0=$payloadRoot\
 %FILE6%=
 %FILE7%=
 "@
-    Set-Content -LiteralPath $sedPath -Value $sed -NoNewline
-    & "$env:WINDIR\System32\iexpress.exe" /N $sedPath
-    for ($attempt = 0; $attempt -lt 10 -and -not (Test-Path -LiteralPath $setupPath); $attempt++) { Start-Sleep -Seconds 1 }
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $setupPath)) { throw 'Installer build failed' }
+    Set-Content -LiteralPath $sedPath -Value ($sed -replace '\r?\n', "`r`n") -Encoding Default
+    $packager = Start-Process -FilePath "$env:WINDIR\System32\iexpress.exe" -ArgumentList '/N /Q CodexLimits.sed' -WorkingDirectory (Split-Path $sedPath) -WindowStyle Hidden -Wait -PassThru
+    if ($packager.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $setupPath)) { throw 'Installer build failed' }
     Write-Output "Ready: $setupPath"
 } finally {
     $env:DOTNET_CLI_HOME = $previousCliHome
