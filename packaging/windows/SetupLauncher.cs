@@ -29,7 +29,7 @@ internal static class SetupLauncher
         }
         catch (Exception error)
         {
-            MessageBox.Show(error.Message, "Codex Limits setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(error.Message, "AI Usage Monitor setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;
         }
     }

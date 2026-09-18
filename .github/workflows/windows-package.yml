@@ -62,8 +62,8 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: CodexLimits-Setup-${{ github.sha }}
-          path: dist/CodexLimits-Setup_*.exe
+          name: AIUsageMonitor-Setup-${{ github.sha }}
+          path: dist/AIUsageMonitor-Setup_*.exe
           if-no-files-found: error
 
   release:
@@ -76,7 +76,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: CodexLimits-Setup-${{ github.sha }}
+          name: AIUsageMonitor-Setup-${{ github.sha }}
           path: dist
 
       - name: Upload installer
@@ -85,7 +85,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          installer="$(find dist -type f -name 'CodexLimits-Setup_*.exe' -print -quit)"
+          installer="$(find dist -type f -name 'AIUsageMonitor-Setup_*.exe' -print -quit)"
           test -n "$installer"
           asset_name="$(basename "$installer")"
           if gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | grep -Fxq "$asset_name"; then

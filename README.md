@@ -1,4 +1,4 @@
-# Codex Limits for Windows 11
+# AI Usage Monitor for Windows 11
 
 Компактный виджет для аккаунтов ChatGPT / Codex: по одной круглой иконке
 с инициалом на каждую запись в конфигурации. Внешнее бирюзовое кольцо показывает
@@ -21,21 +21,23 @@
 
 ## Download
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v2.0/CodexLimits-Setup_v2.0.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v3.0/AIUsageMonitor-Setup_v3.0.exe)
 
 Инсталлятор запрашивает права администратора, устанавливает приложение в
-`C:\Program Files\Codex Limits`, создаёт ярлык в меню «Пуск» и запись в списке
+`C:\Program Files\AI Usage Monitor`, создаёт ярлык в меню «Пуск» и запись в списке
 установленных приложений Windows. Удаление через этот список убирает программу
 и ярлык, но сохраняет ваш `config.json` в профиле пользователя.
 
-При обновлении инсталлятор закрывает работающий Codex Limits перед заменой
+При обновлении инсталлятор закрывает работающий AI Usage Monitor перед заменой
 файлов. В конце он показывает результат установки. При успехе флажок
-**Запустить Codex Limits после установки** включён по умолчанию; его можно снять.
-При ошибке флажок недоступен, а в окне приведена причина.
+**Запустить AI Usage Monitor после установки** включён по умолчанию; его можно снять.
+При ошибке флажок недоступен.
 Установка и миграция конфигурации выполняются без консольных окон; Windows
 показывает только запрос прав администратора и итоговое окно установки.
 Оконный запускатель не создаёт CMD или консоль PowerShell и оставляет итоговое
 окно видимым до нажатия **Закрыть**.
+При обновлении с прежнего имени установщик переносит программу из
+`C:\Program Files\Codex Limits` в новую папку, сохраняя конфигурацию.
 
 Кнопка ведёт к установщику текущего стабильного релиза.
 Все версии и описание изменений доступны на [странице релизов](https://github.com/SergeySTB/codexutils/releases).
@@ -208,7 +210,7 @@ OpenAI может отдавать только недельное окно ил
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-Результат: `dist\CodexLimits-Setup_v<major>.<minor>.exe`. Временные файлы сборки находятся в
+Результат: `dist\AIUsageMonitor-Setup_v<major>.<minor>.exe`. Временные файлы сборки находятся в
 `.build\publish`.
 Это framework-dependent сборка: .NET Desktop Runtime должен быть установлен.
 Файлы DLL и runtimeconfig рядом с EXE нужны для запуска. Скрипт не коммитит и
@@ -219,7 +221,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 согласования версии и отправки коммита создайте стабильный релиз с тегом
 `v<major>.<minor>` на этом коммите. Workflow **Windows Package** проверит
 совпадение тега с версией проекта, соберёт установщик и прикрепит к релизу
-`CodexLimits-Setup_v<major>.<minor>.exe`. Сборка проверяет, что прямая ссылка
+`AIUsageMonitor-Setup_v<major>.<minor>.exe`. Сборка проверяет, что прямая ссылка
 кнопки загрузки в README указывает на asset с текущей версией. Для pull request
 и изменений в `main` тот же workflow сохраняет проверенный установщик как
 временный GitHub Actions artifact.

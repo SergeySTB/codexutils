@@ -11,17 +11,18 @@ $install = Get-Content -LiteralPath (Join-Path $repoRoot 'packaging/windows/Inst
 $uninstall = Get-Content -LiteralPath (Join-Path $repoRoot 'packaging/windows/Uninstall.ps1') -Raw
 $launcher = Get-Content -LiteralPath (Join-Path $repoRoot 'packaging/windows/SetupLauncher.cs') -Raw
 
-Check ($build.Contains('CodexLimits-Setup_v$version.exe')) 'installer filename includes major.minor version'
+Check ($build.Contains('AIUsageMonitor-Setup_v$version.exe')) 'installer filename includes major.minor version'
 Check ($build.Contains("'Install.ps1'") -and $build.Contains("'Uninstall.ps1'")) 'installer payload includes install and uninstall scripts'
 Check ($build.Contains('AppLaunched=SetupLauncher.exe') -and -not $build.Contains('install.cmd')) 'installer starts a GUI launcher without CMD'
 Check ($launcher.Contains('CreateNoWindow = true') -and -not $launcher.Contains('WindowStyle')) 'launcher avoids a console without hiding dialogs'
-Check ($install.Contains("Join-Path `$env:ProgramFiles 'Codex Limits'")) 'installer targets Program Files'
+Check ($install.Contains("Join-Path `$env:ProgramFiles 'AI Usage Monitor'")) 'installer targets the named Program Files folder'
+Check ($install.Contains("Join-Path `$env:ProgramFiles 'Codex Limits'")) 'installer removes the previous named Program Files folder during upgrade'
 Check ($install.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CodexLimits')) 'installer creates an uninstall registry entry'
 Check ($install.Contains("'CommonPrograms'")) 'installer creates an all-users Start menu shortcut'
 Check ($install.Contains("'Update-Config.ps1'")) 'installer migrates the existing user configuration'
 Check ($install.Contains('-Verb RunAs -WindowStyle Hidden')) 'elevated installer stays hidden'
 Check ($uninstall.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CodexLimits')) 'uninstaller removes its registry entry'
-Check ($uninstall.Contains("Join-Path `$env:ProgramFiles 'Codex Limits'")) 'uninstaller validates its installation directory'
+Check ($uninstall.Contains("Join-Path `$env:ProgramFiles 'AI Usage Monitor'")) 'uninstaller validates its installation directory'
 Check ($uninstall.Contains('Remove-Item -LiteralPath $destination -Recurse -Force')) 'uninstaller removes the Program Files directory'
 Check ($uninstall.Contains('-Verb RunAs -WindowStyle Hidden')) 'elevated uninstaller stays hidden'
 
@@ -61,18 +62,20 @@ Check ($install -notmatch '-Verb RunAs -Wait') 'elevated installer does not wait
 
 # Inspect real controls and simulate the dialog result without displaying a window.
 $dialogFunction = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Show-InstallationResult' }, $true)
-. ([scriptblock]::Create($dialogFunction.Extent.Text.Replace('$form.ShowDialog()', '(& $script:dialogProbe $launch $detailsBox)')))
+$dialogSource = $dialogFunction.Extent.Text -replace '(?m)^\s*\$version = .+$', "    `$version = '2.0'"
+. ([scriptblock]::Create($dialogSource.Replace('$form.ShowDialog()', '(& $script:dialogProbe $form $launch)')))
 foreach ($scenario in @('launch', 'unchecked', 'failed', 'dismissed')) {
     $script:dialogProbe = {
-        param($launch, $detailsBox)
+        param($form, $launch)
         $success = $scenario -ne 'failed'
         if ($launch.Enabled -ne $success -or $launch.Checked -ne $success) { throw 'Incorrect launch checkbox state' }
-        if ($detailsBox.Text -ne 'Test details') { throw 'Missing installation details' }
+        if ($form.Text -notmatch 'AI Usage Monitor \d+\.\d+$') { throw 'Missing installer version in title' }
+        if ($form.Controls | Where-Object { $_ -is [Windows.Forms.TextBox] }) { throw 'Unrequested details field is present' }
         if ($scenario -eq 'unchecked') { $launch.Checked = $false }
         if ($scenario -eq 'dismissed') { return [Windows.Forms.DialogResult]::Cancel }
         return [Windows.Forms.DialogResult]::OK
     }
-    $shouldLaunch = Show-InstallationResult ($scenario -ne 'failed') 'Test details'
+    $shouldLaunch = Show-InstallationResult ($scenario -ne 'failed')
     Check ($shouldLaunch -eq ($scenario -eq 'launch')) "completion dialog handles $scenario"
 }
 Remove-Variable dialogProbe -Scope Script

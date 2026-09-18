@@ -8,7 +8,9 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\CodexLimits.ico</ApplicationIcon>
-    <Version>2.0</Version>
+    <AssemblyTitle>AI Usage Monitor</AssemblyTitle>
+    <Product>AI Usage Monitor</Product>
+    <Version>3.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../config/config.example.json" Link="config.example.json" CopyToOutputDirectory="PreserveNewest" />

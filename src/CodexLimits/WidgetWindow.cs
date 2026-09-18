@@ -63,7 +63,7 @@ public sealed class WidgetWindow : Window
         this.configPath = configPath;
         this.settings = settings;
         this.demo = demo;
-        Title = "Codex Limits";
+        Title = "AI Usage Monitor";
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
         AllowsTransparency = true;
@@ -89,7 +89,7 @@ public sealed class WidgetWindow : Window
             </Style>
             """);
         trayIcon = LoadApplicationIcon();
-        tray = new Forms.NotifyIcon { Icon = trayIcon, Text = "Codex Limits", Visible = true };
+        tray = new Forms.NotifyIcon { Icon = trayIcon, Text = "AI Usage Monitor", Visible = true };
         tray.DoubleClick += (_, _) => { Show(); Activate(); };
         SourceInitialized += (_, _) =>
         {
@@ -426,7 +426,7 @@ public sealed class WidgetWindow : Window
     private async Task SignInAsync(AccountView account)
     {
         if (demo || loggingIn || closed) return;
-        if (account.Client == null) { MessageBox.Show(connectionProblem, "Codex Limits"); return; }
+        if (account.Client == null) { MessageBox.Show(connectionProblem, "AI Usage Monitor"); return; }
         loggingIn = true;
         account.SigningIn = true;
         account.Snapshot = null;
@@ -444,7 +444,7 @@ public sealed class WidgetWindow : Window
             if (closed || version != generation) return;
             account.Failed = true;
             account.Status = error is CodexException known ? known.Message : "Вход не завершён. Повторите попытку";
-            MessageBox.Show(account.Status, "Codex Limits", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(account.Status, "AI Usage Monitor", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         finally
         {
@@ -460,25 +460,25 @@ public sealed class WidgetWindow : Window
         {
             if (!File.Exists(configPath))
             {
-                MessageBox.Show("В режиме демонстрации конфигурация не создаётся. Запустите приложение без --demo или укажите --config.", "Codex Limits");
+                MessageBox.Show("В режиме демонстрации конфигурация не создаётся. Запустите приложение без --demo или укажите --config.", "AI Usage Monitor");
                 return;
             }
             var start = new ProcessStartInfo("notepad.exe") { UseShellExecute = false };
             start.ArgumentList.Add(configPath);
             Process.Start(start);
         }
-        catch (Exception) { MessageBox.Show("Не удалось открыть файл: " + configPath, "Codex Limits"); }
+        catch (Exception) { MessageBox.Show("Не удалось открыть файл: " + configPath, "AI Usage Monitor"); }
     }
 
     private void Reload()
     {
         try
         {
-            if (loggingIn) { MessageBox.Show("Завершите вход в аккаунт перед изменением настроек.", "Codex Limits"); return; }
+            if (loggingIn) { MessageBox.Show("Завершите вход в аккаунт перед изменением настроек.", "AI Usage Monitor"); return; }
             Apply(Settings.Load(configPath));
             _ = RefreshAsync();
         }
-        catch (Exception error) { MessageBox.Show("Настройки не применены.\n" + error.Message, "Codex Limits"); }
+        catch (Exception error) { MessageBox.Show("Настройки не применены.\n" + error.Message, "AI Usage Monitor"); }
     }
 
     private void Place()

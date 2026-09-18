@@ -50,7 +50,7 @@ public static class Program
             using var mutex = new Mutex(true, "Local\\CodexLimits-" + (demo ? "Demo" : "Live"), out var first);
             if (!first && screenshot == null)
             {
-                MessageBox.Show("Codex Limits уже работает. Меню доступно через значок в трее.", "Codex Limits");
+                MessageBox.Show("AI Usage Monitor уже работает. Меню доступно через значок в трее.", "AI Usage Monitor");
                 return 0;
             }
             var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
@@ -87,7 +87,7 @@ public static class Program
         }
         catch (Exception error)
         {
-            MessageBox.Show("Не удалось запустить виджет.\n\n" + error.Message, "Codex Limits", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show("Не удалось запустить виджет.\n\n" + error.Message, "AI Usage Monitor", MessageBoxButton.OK, MessageBoxImage.Error);
             return 1;
         }
     }

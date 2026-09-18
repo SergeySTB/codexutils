@@ -1,9 +1,21 @@
 # История релизов
 
-В этом файле перечислены заметные для пользователей изменения Codex Limits.
+В этом файле перечислены заметные для пользователей изменения AI Usage Monitor.
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
 
 ## [Unreleased]
+
+## [3.0] — 2026-09-18
+
+### Изменено
+
+- Пользовательское название приложения, установщика, меню «Пуск» и списка
+  установленных программ изменено на AI Usage Monitor.
+
+### Исправлено
+
+- В итоговом окне установки убраны технические детали; заголовок содержит
+  название приложения и версию.
 
 ## [2.0] — 2026-09-18
 
@@ -75,7 +87,8 @@
 - Необязательное звуковое уведомление о сбросе лимита.
 - Миграция существующей конфигурации при установке с резервной копией исходного файла.
 
-[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v2.0...HEAD
+[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v3.0...HEAD
+[3.0]: https://github.com/SergeySTB/codexutils/compare/v2.0...v3.0
 [2.0]: https://github.com/SergeySTB/codexutils/compare/v1.3...v2.0
 [1.3]: https://github.com/SergeySTB/codexutils/compare/v1.2...v1.3
 [1.2]: https://github.com/SergeySTB/codexutils/compare/v1.1...v1.2

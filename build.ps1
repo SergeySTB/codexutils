@@ -23,11 +23,11 @@ try {
     [xml]$project = Get-Content -LiteralPath src/CodexLimits/CodexLimits.csproj
     $version = [string]$project.Project.PropertyGroup.Version
     if ($version -notmatch '^\d+\.\d+$') { throw "Installer version must use major.minor format: $version" }
-    $downloadUrl = "https://github.com/SergeySTB/codexutils/releases/download/v$version/CodexLimits-Setup_v$version.exe"
+    $downloadUrl = "https://github.com/SergeySTB/codexutils/releases/download/v$version/AIUsageMonitor-Setup_v$version.exe"
     if (-not (Get-Content -LiteralPath README.md -Raw -Encoding UTF8).Contains($downloadUrl)) { throw "README download link must reference version $version" }
     Copy-Item -LiteralPath README.md -Destination $publishRoot/README.md
     $payloadRoot = Join-Path $PSScriptRoot '.build/installer/payload'
-    $setupPath = Join-Path $PSScriptRoot "dist/CodexLimits-Setup_v$version.exe"
+    $setupPath = Join-Path $PSScriptRoot "dist/AIUsageMonitor-Setup_v$version.exe"
     Remove-Item -LiteralPath $payloadRoot -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $setupPath -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Force -Path $payloadRoot, (Split-Path $setupPath) | Out-Null
@@ -56,7 +56,7 @@ InstallPrompt=
 DisplayLicense=
 FinishMessage=
 TargetName=$setupPath
-FriendlyName=Codex Limits for Windows 11
+FriendlyName=AI Usage Monitor for Windows 11
 AppLaunched=SetupLauncher.exe
 PostInstallCmd=<None>
 AdminQuietInstCmd=
