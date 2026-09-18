@@ -23,6 +23,8 @@ try {
     [xml]$project = Get-Content -LiteralPath src/CodexLimits/CodexLimits.csproj
     $version = [string]$project.Project.PropertyGroup.Version
     if ($version -notmatch '^\d+\.\d+$') { throw "Installer version must use major.minor format: $version" }
+    $downloadUrl = "https://github.com/SergeySTB/codexutils/releases/download/v$version/CodexLimits-Setup_v$version.exe"
+    if (-not (Get-Content -LiteralPath README.md -Raw -Encoding UTF8).Contains($downloadUrl)) { throw "README download link must reference version $version" }
     Copy-Item -LiteralPath README.md -Destination $publishRoot/README.md
     $payloadRoot = Join-Path $PSScriptRoot '.build/installer/payload'
     $setupPath = Join-Path $PSScriptRoot "dist/CodexLimits-Setup_v$version.exe"

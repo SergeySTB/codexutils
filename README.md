@@ -14,7 +14,7 @@
 
 ## Download
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v1.1/CodexLimits-Setup_v1.1.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v1.2/CodexLimits-Setup_v1.2.exe)
 
 Инсталлятор запрашивает права администратора, устанавливает приложение в
 `C:\Program Files\Codex Limits`, создаёт ярлык в меню «Пуск» и запись в списке
@@ -175,9 +175,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 согласования версии и отправки коммита создайте стабильный релиз с тегом
 `v<major>.<minor>` на этом коммите. Workflow **Windows Package** проверит
 совпадение тега с версией проекта, соберёт установщик и прикрепит к релизу
-`CodexLimits-Setup_v<major>.<minor>.exe`. Вместе с повышением версии обновите
-прямую ссылку кнопки загрузки на этот asset. Для pull request и изменений в `main` тот же
-workflow сохраняет проверенный установщик как временный GitHub Actions artifact.
+`CodexLimits-Setup_v<major>.<minor>.exe`. Сборка проверяет, что прямая ссылка
+кнопки загрузки в README указывает на asset с текущей версией. Для pull request
+и изменений в `main` тот же workflow сохраняет проверенный установщик как
+временный GitHub Actions artifact.
 
 `tests/CodexLimits.Checks` — исполняемые проверки без тестовых библиотек: разбор квот, валидация
 настроек, четыре края, ограничения экрана, два независимых дочерних процесса,
