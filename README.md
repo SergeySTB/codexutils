@@ -21,7 +21,7 @@
 
 ## Download
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v3.0/AIUsageMonitor-Setup_v3.0.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v3.1/AIUsageMonitor-Setup_v3.1.exe)
 
 Инсталлятор запрашивает права администратора, устанавливает приложение в
 `C:\Program Files\AI Usage Monitor`, создаёт ярлык в меню «Пуск» и запись в списке
@@ -114,7 +114,7 @@ Codex Desktop и внутри глобального npm-пакета. Найд�
 | `accounts[].codexHome` | Абсолютный путь к отдельному профилю; поддерживаются `%LOCALAPPDATA%` и `%USERPROFILE%` |
 | `widget.displayMode` | `icons` — компактная панель с подсказками (по умолчанию); `cards` — постоянно открытые карточки всех аккаунтов |
 | `widget.iconWidthPx`, `widget.iconHeightPx` | Размер всей компактной панели иконок в физических пикселях: по умолчанию 88×44, от 64×32 до 4096×2160; игнорируется в режиме `cards` |
-| `widget.cardWidthPx`, `widget.cardHeightPx` | Размер каждой постоянно открытой карточки в физических пикселях: 240–4096 по ширине, 120–2160 по высоте; `0` — автоматический размер по соответствующей оси (по умолчанию оба `0`); игнорируется в режиме `icons` |
+| `widget.cardWidthPx`, `widget.cardHeightPx` | Размер каждой постоянно открытой карточки в физических пикселях: 64×32–4096×2160; `0` — автоматический размер по соответствующей оси (по умолчанию оба `0`); игнорируется в режиме `icons` |
 | `widget.edge` | `top`, `bottom`, `left`, `right` |
 | `widget.offsetPx` | Для top/bottom — от левого края вправо; для left/right — от верхнего края вниз |
 | `widget.marginPx` | Отступ от выбранного края, от -4096 до 4096; положительный — внутрь, отрицательный — наружу (для bottom: вниз, поверх панели задач) |
@@ -139,6 +139,7 @@ Codex Desktop и внутри глобального npm-пакета. Найд�
 **Применить конфигурацию**. Например, `cardWidthPx: 380` и `cardHeightPx: 400`
 задают каждой карточке размер 380×400 физических пикселей. Для автоматической
 высоты оставьте `cardHeightPx: 0`. Для возврата к иконкам выберите `"icons"`.
+Этот режим также можно переключить из контекстного меню виджета или его значка в трее.
 
 Старые `widthPx`/`heightPx` читаются как `iconWidthPx`/`iconHeightPx` и переименовываются
 при установке с сохранением значений. Если указаны оба варианта, новые имена имеют

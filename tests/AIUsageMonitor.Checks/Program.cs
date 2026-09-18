@@ -117,7 +117,8 @@ Reject(() => (valid with { Widget = new() { DisplayMode = "unknown" } }).Validat
 Check((valid with { Widget = new() { DisplayMode = "cards", IconWidthPx = 0, IconHeightPx = -1 } }).Validate().Widget.DisplayMode == "cards", "cards ignore icon dimensions");
 Check((valid with { Widget = new() { CardWidthPx = -1, CardHeightPx = -1 } }).Validate().Widget.DisplayMode == "icons", "icons ignore card dimensions");
 Reject(() => (valid with { Widget = new() { DisplayMode = "cards", CardWidthPx = -1 } }).Validate(), "invalid card width rejected");
-Reject(() => (valid with { Widget = new() { DisplayMode = "cards", CardHeightPx = 119 } }).Validate(), "invalid card height rejected");
+Reject(() => (valid with { Widget = new() { DisplayMode = "cards", CardHeightPx = 31 } }).Validate(), "invalid card height rejected");
+Check((valid with { Widget = new() { DisplayMode = "cards", CardWidthPx = 200, CardHeightPx = 200 } }).Validate().Widget.CardWidthPx == 200, "small card dimensions accepted");
 Check(Placement.Calculate(area, compact, screen, 700, 320).Width == 700, "placement uses measured card dimensions");
 
 string exe = Environment.ProcessPath!;

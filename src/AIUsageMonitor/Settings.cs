@@ -79,12 +79,12 @@ public sealed record Settings
             (Widget.DisplayMode == "icons" && (Widget.IconWidthPx < 64 || Widget.IconWidthPx > 4096 ||
                 Widget.IconHeightPx < 32 || Widget.IconHeightPx > 2160)) ||
             (Widget.DisplayMode == "cards" &&
-                ((Widget.CardWidthPx != 0 && (Widget.CardWidthPx < 240 || Widget.CardWidthPx > 4096)) ||
-                 (Widget.CardHeightPx != 0 && (Widget.CardHeightPx < 120 || Widget.CardHeightPx > 2160)))) || Widget.MarginPx < -4096 ||
+                ((Widget.CardWidthPx != 0 && (Widget.CardWidthPx < 64 || Widget.CardWidthPx > 4096)) ||
+                 (Widget.CardHeightPx != 0 && (Widget.CardHeightPx < 32 || Widget.CardHeightPx > 2160)))) || Widget.MarginPx < -4096 ||
             Widget.MarginPx > 4096 || Widget.OffsetPx < 0 || Widget.OffsetPx > 100000 ||
             string.IsNullOrWhiteSpace(Widget.Monitor) ||
             Widget.Edge is not ("top" or "bottom" or "left" or "right"))
-            throw new InvalidDataException("Проверьте widget: displayMode icons/cards, иконки 64×32–4096×2160, карточки 240×120–4096×2160 (0 — авто), marginPx от -4096 до 4096, offsetPx от 0 до 100000, edge: top/bottom/left/right.");
+            throw new InvalidDataException("Проверьте widget: displayMode icons/cards, иконки и карточки 64×32–4096×2160 (0 — авто только для карточек), marginPx от -4096 до 4096, offsetPx от 0 до 100000, edge: top/bottom/left/right.");
         if (RefreshSeconds < 30 || RefreshSeconds > 3600)
             throw new InvalidDataException("refreshSeconds должен быть от 30 до 3600.");
         if (CodexExecutable is null) throw new InvalidDataException("codexExecutable должен быть строкой.");

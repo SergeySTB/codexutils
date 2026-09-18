@@ -182,11 +182,10 @@ internal static class WidgetChecks
                 window.UpdateLayout();
                 var iconStrip = (StackPanel)((Viewbox)((Border)window.Content).Child).Child;
                 Require(iconStrip.Children.OfType<Button>().Count() == count, "reload switches from cards to icons");
-                File.WriteAllText(config, System.Text.Json.JsonSerializer.Serialize(settings, Settings.JsonOptions));
-                window.ContextMenu!.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Применить конфигурацию")
+                window.ContextMenu!.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Показать карточки")
                     .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 window.UpdateLayout();
-                Require(window.Content is ScrollViewer, "reload switches from icons to cards");
+                Require(Settings.Load(config).Widget.DisplayMode == "cards" && window.Content is ScrollViewer, "menu switches from icons to cards");
                 checks++;
             }
             finally { window.Close(); }

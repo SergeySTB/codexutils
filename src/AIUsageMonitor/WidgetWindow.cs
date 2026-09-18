@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Media;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -321,6 +322,8 @@ public sealed class WidgetWindow : Window
         Item("Обновить сейчас", async () => await RefreshAsync(force: true));
         foreach (var account in accounts)
             Item("Войти: " + account.Config.Name, async () => await SignInAsync(account));
+        Item(settings.Widget.DisplayMode == "icons" ? "Показать карточки" : "Показать иконки",
+            () => SetDisplayMode(settings.Widget.DisplayMode == "icons" ? "cards" : "icons"));
         Item("Открыть конфигурацию", OpenConfig);
         Item("Применить конфигурацию", Reload);
         Item("Показать виджет", () => { Show(); Place(); });
@@ -481,6 +484,21 @@ public sealed class WidgetWindow : Window
         catch (Exception error) { MessageBox.Show("Настройки не применены.\n" + error.Message, "AI Usage Monitor"); }
     }
 
+    private void SetDisplayMode(string displayMode)
+    {
+        try
+        {
+            if (!File.Exists(configPath)) throw new InvalidDataException("Файл конфигурации не найден.");
+            string config = File.ReadAllText(configPath);
+            string updated = new Regex("(\\\"displayMode\\\"\\s*:\\s*\\\")[^\\\"]*(\\\")")
+                .Replace(config, match => match.Groups[1].Value + displayMode + match.Groups[2].Value, 1);
+            if (updated == config) throw new InvalidDataException("Добавьте widget.displayMode в конфигурацию.");
+            File.WriteAllText(configPath, updated);
+            Reload();
+        }
+        catch (Exception error) { MessageBox.Show("Режим отображения не изменён.\n" + error.Message, "AI Usage Monitor"); }
+    }
+
     private void Place()
     {
         var handle = new WindowInteropHelper(this).Handle;
@@ -503,7 +521,7 @@ public sealed class WidgetWindow : Window
                 {
                     card.Width = settings.Widget.CardWidthPx == 0 ? 302 : settings.Widget.CardWidthPx / scale;
                     card.Height = settings.Widget.CardHeightPx == 0 ? double.NaN : settings.Widget.CardHeightPx / scale;
-                    ((StackPanel)((ScrollViewer)card.Child).Content).Width = double.NaN;
+                    ((StackPanel)((ScrollViewer)card.Child).Content).Width = Math.Max(0, card.Width - 30);
                 }
                 cardsPanel.InvalidateMeasure();
                 cardsPanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
