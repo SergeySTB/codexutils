@@ -83,4 +83,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" "dist/CodexLimits-Setup_$RELEASE_TAG.exe" --clobber
+        run: |
+          installer="$(find dist -type f -name 'CodexLimits-Setup_*.exe' -print -quit)"
+          test -n "$installer"
+          gh release upload "$RELEASE_TAG" "$installer" --clobber
