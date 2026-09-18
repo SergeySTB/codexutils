@@ -10,7 +10,7 @@ function Test-Administrator {
 if (-not (Test-Administrator)) {
     $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
     if ($Quiet) { $arguments += '-Quiet' }
-    $process = Start-Process -FilePath powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList $arguments
+    $process = Start-Process -FilePath powershell.exe -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ArgumentList $arguments
     exit $process.ExitCode
 }
 

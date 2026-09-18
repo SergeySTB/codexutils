@@ -65,8 +65,12 @@ Check(Placement.Calculate(screen, compact with { MarginPx = 4, RespectTaskbar = 
 Check(Placement.Calculate(new(-1920, 40, 1920, 1040), compact with { Edge = "top", MarginPx = -20 }, screen).Y == 20, "negative top margin crosses work-area boundary");
 var valid = new Settings { Accounts = [new("One", Path.Combine(checkRoot, "one")), new("Two", Path.Combine(checkRoot, "two"))] };
 Check(valid.Validate().Accounts.Length == 2, "two profiles accepted");
-Reject(() => (valid with { Accounts = [valid.Accounts[0], valid.Accounts[0] with { CodexHome = valid.Accounts[0].CodexHome.ToUpperInvariant() + "/" }] }).Validate(), "duplicate profile paths rejected");
-Reject(() => (valid with { Accounts = [valid.Accounts[0]] }).Validate(), "single profile rejected");
+Check(new Settings().Accounts.Length == 1, "one profile configured by default");
+Check((valid with { Accounts = [valid.Accounts[0]] }).Validate().Accounts.Length == 1, "single profile accepted");
+var threeAccounts = valid with { Accounts = [valid.Accounts[0], valid.Accounts[1], new("Three", Path.Combine(checkRoot, "three"))] };
+Check(threeAccounts.Validate().Accounts.Length == 3, "account count follows configuration");
+Reject(() => (valid with { Accounts = [] }).Validate(), "empty account list rejected");
+Reject(() => (threeAccounts with { Accounts = [.. threeAccounts.Accounts, threeAccounts.Accounts[0] with { CodexHome = threeAccounts.Accounts[0].CodexHome.ToUpperInvariant() + "/" }] }).Validate(), "duplicate profile paths rejected across all accounts");
 Reject(() => (valid with { RefreshSeconds = 0 }).Validate(), "polling interval validated");
 Reject(() => (valid with { Widget = widget with { Edge = "middle" } }).Validate(), "unknown edge rejected");
 Reject(() => (valid with { Widget = widget with { WidthPx = 0 } }).Validate(), "zero width rejected");
@@ -75,6 +79,19 @@ Reject(() => (valid with { Widget = compact with { MarginPx = -4097 } }).Validat
 var configPath = Path.Combine(checkRoot, "config.json");
 File.WriteAllText(configPath, "{\"refeshSeconds\":60}");
 Reject(() => Settings.Load(configPath), "configuration typos rejected");
+var commentedHome = Path.Combine(checkRoot, "commented").Replace("\\", "\\\\");
+File.WriteAllText(configPath, $$"""
+    {
+      // Add another object to accounts for another Codex profile.
+      "accounts": [
+        { "name": "One", "codexHome": "{{commentedHome}}" }
+      ]
+    }
+    """);
+Check(Settings.Load(configPath).Accounts.Length == 1, "configuration comments accepted");
+var shippedExample = Path.Combine(AppContext.BaseDirectory, "config.example.json");
+Check(Settings.Load(shippedExample).Accounts.Length == 1 && File.ReadAllText(shippedExample).Contains("// Add another object"),
+    "shipped configuration has one account and an English second-account example");
 File.WriteAllText(configPath, JsonSerializer.Serialize(valid with { Widget = widget }, Settings.JsonOptions));
 Check(Settings.Load(configPath).Widget is { WidthPx: 88, HeightPx: 44 }, "old default panel becomes compact without rewriting config");
 Check(File.ReadAllText(configPath).Contains("360"), "old configuration file is preserved");

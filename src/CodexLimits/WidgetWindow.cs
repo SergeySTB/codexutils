@@ -138,9 +138,19 @@ public sealed class WidgetWindow : Window
         }
         if (demo)
         {
-            accounts[0].Snapshot = new("personal@example.com", "pro", new(new(72, DateTimeOffset.Now.AddHours(3)), new(38, DateTimeOffset.Now.AddDays(2))), DateTimeOffset.Now);
-            accounts[1].Snapshot = new("work@example.com", "plus", new(null, new(84, DateTimeOffset.Now.AddDays(5))), DateTimeOffset.Now);
-            foreach (var view in accounts) view.Status = "Демонстрация";
+            var samples = new AccountSnapshot[]
+            {
+                new("personal@example.com", "pro", new(new(72, DateTimeOffset.Now.AddHours(3)), new(38, DateTimeOffset.Now.AddDays(2))), DateTimeOffset.Now),
+                new("work@example.com", "plus", new(null, new(84, DateTimeOffset.Now.AddDays(5))), DateTimeOffset.Now)
+            };
+            for (int i = 0; i < accounts.Count; i++)
+            {
+                accounts[i].Snapshot = samples[i % samples.Length] with
+                {
+                    Email = i < samples.Length ? samples[i].Email : $"account{i + 1}@example.com"
+                };
+                accounts[i].Status = "Демонстрация";
+            }
         }
         BuildContent();
         BuildMenus();
@@ -333,8 +343,9 @@ public sealed class WidgetWindow : Window
 
     private void UpdateDisplay()
     {
-        bool sameEmail = accounts[0].Snapshot?.Email is { Length: > 0 } first &&
-            string.Equals(first, accounts[1].Snapshot?.Email, StringComparison.OrdinalIgnoreCase);
+        var duplicateEmails = accounts.Select(a => a.Snapshot?.Email).OfType<string>()
+            .Where(email => email.Length != 0).GroupBy(email => email, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1).Select(group => group.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var account in accounts)
         {
             account.Caption.Text = account.SigningIn ? "Вход в браузере…" : account.Failed && account.Snapshot != null ? "Данные устарели · " + account.Status : account.Status;
@@ -345,7 +356,8 @@ public sealed class WidgetWindow : Window
             account.Footer.Text = (demo ? "Пример данных · " : "") + (account.Snapshot is { } snapshot
                 ? $"Остаток лимитов · обновлено {snapshot.UpdatedAt:HH:mm:ss}"
                 : "Нажмите иконку для входа через ChatGPT") + "\nПравый клик — меню";
-            if (sameEmail) account.Footer.Text += "\nПроверьте профили: одинаковый email";
+            if (account.Snapshot?.Email is { } email && duplicateEmails.Contains(email))
+                account.Footer.Text += "\nПроверьте профили: одинаковый email";
             if (monitorMissing) account.Footer.Text += "\nМонитор недоступен · показано на основном";
             if (connectionProblem != null) account.Footer.Text += "\n" + connectionProblem;
             var windows = new[] { account.Snapshot?.Limits.FiveHour, account.Snapshot?.Limits.Weekly };

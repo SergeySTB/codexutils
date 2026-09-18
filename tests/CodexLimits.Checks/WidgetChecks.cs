@@ -27,9 +27,15 @@ internal static class WidgetChecks
                     foreach (var edge in new[] { "top", "bottom", "left", "right", "bottom-negative", "bottom-screen" })
                     {
                         bool overlay = edge.StartsWith("bottom-");
-                        var settings = new Settings { Widget = new WidgetSettings
+                        AccountSettings[] configuredAccounts =
+                        [
+                            new("Личный", Path.Combine(outputDirectory, "personal")),
+                            new("Рабочий", Path.Combine(outputDirectory, "work")),
+                            new("Третий", Path.Combine(outputDirectory, "third"))
+                        ];
+                        var settings = new Settings { Accounts = configuredAccounts, Widget = new WidgetSettings
                         {
-                            Edge = overlay ? "bottom" : edge, OffsetPx = 120,
+                            WidthPx = 132, Edge = overlay ? "bottom" : edge, OffsetPx = 120,
                             MarginPx = edge == "bottom-negative" ? -50 : 4,
                             RespectTaskbar = edge != "bottom-screen"
                         } }.Validate();
@@ -41,7 +47,8 @@ internal static class WidgetChecks
                             "current version appears in the menu");
                         var viewbox = (Viewbox)((Border)window.Content).Child;
                         var strip = (StackPanel)viewbox.Child;
-                        Require(strip.Children.Count == 2 && strip.Children.OfType<Button>().Count() == 2, "only two account icons on " + edge);
+                        Require(strip.Children.Count == configuredAccounts.Length && strip.Children.OfType<Button>().Count() == configuredAccounts.Length,
+                            "account icons follow configuration on " + edge);
                         if (overlay)
                         {
                             var handle = new WindowInteropHelper(window).Handle;
@@ -64,7 +71,8 @@ internal static class WidgetChecks
                             finally { cover.Close(); }
                         }
                         Save(window, Path.Combine(outputDirectory, edge + "-icons.png"));
-                        for (int i = 0; i < 2; i++)
+                        string[] expectedEmails = ["personal@example.com", "work@example.com", "account3@example.com"];
+                        for (int i = 0; i < configuredAccounts.Length; i++)
                         {
                             var icon = (Button)strip.Children[i];
                             var tip = (ToolTip)icon.ToolTip;
@@ -73,11 +81,11 @@ internal static class WidgetChecks
                             await Until(() => tip.IsOpen && tip.ActualWidth > 0, "hover opens account card");
                             var card = (StackPanel)tip.Content;
                             var text = string.Join("\n", Texts(card));
-                            Require(text.Contains(i == 0 ? "personal@example.com" : "work@example.com") &&
-                                !text.Contains(i == 0 ? "work@example.com" : "personal@example.com"), "card belongs to hovered account");
-                            Require(text.Contains(i == 0 ? "PRO" : "PLUS") && text.Contains("5 часов") && text.Contains("Неделя") && text.Contains("Сброс через") &&
-                                text.Contains(i == 0 ? "72%" : "Нет данных"), "limits, missing window and reset shown");
-                            Require(new ButtonAutomationPeer(icon).GetName().Contains(i == 0 ? "Личный" : "Рабочий"), "accessible account name");
+                            Require(text.Contains(expectedEmails[i]) &&
+                                !expectedEmails.Where((_, index) => index != i).Any(text.Contains), "card belongs to hovered account");
+                            Require(text.Contains(i == 1 ? "PLUS" : "PRO") && text.Contains("5 часов") && text.Contains("Неделя") && text.Contains("Сброс через") &&
+                                text.Contains(i == 1 ? "Нет данных" : "72%"), "limits, missing window and reset shown");
+                            Require(new ButtonAutomationPeer(icon).GetName().Contains(configuredAccounts[i].Name), "accessible account name");
                             Save(tip, Path.Combine(outputDirectory, edge + "-account-" + i + ".png"));
                             var outside = window.PointToScreen(new Point(-30, -30));
                             SetCursorPos((int)Math.Max(0, outside.X), (int)Math.Max(0, outside.Y));

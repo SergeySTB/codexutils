@@ -4,6 +4,61 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+function Remove-JsonComments([string]$Json) {
+    $output = [Text.StringBuilder]::new()
+    $inString = $false
+    $escape = $false
+    for ($i = 0; $i -lt $Json.Length; $i++) {
+        $char = $Json[$i]
+        if ($inString) {
+            [void]$output.Append($char)
+            if ($escape) { $escape = $false }
+            elseif ($char -eq '\') { $escape = $true }
+            elseif ($char -eq '"') { $inString = $false }
+            continue
+        }
+        if ($char -eq '"') {
+            $inString = $true
+            [void]$output.Append($char)
+            continue
+        }
+        if ($char -eq '/' -and $i + 1 -lt $Json.Length) {
+            $next = $Json[$i + 1]
+            if ($next -eq '/') {
+                while ($i + 1 -lt $Json.Length -and $Json[$i + 1] -notin "`r", "`n") { $i++ }
+                continue
+            }
+            if ($next -eq '*') {
+                $i += 2
+                $closed = $false
+                while ($i -lt $Json.Length) {
+                    if ($Json[$i - 1] -eq '*' -and $Json[$i] -eq '/') { $closed = $true; break }
+                    if ($Json[$i] -in "`r", "`n") { [void]$output.Append($Json[$i]) }
+                    $i++
+                }
+                if (-not $closed) { throw 'Unterminated block comment in configuration.' }
+                continue
+            }
+        }
+        [void]$output.Append($char)
+    }
+    return $output.ToString()
+}
+
+function ConvertFrom-ConfigJson([string]$Path) {
+    Remove-JsonComments (Get-Content -LiteralPath $Path -Raw -Encoding UTF8) | ConvertFrom-Json
+}
+
+function ConvertTo-ConfigJson($Config) {
+    $json = $Config | ConvertTo-Json -Depth 32
+    $accountLine = [regex]::Match($json, '(?m)^(?<indent>[ \t]*)"accounts"\s*:')
+    if (-not $accountLine.Success) { throw 'The accounts property is missing from the configuration.' }
+    $indent = $accountLine.Groups['indent'].Value
+    $comment = $indent + '// Add another object to accounts for a second account, for example:' + [Environment]::NewLine +
+        $indent + '// { "name": "Work", "codexHome": "%LOCALAPPDATA%/CodexLimits/profiles/work" }' + [Environment]::NewLine
+    return $json.Insert($accountLine.Index, $comment)
+}
+
 function Merge-Config($Template, $Previous) {
     if ($Template -is [System.Management.Automation.PSCustomObject]) {
         if ($null -ne $Previous -and $Previous -isnot [System.Management.Automation.PSCustomObject]) {
@@ -19,11 +74,12 @@ function Merge-Config($Template, $Previous) {
         return [pscustomobject]$result
     }
     if ($Template -is [array]) {
-        if ($Previous -isnot [array] -or $Previous.Count -ne $Template.Count) {
+        if ($Previous -isnot [array] -or $Previous.Count -eq 0) {
             throw 'Unexpected number of accounts in configuration.'
         }
-        $items = for ($i = 0; $i -lt $Template.Count; $i++) {
-            Merge-Config $Template[$i] $Previous[$i]
+        $itemTemplate = $Template[0]
+        $items = foreach ($item in $Previous) {
+            Merge-Config $itemTemplate $item
         }
         return ,@($items)
     }
@@ -72,10 +128,10 @@ function Find-CodexExecutable {
     return $null
 }
 
-$template = Get-Content -LiteralPath $TemplatePath -Raw -Encoding UTF8 | ConvertFrom-Json
+$template = ConvertFrom-ConfigJson $TemplatePath
 $exists = Test-Path -LiteralPath $ConfigPath
 if ($exists) {
-    $previous = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $previous = ConvertFrom-ConfigJson $ConfigPath
     if ($null -eq $previous) { throw 'Existing configuration is empty.' }
     $template = Merge-Config $template $previous
 }
@@ -83,7 +139,7 @@ if ([string]::IsNullOrWhiteSpace([string]$template.codexExecutable)) {
     $detectedCodex = Find-CodexExecutable
     if ($null -ne $detectedCodex) { $template.codexExecutable = $detectedCodex }
 }
-$json = $template | ConvertTo-Json -Depth 32
+$json = ConvertTo-ConfigJson $template
 $directory = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($ConfigPath))
 [IO.Directory]::CreateDirectory($directory) | Out-Null
 $temporary = Join-Path $directory ([IO.Path]::GetRandomFileName())

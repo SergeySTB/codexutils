@@ -38,8 +38,13 @@ public static class Program
                 if (!demo)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(config)!);
-                    using var file = new FileStream(config, FileMode.CreateNew, FileAccess.Write);
-                    JsonSerializer.Serialize(file, new Settings(), Settings.JsonOptions);
+                    var example = Path.Combine(AppContext.BaseDirectory, "config.example.json");
+                    if (File.Exists(example)) File.Copy(example, config);
+                    else
+                    {
+                        using var file = new FileStream(config, FileMode.CreateNew, FileAccess.Write);
+                        JsonSerializer.Serialize(file, new Settings(), Settings.JsonOptions);
+                    }
                 }
             }
             using var mutex = new Mutex(true, "Local\\CodexLimits-" + (demo ? "Demo" : "Live"), out var first);

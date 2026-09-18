@@ -9,6 +9,9 @@ function Check($Condition, $Message) {
     if (-not $Condition) { throw "FAIL: $Message" }
     Write-Output "PASS: $Message"
 }
+function Read-Config($Path) {
+    ([regex]::Replace([IO.File]::ReadAllText($Path), '(?m)^[ \t]*//.*(?:\r?\n|$)', '')) | ConvertFrom-Json
+}
 $fakeLocalAppData = Join-Path $root 'local-app-data'
 $fakeCodex = Join-Path $fakeLocalAppData 'Programs/OpenAI/Codex/bin/codex.exe'
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($fakeCodex)) | Out-Null
@@ -23,25 +26,34 @@ try {
     $env:LOCALAPPDATA = $previousLocalAppData
     $env:PATH = $previousPath
 }
-$old = Get-Content $config -Raw -Encoding UTF8 | ConvertFrom-Json
+$generated = [IO.File]::ReadAllText($config)
+$old = Read-Config $config
 Check ($old.notifyOnLimitReset -eq $false) 'fresh installation uses current defaults'
 Check ($old.codexExecutable -eq $fakeCodex) 'fresh installation records the detected Codex executable'
+Check (@($old.accounts).Count -eq 1) 'fresh installation configures one account by default'
+Check ($generated.Contains('//') -and $generated.Contains('%LOCALAPPDATA%/CodexLimits/profiles/work')) 'generated configuration includes a commented second-account example'
 $old.PSObject.Properties.Remove('notifyOnLimitReset')
 $old.widget.marginPx = -50
 $old.widget.alwaysOnTop = $false
 $old.accounts[0].name = 'Personal custom'
-$old.accounts[1].codexHome = 'D:\Profiles\Work'
+$old.accounts = @($old.accounts) + @(
+    [pscustomobject]@{ name = 'Work custom'; codexHome = 'D:\Profiles\Work' },
+    [pscustomobject]@{ name = 'Third custom'; codexHome = 'D:\Profiles\Third' }
+)
 $old.codexExecutable = 'D:\Custom\codex.exe'
 $old | Add-Member -NotePropertyName retired -NotePropertyValue 123
 $old.widget | Add-Member -NotePropertyName retired -NotePropertyValue 456
 $old.accounts[0] | Add-Member -NotePropertyName retired -NotePropertyValue 789
-$old | ConvertTo-Json -Depth 32 | Set-Content $config -Encoding UTF8
+$previousJson = $old | ConvertTo-Json -Depth 32
+$previousJson = $previousJson -replace '(?m)^\s*"accounts"\s*:', "    // Existing comments are accepted during upgrades.`r`n    `"accounts`":"
+[IO.File]::WriteAllText($config, $previousJson, [Text.UTF8Encoding]::new($false))
 $original = [IO.File]::ReadAllText($config)
 & $migration -ConfigPath $config -TemplatePath $template
-$updated = Get-Content $config -Raw -Encoding UTF8 | ConvertFrom-Json
+$updated = Read-Config $config
 Check ($updated.notifyOnLimitReset -eq $false) 'missing notification option is added'
 Check ($updated.widget.marginPx -eq -50 -and $updated.widget.alwaysOnTop -eq $false) 'custom values including false survive'
-Check ($updated.accounts[0].name -eq 'Personal custom' -and $updated.accounts[1].codexHome -eq 'D:\Profiles\Work') 'account order and paths survive'
+Check (@($updated.accounts).Count -eq 3 -and $updated.accounts[0].name -eq 'Personal custom' -and
+    $updated.accounts[1].codexHome -eq 'D:\Profiles\Work' -and $updated.accounts[2].name -eq 'Third custom') 'configured account count, order and paths survive'
 Check ($updated.codexExecutable -eq 'D:\Custom\codex.exe') 'explicit Codex executable survives migration'
 Check (-not ([IO.File]::ReadAllText($config).Contains('retired'))) 'obsolete root, widget and account keys are removed'
 $backup = @(Get-ChildItem $root -Filter '*.bak')
@@ -49,7 +61,11 @@ Check ($backup.Count -eq 1 -and [IO.File]::ReadAllText($backup[0].FullName) -ceq
 $updated.notifyOnLimitReset = $true
 $updated | ConvertTo-Json -Depth 32 | Set-Content $config -Encoding UTF8
 & $migration -ConfigPath $config -TemplatePath $template
-Check ((Get-Content $config -Raw | ConvertFrom-Json).notifyOnLimitReset -eq $true) 'repeat installation preserves enabled notifications'
+Check ((Read-Config $config).notifyOnLimitReset -eq $true) 'repeat installation preserves enabled notifications'
+[IO.File]::WriteAllText($config, '{"codexExecutable":""} /* unfinished')
+$failed = $false
+try { & $migration -ConfigPath $config -TemplatePath $template } catch { $failed = $true }
+Check ($failed -and [IO.File]::ReadAllText($config).EndsWith('/* unfinished')) 'unterminated comment is not overwritten'
 [IO.File]::WriteAllText($config, '{broken')
 $failed = $false
 try { & $migration -ConfigPath $config -TemplatePath $template } catch { $failed = $true }

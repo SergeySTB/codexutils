@@ -25,8 +25,7 @@ public sealed record Settings
     public string CodexExecutable { get; init; } = "";
     public AccountSettings[] Accounts { get; init; } =
     [
-        new("Личный", "%LOCALAPPDATA%/CodexLimits/profiles/personal"),
-        new("Рабочий", "%LOCALAPPDATA%/CodexLimits/profiles/work")
+        new("Личный", "%LOCALAPPDATA%/CodexLimits/profiles/personal")
     ];
     public WidgetSettings Widget { get; init; } = new();
     public int RefreshSeconds { get; init; } = 60;
@@ -35,6 +34,7 @@ public sealed record Settings
     public static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        ReadCommentHandling = JsonCommentHandling.Skip,
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         WriteIndented = true
     };
@@ -51,11 +51,11 @@ public sealed record Settings
 
     public Settings Validate()
     {
-        if (Accounts is null || Accounts.Length != 2 || Accounts.Any(a => a is null ||
+        if (Accounts is null || Accounts.Length == 0 || Accounts.Any(a => a is null ||
             string.IsNullOrWhiteSpace(a.Name) || a.Name.Length > 60 || string.IsNullOrWhiteSpace(a.CodexHome)))
-            throw new InvalidDataException("Укажите ровно два аккаунта с именем и папкой codexHome.");
+            throw new InvalidDataException("Укажите хотя бы один аккаунт с именем и папкой codexHome.");
         var accounts = Accounts.Select(a => a with { CodexHome = ExpandPath(a.CodexHome) }).ToArray();
-        if (string.Equals(accounts[0].CodexHome, accounts[1].CodexHome, StringComparison.OrdinalIgnoreCase))
+        if (accounts.Select(a => a.CodexHome).Distinct(StringComparer.OrdinalIgnoreCase).Count() != accounts.Length)
             throw new InvalidDataException("Для аккаунтов нужны разные папки codexHome.");
         if (Widget is null || Widget.WidthPx < 64 || Widget.WidthPx > 4096 ||
             Widget.HeightPx < 32 || Widget.HeightPx > 2160 || Widget.MarginPx < -4096 ||

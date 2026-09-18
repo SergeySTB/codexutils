@@ -13,3 +13,7 @@ Before every commit that changes the shipped application, determine the required
 - Keep installers out of Git. `build.ps1` produces the ignored `dist/CodexLimits-Setup_v<major>.<minor>.exe`.
 - Publish installers as GitHub Release assets named exactly `CodexLimits-Setup_v<major>.<minor>.exe`. Update the README direct-download URL for the version being released in the same commit.
 - A release tag `v<major>.<minor>` must point to the exact source commit used to build its installer. Publish only after version approval and the commit is pushed. Never overwrite an existing version's tag or asset.
+
+## Documentation
+
+- Update README.md in the same change whenever user-visible behavior, installation, configuration, or distribution changes. Keep installation steps and download details consistent with the shipped installer.
