@@ -6,8 +6,11 @@
     { "name": "Личный", "codexHome": "%LOCALAPPDATA%/CodexLimits/profiles/personal" }
   ],
   "widget": {
-    "widthPx": 88,
-    "heightPx": 44,
+    "displayMode": "icons",
+    "iconWidthPx": 88,
+    "iconHeightPx": 44,
+    "cardWidthPx": 0,
+    "cardHeightPx": 0,
     "monitor": "primary",
     "edge": "top",
     "offsetPx": 400,

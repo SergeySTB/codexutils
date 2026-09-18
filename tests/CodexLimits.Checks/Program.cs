@@ -4,9 +4,9 @@ using System.Text.Json;
 using CodexLimits;
 
 if (args.Contains("app-server")) { await FakeServer(); return; }
-if (args.Length == 2 && args[0] == "--widget")
+if (args.Length == 2 && args[0] is "--widget" or "--layout")
 {
-    try { WidgetChecks.Run(args[1]); }
+    try { WidgetChecks.Run(args[1], layoutOnly: args[0] == "--layout"); }
     catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; }
     return;
 }
@@ -49,7 +49,7 @@ var now = DateTimeOffset.UtcNow;
 Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Ожидается"), "elapsed reset does not invent a replenished quota");
 
 var area = new PixelRect(-1920, 0, 1920, 1040);
-var widget = new WidgetSettings { WidthPx = 360, HeightPx = 144, MarginPx = 8, OffsetPx = 400 };
+var widget = new WidgetSettings { IconWidthPx = 360, IconHeightPx = 144, MarginPx = 8, OffsetPx = 400 };
 Check(Placement.Calculate(area, widget) == new PixelRect(-1520, 8, 360, 144), "top edge on negative-coordinate monitor");
 Check(Placement.Calculate(area, widget with { Edge = "bottom" }).Y == 888, "bottom edge respects taskbar work area");
 Check(Placement.Calculate(area, widget with { Edge = "left" }) == new PixelRect(-1912, 400, 360, 144), "left edge downward offset");
@@ -73,7 +73,7 @@ Reject(() => (valid with { Accounts = [] }).Validate(), "empty account list reje
 Reject(() => (threeAccounts with { Accounts = [.. threeAccounts.Accounts, threeAccounts.Accounts[0] with { CodexHome = threeAccounts.Accounts[0].CodexHome.ToUpperInvariant() + "/" }] }).Validate(), "duplicate profile paths rejected across all accounts");
 Reject(() => (valid with { RefreshSeconds = 0 }).Validate(), "polling interval validated");
 Reject(() => (valid with { Widget = widget with { Edge = "middle" } }).Validate(), "unknown edge rejected");
-Reject(() => (valid with { Widget = widget with { WidthPx = 0 } }).Validate(), "zero width rejected");
+Reject(() => (valid with { Widget = widget with { IconWidthPx = 0 } }).Validate(), "zero width rejected");
 Check((valid with { Widget = compact with { MarginPx = -50 } }).Validate().Widget.MarginPx == -50, "negative user margin accepted");
 Reject(() => (valid with { Widget = compact with { MarginPx = -4097 } }).Validate(), "excessive negative margin rejected");
 var configPath = Path.Combine(checkRoot, "config.json");
@@ -92,12 +92,23 @@ Check(Settings.Load(configPath).Accounts.Length == 1, "configuration comments ac
 var shippedExample = Path.Combine(AppContext.BaseDirectory, "config.example.json");
 Check(Settings.Load(shippedExample).Accounts.Length == 1 && File.ReadAllText(shippedExample).Contains("// Add another object"),
     "shipped configuration has one account and an English second-account example");
-File.WriteAllText(configPath, JsonSerializer.Serialize(valid with { Widget = widget }, Settings.JsonOptions));
-Check(Settings.Load(configPath).Widget is { WidthPx: 88, HeightPx: 44 }, "old default panel becomes compact without rewriting config");
+File.WriteAllText(configPath, JsonSerializer.Serialize(valid with { Widget = widget }, Settings.JsonOptions)
+    .Replace("iconWidthPx", "widthPx").Replace("iconHeightPx", "heightPx"));
+Check(Settings.Load(configPath).Widget is { IconWidthPx: 88, IconHeightPx: 44 }, "old default panel becomes compact without rewriting config");
 Check(File.ReadAllText(configPath).Contains("360"), "old configuration file is preserved");
-Check((valid with { Widget = new WidgetSettings() }).Validate().Widget is { WidthPx: 88, HeightPx: 44 }, "compact default accepted");
-File.WriteAllText(configPath, JsonSerializer.Serialize(valid with { Widget = widget with { WidthPx = 120, HeightPx = 60 } }, Settings.JsonOptions));
-Check(Settings.Load(configPath).Widget is { WidthPx: 120, HeightPx: 60 }, "custom icon-panel size preserved");
+Check((valid with { Widget = new WidgetSettings() }).Validate().Widget is { IconWidthPx: 88, IconHeightPx: 44 }, "compact default accepted");
+File.WriteAllText(configPath, JsonSerializer.Serialize(valid with { Widget = widget with { IconWidthPx = 120, IconHeightPx = 60 } }, Settings.JsonOptions));
+Check(Settings.Load(configPath).Widget is { IconWidthPx: 120, IconHeightPx: 60 }, "custom icon-panel size preserved");
+File.WriteAllText(configPath, """{"widget":{"widthPx":120,"heightPx":60}}""");
+Check(Settings.Load(configPath).Widget is { IconWidthPx: 120, IconHeightPx: 60, DisplayMode: "icons" }, "legacy dimensions load without installation");
+File.WriteAllText(configPath, """{"widget":{"widthPx":120,"heightPx":60,"iconWidthPx":180,"iconHeightPx":90}}""");
+Check(Settings.Load(configPath).Widget is { IconWidthPx: 180, IconHeightPx: 90 }, "new dimension names take precedence");
+Reject(() => (valid with { Widget = new() { DisplayMode = "unknown" } }).Validate(), "unknown display mode rejected");
+Check((valid with { Widget = new() { DisplayMode = "cards", IconWidthPx = 0, IconHeightPx = -1 } }).Validate().Widget.DisplayMode == "cards", "cards ignore icon dimensions");
+Check((valid with { Widget = new() { CardWidthPx = -1, CardHeightPx = -1 } }).Validate().Widget.DisplayMode == "icons", "icons ignore card dimensions");
+Reject(() => (valid with { Widget = new() { DisplayMode = "cards", CardWidthPx = -1 } }).Validate(), "invalid card width rejected");
+Reject(() => (valid with { Widget = new() { DisplayMode = "cards", CardHeightPx = 119 } }).Validate(), "invalid card height rejected");
+Check(Placement.Calculate(area, compact, screen, 700, 320).Width == 700, "placement uses measured card dimensions");
 
 string exe = Environment.ProcessPath!;
 using (var one = new CodexClient(exe, valid.Accounts[0].CodexHome))

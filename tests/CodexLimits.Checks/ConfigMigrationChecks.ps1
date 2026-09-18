@@ -33,6 +33,11 @@ Check ($old.codexExecutable -eq $fakeCodex) 'fresh installation records the dete
 Check (@($old.accounts).Count -eq 1) 'fresh installation configures one account by default'
 Check ($generated.Contains('//') -and $generated.Contains('%LOCALAPPDATA%/CodexLimits/profiles/work')) 'generated configuration includes a commented second-account example'
 $old.PSObject.Properties.Remove('notifyOnLimitReset')
+$old.widget.PSObject.Properties.Remove('displayMode')
+$old.widget.PSObject.Properties.Remove('iconWidthPx')
+$old.widget.PSObject.Properties.Remove('iconHeightPx')
+$old.widget | Add-Member -NotePropertyName widthPx -NotePropertyValue 120
+$old.widget | Add-Member -NotePropertyName heightPx -NotePropertyValue 60
 $old.widget.marginPx = -50
 $old.widget.alwaysOnTop = $false
 $old.accounts[0].name = 'Personal custom'
@@ -51,6 +56,8 @@ $original = [IO.File]::ReadAllText($config)
 & $migration -ConfigPath $config -TemplatePath $template
 $updated = Read-Config $config
 Check ($updated.notifyOnLimitReset -eq $false) 'missing notification option is added'
+Check ($updated.widget.displayMode -eq 'icons' -and $updated.widget.iconWidthPx -eq 120 -and $updated.widget.iconHeightPx -eq 60) 'legacy icon dimensions migrate with their custom values'
+Check ($null -eq $updated.widget.PSObject.Properties['widthPx'] -and $null -eq $updated.widget.PSObject.Properties['heightPx']) 'legacy dimension names are removed'
 Check ($updated.widget.marginPx -eq -50 -and $updated.widget.alwaysOnTop -eq $false) 'custom values including false survive'
 Check (@($updated.accounts).Count -eq 3 -and $updated.accounts[0].name -eq 'Personal custom' -and
     $updated.accounts[1].codexHome -eq 'D:\Profiles\Work' -and $updated.accounts[2].name -eq 'Third custom') 'configured account count, order and paths survive'
@@ -59,9 +66,14 @@ Check (-not ([IO.File]::ReadAllText($config).Contains('retired'))) 'obsolete roo
 $backup = @(Get-ChildItem $root -Filter '*.bak')
 Check ($backup.Count -eq 1 -and [IO.File]::ReadAllText($backup[0].FullName) -ceq $original) 'original configuration is backed up exactly'
 $updated.notifyOnLimitReset = $true
+$updated.widget.displayMode = 'cards'
+$updated.widget.cardWidthPx = 340
+$updated.widget.cardHeightPx = 280
 $updated | ConvertTo-Json -Depth 32 | Set-Content $config -Encoding UTF8
 & $migration -ConfigPath $config -TemplatePath $template
 Check ((Read-Config $config).notifyOnLimitReset -eq $true) 'repeat installation preserves enabled notifications'
+Check ((Read-Config $config).widget.displayMode -eq 'cards' -and (Read-Config $config).widget.cardWidthPx -eq 340 -and
+    (Read-Config $config).widget.cardHeightPx -eq 280) 'repeat installation preserves card mode and dimensions'
 [IO.File]::WriteAllText($config, '{"codexExecutable":""} /* unfinished')
 $failed = $false
 try { & $migration -ConfigPath $config -TemplatePath $template } catch { $failed = $true }

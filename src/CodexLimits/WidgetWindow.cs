@@ -31,6 +31,8 @@ public sealed class WidgetWindow : Window
     private readonly System.Drawing.Icon trayIcon;
     private readonly List<AccountView> accounts = [];
     private Settings settings;
+    private StackPanel? cardsPanel;
+    private PixelRect? lastPlacement;
     private string? connectionProblem;
     private bool refreshing, closed, loggingIn, monitorMissing, placing, overlapsTaskbar;
     private int generation;
@@ -161,6 +163,37 @@ public sealed class WidgetWindow : Window
 
     private void BuildContent()
     {
+        cardsPanel = null;
+        if (settings.Widget.DisplayMode == "cards")
+        {
+            bool vertical = settings.Widget.Edge is "left" or "right";
+            cardsPanel = new StackPanel { Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal };
+            foreach (var account in accounts)
+            {
+                var cardContent = BuildDetailsContent(account);
+                account.Name = new Button { Content = "Войти через ChatGPT", Foreground = Ink, Margin = new Thickness(0, 8, 0, 0) };
+                AutomationProperties.SetName(account.Name, "Войти: " + account.Config.Name);
+                account.Name.Click += async (_, _) => await SignInAsync(account);
+                cardContent.Children.Add(account.Name);
+                cardsPanel.Children.Add(new Border
+                {
+                    Background = Brush("#151B24"), BorderBrush = Brush("#364153"), BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(12), Child = new ScrollViewer
+                    {
+                        Content = cardContent, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                        HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                        Padding = new Thickness(0), BorderThickness = new Thickness(0)
+                    },
+                    Margin = account == accounts[^1] ? new Thickness(0) : vertical ? new Thickness(0, 0, 0, 6) : new Thickness(0, 0, 6, 0)
+                });
+            }
+            Content = new ScrollViewer
+            {
+                Content = cardsPanel, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0), BorderThickness = new Thickness(0)
+            };
+            return;
+        }
         var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(5, 3, 5, 3) };
         for (int index = 0; index < accounts.Count; index++)
         {
@@ -214,7 +247,7 @@ public sealed class WidgetWindow : Window
         };
     }
 
-    private ToolTip BuildDetails(AccountView account)
+    private StackPanel BuildDetailsContent(AccountView account)
     {
         var panel = new StackPanel { Width = 270, Margin = new Thickness(15) };
         panel.Children.Add(new TextBlock { Text = demo ? "CODEX / DEMO" : "CODEX", Foreground = Mint, FontSize = 10, Margin = new Thickness(0, 0, 0, 8) });
@@ -237,9 +270,14 @@ public sealed class WidgetWindow : Window
         }
         account.Footer = new TextBlock { FontSize = 10, Foreground = Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 13, 0, 0) };
         panel.Children.Add(account.Footer);
+        return panel;
+    }
+
+    private ToolTip BuildDetails(AccountView account)
+    {
         var tip = new ToolTip
         {
-            Content = panel, Foreground = Ink, FontFamily = FontFamily, Padding = new Thickness(0), HasDropShadow = false,
+            Content = BuildDetailsContent(account), Foreground = Ink, FontFamily = FontFamily, Padding = new Thickness(0), HasDropShadow = false,
             PlacementTarget = account.Name,
             Placement = settings.Widget.Edge switch { "bottom" => PlacementMode.Top, "left" => PlacementMode.Right, "right" => PlacementMode.Left, _ => PlacementMode.Bottom }
         };
@@ -353,9 +391,14 @@ public sealed class WidgetWindow : Window
             account.Caption.Foreground = account.Failed ? Brush("#FFC38A") : Muted;
             account.Email.Text = account.Snapshot?.Email ?? "Аккаунт ещё не подключён";
             account.Name.Opacity = account.Failed ? 0.55 : 1;
+            if (cardsPanel != null)
+            {
+                account.Name.Visibility = account.Snapshot == null ? Visibility.Visible : Visibility.Collapsed;
+                account.Name.IsEnabled = !loggingIn;
+            }
             account.Footer.Text = (demo ? "Пример данных · " : "") + (account.Snapshot is { } snapshot
                 ? $"Остаток лимитов · обновлено {snapshot.UpdatedAt:HH:mm:ss}"
-                : "Нажмите иконку для входа через ChatGPT") + "\nПравый клик — меню";
+                : cardsPanel == null ? "Нажмите иконку для входа через ChatGPT" : "Войдите через ChatGPT") + "\nПравый клик — меню";
             if (account.Snapshot?.Email is { } email && duplicateEmails.Contains(email))
                 account.Footer.Text += "\nПроверьте профили: одинаковый email";
             if (monitorMissing) account.Footer.Text += "\nМонитор недоступен · показано на основном";
@@ -374,8 +417,10 @@ public sealed class WidgetWindow : Window
                 account.Resets[i].Text = detail;
                 AutomationProperties.SetName(account.Bars[i], account.Config.Name + (i == 0 ? ", 5 часов. " : ", неделя. ") + detail);
             }
-            AutomationProperties.SetName(account.Name, $"{account.Config.Name}. {account.Caption.Text}. 5 часов: {account.Values[0].Text}. Неделя: {account.Values[1].Text}");
+            if (cardsPanel == null)
+                AutomationProperties.SetName(account.Name, $"{account.Config.Name}. {account.Caption.Text}. 5 часов: {account.Values[0].Text}. Неделя: {account.Values[1].Text}");
         }
+        if (cardsPanel != null && IsLoaded) Place();
     }
 
     private async Task SignInAsync(AccountView account)
@@ -449,13 +494,36 @@ public sealed class WidgetWindow : Window
             monitor ??= Forms.Screen.PrimaryScreen ?? Forms.Screen.AllScreens[0];
             var area = settings.Widget.RespectTaskbar ? monitor.WorkingArea : monitor.Bounds;
             var screen = monitor.Bounds;
-            var rect = Placement.Calculate(new(area.X, area.Y, area.Width, area.Height), settings.Widget,
-                new(screen.X, screen.Y, screen.Width, screen.Height));
-            overlapsTaskbar = !monitor.WorkingArea.Contains(new System.Drawing.Rectangle(rect.X, rect.Y, rect.Width, rect.Height));
             var dpi = GetDpiForWindow(handle);
+            double scale = (dpi == 0 ? 96 : dpi) / 96.0;
+            int? width = null, height = null;
+            if (cardsPanel != null)
+            {
+                foreach (Border card in cardsPanel.Children)
+                {
+                    card.Width = settings.Widget.CardWidthPx == 0 ? 302 : settings.Widget.CardWidthPx / scale;
+                    card.Height = settings.Widget.CardHeightPx == 0 ? double.NaN : settings.Widget.CardHeightPx / scale;
+                    ((StackPanel)((ScrollViewer)card.Child).Content).Width = double.NaN;
+                }
+                cardsPanel.InvalidateMeasure();
+                cardsPanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                width = (int)Math.Ceiling(cardsPanel.DesiredSize.Width * scale);
+                height = (int)Math.Ceiling(cardsPanel.DesiredSize.Height * scale);
+                var available = settings.Widget.MarginPx < 0 ? screen : area;
+                // Reserve the outer scrollbars' space so they do not cover a card's edge.
+                if (height > available.Height) width += (int)Math.Ceiling(SystemParameters.VerticalScrollBarWidth * scale);
+                if (width > available.Width) height += (int)Math.Ceiling(SystemParameters.HorizontalScrollBarHeight * scale);
+            }
+            var rect = Placement.Calculate(new(area.X, area.Y, area.Width, area.Height), settings.Widget,
+                new(screen.X, screen.Y, screen.Width, screen.Height), width, height);
+            overlapsTaskbar = !monitor.WorkingArea.Contains(new System.Drawing.Rectangle(rect.X, rect.Y, rect.Width, rect.Height));
             Width = rect.Width * 96.0 / (dpi == 0 ? 96 : dpi);
             Height = rect.Height * 96.0 / (dpi == 0 ? 96 : dpi);
-            SetWindowPos(handle, settings.Widget.AlwaysOnTop ? new IntPtr(-1) : new IntPtr(-2), rect.X, rect.Y, rect.Width, rect.Height, 0x0010);
+            if (lastPlacement != rect)
+            {
+                SetWindowPos(handle, settings.Widget.AlwaysOnTop ? new IntPtr(-1) : new IntPtr(-2), rect.X, rect.Y, rect.Width, rect.Height, 0x0010);
+                lastPlacement = rect;
+            }
         }
         finally { placing = false; }
     }
@@ -473,7 +541,10 @@ public sealed class WidgetWindow : Window
     {
         // Reapply physical-pixel placement after monitor, DPI or taskbar work-area changes.
         if (message is 0x02E0 or 0x007E || (message == 0x001A && wParam.ToInt64() == 0x002F))
+        {
+            lastPlacement = null;
             Dispatcher.BeginInvoke(Place, DispatcherPriority.Loaded);
+        }
         return IntPtr.Zero;
     }
 

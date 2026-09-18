@@ -133,6 +133,21 @@ $exists = Test-Path -LiteralPath $ConfigPath
 if ($exists) {
     $previous = ConvertFrom-ConfigJson $ConfigPath
     if ($null -eq $previous) { throw 'Existing configuration is empty.' }
+    if ($previous.widget -is [System.Management.Automation.PSCustomObject]) {
+        $widget = $previous.widget
+        $legacySize = $null -ne $widget.PSObject.Properties['widthPx'] -and $null -ne $widget.PSObject.Properties['heightPx'] -and
+            $null -eq $widget.PSObject.Properties['iconWidthPx'] -and $null -eq $widget.PSObject.Properties['iconHeightPx']
+        foreach ($names in @(@('widthPx', 'iconWidthPx'), @('heightPx', 'iconHeightPx'))) {
+            $old = $widget.PSObject.Properties[$names[0]]
+            if ($null -ne $old -and $null -eq $widget.PSObject.Properties[$names[1]]) {
+                $widget | Add-Member -NotePropertyName $names[1] -NotePropertyValue $old.Value
+            }
+        }
+        if ($legacySize -and $widget.iconWidthPx -eq 360 -and $widget.iconHeightPx -eq 144) {
+            $widget.iconWidthPx = 88
+            $widget.iconHeightPx = 44
+        }
+    }
     $template = Merge-Config $template $previous
 }
 if ([string]::IsNullOrWhiteSpace([string]$template.codexExecutable)) {

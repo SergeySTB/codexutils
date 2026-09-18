@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+## [2.0] — 2026-09-18
+
+### Добавлено
+
+- Режим постоянно открытых карточек всех аккаунтов: строка сверху/снизу,
+  столбец слева/справа; переключается через `widget.displayMode`.
+- Отдельные размеры каждой карточки `cardWidthPx` и `cardHeightPx`, автоматический
+  размер при значении `0` и прокрутка при нехватке места.
+
+### Изменено
+
+- Размеры компактной панели переименованы в `iconWidthPx` и `iconHeightPx` и
+  применяются только в режиме иконок. Старые настройки переносятся автоматически.
+
 ## [1.3] — 2026-09-18
 
 ### Добавлено
@@ -56,7 +70,8 @@
 - Необязательное звуковое уведомление о сбросе лимита.
 - Миграция существующей конфигурации при установке с резервной копией исходного файла.
 
-[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v1.3...HEAD
+[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v2.0...HEAD
+[2.0]: https://github.com/SergeySTB/codexutils/compare/v1.3...v2.0
 [1.3]: https://github.com/SergeySTB/codexutils/compare/v1.2...v1.3
 [1.2]: https://github.com/SergeySTB/codexutils/compare/v1.1...v1.2
 [1.1]: https://github.com/SergeySTB/codexutils/compare/v1.0...v1.1

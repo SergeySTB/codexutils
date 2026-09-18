@@ -10,19 +10,25 @@ using CodexLimits;
 
 internal static class WidgetChecks
 {
-    public static void Run(string outputDirectory)
+    public static void Run(string outputDirectory, bool layoutOnly = false)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
         {
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            GetCursorPos(out var originalCursor);
+            var originalCursor = new ScreenPoint();
+            if (!layoutOnly) GetCursorPos(out originalCursor);
             app.Startup += async (_, _) =>
             {
                 WidgetWindow? window = null;
                 try
                 {
                     Directory.CreateDirectory(outputDirectory);
+                    if (layoutOnly)
+                    {
+                        await CheckLayouts(Path.GetFullPath(outputDirectory));
+                        return;
+                    }
                     int checks = 0;
                     foreach (var edge in new[] { "top", "bottom", "left", "right", "bottom-negative", "bottom-screen" })
                     {
@@ -35,7 +41,7 @@ internal static class WidgetChecks
                         ];
                         var settings = new Settings { Accounts = configuredAccounts, Widget = new WidgetSettings
                         {
-                            WidthPx = 132, Edge = overlay ? "bottom" : edge, OffsetPx = 120,
+                            IconWidthPx = 132, Edge = overlay ? "bottom" : edge, OffsetPx = 120,
                             MarginPx = edge == "bottom-negative" ? -50 : 4,
                             RespectTaskbar = edge != "bottom-screen"
                         } }.Validate();
@@ -101,7 +107,7 @@ internal static class WidgetChecks
                 finally
                 {
                     window?.Close();
-                    SetCursorPos(originalCursor.X, originalCursor.Y);
+                    if (!layoutOnly) SetCursorPos(originalCursor.X, originalCursor.Y);
                     app.Shutdown();
                 }
             };
@@ -111,6 +117,100 @@ internal static class WidgetChecks
         thread.Start();
         thread.Join();
         if (failure != null) throw new Exception("Widget checks failed", failure);
+    }
+
+    private static async Task CheckLayouts(string outputDirectory)
+    {
+        int checks = 0;
+        foreach (int count in new[] { 1, 3 })
+        foreach (string edge in new[] { "top", "bottom", "left", "right" })
+        foreach (bool fixedSize in new[] { false, true })
+        {
+            var settings = new Settings
+            {
+                Accounts = Enumerable.Range(1, count).Select(i => new AccountSettings("Account " + i, Path.Combine(outputDirectory, "profile" + i))).ToArray(),
+                Widget = new() { DisplayMode = "cards", Edge = edge, IconWidthPx = 0, IconHeightPx = -1,
+                    CardWidthPx = fixedSize ? 340 : 0, CardHeightPx = fixedSize ? 240 : 0 }
+            }.Validate();
+            var config = Path.Combine(outputDirectory, "layout-config.json");
+            var window = new WidgetWindow(config, settings, demo: true);
+            try
+            {
+                window.Show();
+                await Task.Delay(250);
+                window.UpdateLayout();
+                var scroll = (ScrollViewer)window.Content;
+                var strip = (StackPanel)scroll.Content;
+                Require(strip.Children.Count == count, "one full card per configured account");
+                Require(strip.Orientation == (edge is "left" or "right" ? Orientation.Vertical : Orientation.Horizontal), "card orientation follows edge");
+                var scale = VisualTreeHelper.GetDpi(window);
+                var first = (Border)strip.Children[0];
+                var handle = new WindowInteropHelper(window).Handle;
+                Require(GetWindowRect(handle, out var bounds), "card window bounds available");
+                var workArea = System.Windows.Forms.Screen.FromHandle(handle).WorkingArea;
+                var expected = Placement.Calculate(new(workArea.X, workArea.Y, workArea.Width, workArea.Height), settings.Widget,
+                    widthPx: bounds.Right - bounds.Left, heightPx: bounds.Bottom - bounds.Top);
+                Require(bounds.Left == expected.X && bounds.Top == expected.Y, "card window stays anchored to selected edge");
+                Require(first.ActualWidth > 0 && first.ActualHeight > 0, "cards have measured size");
+                if (fixedSize)
+                {
+                    Require(Math.Abs(first.ActualWidth * scale.DpiScaleX - 340) < 2 &&
+                        Math.Abs(first.ActualHeight * scale.DpiScaleY - 240) < 2, "card dimensions are physical pixels");
+                    Require(((ScrollViewer)first.Child).ScrollableHeight > 0, "short cards scroll without losing information");
+                    Require(Math.Abs((edge is "left" or "right" ? window.ActualWidth * scale.DpiScaleX : window.ActualHeight * scale.DpiScaleY)
+                        - (edge is "left" or "right" ? 340 : 240)) < 2, "window fits fixed cards without empty margins");
+                }
+                foreach (Border card in strip.Children)
+                {
+                    var panel = (StackPanel)((ScrollViewer)card.Child).Content;
+                    Require(Texts(panel).Any(text => text.Contains("5 часов")) && Texts(panel).Any(text => text.Contains("Неделя")), "both quotas are visible in card content");
+                    Require(panel.Children.OfType<Button>().All(button => button.Visibility == Visibility.Collapsed), "signed-in demo cards contain no visible icon or login button");
+                }
+                if (!fixedSize) Require(scroll.ScrollableWidth < 1, "automatic card width reserves vertical scrollbar space");
+                if (count == 3)
+                {
+                    var next = (Border)strip.Children[1];
+                    var a = first.TranslatePoint(new Point(), strip);
+                    var b = next.TranslatePoint(new Point(), strip);
+                    Require(edge is "left" or "right" ? b.Y > a.Y && b.X == a.X : b.X > a.X && b.Y == a.Y, "cards are arranged in a column or row");
+                }
+                Save(window, Path.Combine(outputDirectory, $"cards-{edge}-{count}-{fixedSize}.png"));
+                var icons = settings with { Widget = settings.Widget with { DisplayMode = "icons", IconWidthPx = 132, IconHeightPx = 44 } };
+                File.WriteAllText(config, System.Text.Json.JsonSerializer.Serialize(icons, Settings.JsonOptions));
+                var reload = window.ContextMenu!.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Применить конфигурацию");
+                reload.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                window.UpdateLayout();
+                var iconStrip = (StackPanel)((Viewbox)((Border)window.Content).Child).Child;
+                Require(iconStrip.Children.OfType<Button>().Count() == count, "reload switches from cards to icons");
+                File.WriteAllText(config, System.Text.Json.JsonSerializer.Serialize(settings, Settings.JsonOptions));
+                window.ContextMenu!.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Применить конфигурацию")
+                    .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                window.UpdateLayout();
+                Require(window.Content is ScrollViewer, "reload switches from icons to cards");
+                checks++;
+            }
+            finally { window.Close(); }
+        }
+        var signedOutSettings = new Settings
+        {
+            CodexExecutable = Path.Combine(outputDirectory, "missing-codex.exe"),
+            Widget = new() { DisplayMode = "cards", CardWidthPx = 340 }
+        }.Validate();
+        var signedOut = new WidgetWindow(Path.Combine(outputDirectory, "unused.json"), signedOutSettings, demo: false);
+        try
+        {
+            signedOut.Show();
+            await Task.Delay(150);
+            signedOut.UpdateLayout();
+            var strip = (StackPanel)((ScrollViewer)signedOut.Content).Content;
+            var panel = (StackPanel)((ScrollViewer)((Border)strip.Children[0]).Child).Content;
+            var login = panel.Children.OfType<Button>().Single();
+            Require(login.Visibility == Visibility.Visible && login.IsEnabled &&
+                new ButtonAutomationPeer(login).GetName().Contains("Войти"), "signed-out card provides accessible login button");
+            Require(Texts(panel).Any(text => text.Contains("Codex не найден")), "connection error remains visible in card");
+        }
+        finally { signedOut.Close(); }
+        Console.WriteLine($"PASS: {checks} card layout, size, overflow and mode-switch scenarios. PNGs: {outputDirectory}");
     }
 
     private static IEnumerable<string> Texts(DependencyObject root)

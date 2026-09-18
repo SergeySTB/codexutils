@@ -58,12 +58,13 @@ public sealed record Limits(LimitWindow? FiveHour, LimitWindow? Weekly)
 public readonly record struct PixelRect(int X, int Y, int Width, int Height);
 public static class Placement
 {
-    public static PixelRect Calculate(PixelRect area, WidgetSettings settings, PixelRect? screen = null)
+    public static PixelRect Calculate(PixelRect area, WidgetSettings settings, PixelRect? screen = null,
+        int? widthPx = null, int? heightPx = null)
     {
         // A negative margin may cross the work-area edge, but never the physical screen edge.
         var bounds = settings.MarginPx < 0 ? screen ?? area : area;
-        var width = Math.Min(settings.WidthPx, bounds.Width);
-        var height = Math.Min(settings.HeightPx, bounds.Height);
+        var width = Math.Min(widthPx ?? settings.IconWidthPx, bounds.Width);
+        var height = Math.Min(heightPx ?? settings.IconHeightPx, bounds.Height);
         var x = settings.Edge switch
         {
             "right" => area.Width - width - settings.MarginPx,
