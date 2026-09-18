@@ -82,8 +82,14 @@ jobs:
       - name: Upload installer
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           installer="$(find dist -type f -name 'CodexLimits-Setup_*.exe' -print -quit)"
           test -n "$installer"
-          gh release upload "$RELEASE_TAG" "$installer" --clobber
+          asset_name="$(basename "$installer")"
+          if gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | grep -Fxq "$asset_name"; then
+            echo "$asset_name is already attached"
+          else
+            gh release upload "$RELEASE_TAG" "$installer"
+          fi
