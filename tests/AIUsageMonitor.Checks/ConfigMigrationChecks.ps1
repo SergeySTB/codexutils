@@ -31,7 +31,7 @@ $old = Read-Config $config
 Check ($old.notifyOnLimitReset -eq $false) 'fresh installation uses current defaults'
 Check ($old.codexExecutable -eq $fakeCodex) 'fresh installation records the detected Codex executable'
 Check (@($old.accounts).Count -eq 1) 'fresh installation configures one account by default'
-Check ($generated.Contains('//') -and $generated.Contains('%LOCALAPPDATA%/CodexLimits/profiles/work')) 'generated configuration includes a commented second-account example'
+Check ($generated.Contains('//') -and $generated.Contains('%LOCALAPPDATA%/AIUsageMonitor/profiles/work')) 'generated configuration includes a commented second-account example'
 $old.PSObject.Properties.Remove('notifyOnLimitReset')
 $old.widget.PSObject.Properties.Remove('displayMode')
 $old.widget.PSObject.Properties.Remove('iconWidthPx')
@@ -82,4 +82,28 @@ Check ($failed -and [IO.File]::ReadAllText($config).EndsWith('/* unfinished')) '
 $failed = $false
 try { & $migration -ConfigPath $config -TemplatePath $template } catch { $failed = $true }
 Check ($failed -and [IO.File]::ReadAllText($config) -ceq '{broken') 'invalid JSON is not overwritten'
+# Exercise default-path selection using isolated data, without touching real accounts.
+try {
+    $env:LOCALAPPDATA = $fakeLocalAppData
+    $env:PATH = ''
+    $legacyConfig = Join-Path $fakeLocalAppData 'CodexLimits/config.json'
+    $renamedConfig = Join-Path $fakeLocalAppData 'AIUsageMonitor/config.json'
+    New-Item -ItemType Directory -Force -Path (Split-Path $legacyConfig) | Out-Null
+    $legacySettings = Read-Config $template
+    $legacySettings.accounts[0].codexHome = '%LOCALAPPDATA%/CodexLimits/profiles/personal'
+    $legacySettings | ConvertTo-Json -Depth 32 | Set-Content -LiteralPath $legacyConfig -Encoding UTF8
+    & $migration -TemplatePath $template
+    Check (-not (Test-Path -LiteralPath $renamedConfig) -and (Read-Config $legacyConfig).accounts[0].codexHome -eq '%LOCALAPPDATA%/CodexLimits/profiles/personal') 'upgrade reuses the legacy configuration and profile path'
+    $legacyAfterUpgrade = [IO.File]::ReadAllText($legacyConfig)
+    & $migration -ConfigPath $renamedConfig -TemplatePath $template
+    Check ((Read-Config $renamedConfig).accounts[0].codexHome -eq '%LOCALAPPDATA%/AIUsageMonitor/profiles/personal') 'explicit new configuration does not import legacy accounts'
+    & $migration -TemplatePath $template
+    Check ([IO.File]::ReadAllText($legacyConfig) -ceq $legacyAfterUpgrade) 'new default configuration takes precedence over legacy'
+    $env:LOCALAPPDATA = Join-Path $root 'fresh-local-app-data'
+    & $migration -TemplatePath $template
+    Check (Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'AIUsageMonitor/config.json')) 'fresh installation creates the renamed configuration path'
+} finally {
+    $env:LOCALAPPDATA = $previousLocalAppData
+    $env:PATH = $previousPath
+}
 Write-Output 'All configuration migration checks passed.'

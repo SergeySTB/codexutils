@@ -19,7 +19,7 @@ using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 using ShapePath = System.Windows.Shapes.Path;
 
-namespace CodexLimits;
+namespace AIUsageMonitor;
 
 public sealed class WidgetWindow : Window
 {

@@ -8,7 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
-namespace CodexLimits;
+namespace AIUsageMonitor;
 
 public static class Program
 {
@@ -29,7 +29,7 @@ public static class Program
                     default: throw new InvalidDataException("Аргументы: --demo, --config <путь>, --smoke-test <PNG>.");
                 }
             }
-            config ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexLimits", "config.json");
+            config ??= ProductInfo.GetDefaultConfigPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
             Settings settings;
             if (File.Exists(config)) settings = Settings.Load(config);
             else
@@ -47,8 +47,10 @@ public static class Program
                     }
                 }
             }
-            using var mutex = new Mutex(true, "Local\\CodexLimits-" + (demo ? "Demo" : "Live"), out var first);
-            if (!first && screenshot == null)
+            using var mutex = new Mutex(true, "Local\\AIUsageMonitor-" + (demo ? "Demo" : "Live"), out var first);
+            // Keep older installed versions from sharing a live profile with this process.
+            using var legacyMutex = new Mutex(true, "Local\\CodexLimits-" + (demo ? "Demo" : "Live"), out var legacyFirst);
+            if ((!first || !legacyFirst) && screenshot == null)
             {
                 MessageBox.Show("AI Usage Monitor уже работает. Меню доступно через значок в трее.", "AI Usage Monitor");
                 return 0;

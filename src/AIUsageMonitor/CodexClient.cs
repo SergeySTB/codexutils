@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CodexLimits;
+namespace AIUsageMonitor;
 
 public enum FailureKind { SignIn, RateLimited, Connection, Protocol }
 public sealed class CodexException(FailureKind kind, string message) : Exception(message)
@@ -108,7 +108,7 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
         // Drain diagnostics without persisting tokens, authorization URLs or raw responses.
         _ = DrainErrorsAsync(current);
         reader = ReadLoopAsync(current);
-        await RequestAsync("initialize", new { clientInfo = new { name = "codex_limits_widget", version = ProductInfo.Version } });
+        await RequestAsync("initialize", new { clientInfo = new { name = "ai_usage_monitor", version = ProductInfo.Version } });
         await SendAsync(new { method = "initialized", @params = new { } });
     }
 

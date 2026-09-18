@@ -1,8 +1,16 @@
 param(
-    [string]$ConfigPath = (Join-Path $env:LOCALAPPDATA 'CodexLimits/config.json'),
+    [string]$ConfigPath,
     [string]$TemplatePath = (Join-Path $PSScriptRoot 'config.example.json')
 )
 $ErrorActionPreference = 'Stop'
+
+if (-not $PSBoundParameters.ContainsKey('ConfigPath')) {
+    $ConfigPath = Join-Path $env:LOCALAPPDATA 'AIUsageMonitor/config.json'
+    $legacyConfigPath = Join-Path $env:LOCALAPPDATA 'CodexLimits/config.json'
+    if (-not (Test-Path -LiteralPath $ConfigPath) -and (Test-Path -LiteralPath $legacyConfigPath)) {
+        $ConfigPath = $legacyConfigPath
+    }
+}
 
 function Remove-JsonComments([string]$Json) {
     $output = [Text.StringBuilder]::new()
@@ -55,7 +63,7 @@ function ConvertTo-ConfigJson($Config) {
     if (-not $accountLine.Success) { throw 'The accounts property is missing from the configuration.' }
     $indent = $accountLine.Groups['indent'].Value
     $comment = $indent + '// Add another object to accounts for a second account, for example:' + [Environment]::NewLine +
-        $indent + '// { "name": "Work", "codexHome": "%LOCALAPPDATA%/CodexLimits/profiles/work" }' + [Environment]::NewLine
+        $indent + '// { "name": "Work", "codexHome": "%LOCALAPPDATA%/AIUsageMonitor/profiles/work" }' + [Environment]::NewLine
     return $json.Insert($accountLine.Index, $comment)
 }
 

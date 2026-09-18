@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace CodexLimits;
+namespace AIUsageMonitor;
 
 public sealed record AccountSettings(string Name, string CodexHome);
 
@@ -29,7 +29,7 @@ public sealed record Settings
     public string CodexExecutable { get; init; } = "";
     public AccountSettings[] Accounts { get; init; } =
     [
-        new("Личный", "%LOCALAPPDATA%/CodexLimits/profiles/personal")
+        new("Личный", "%LOCALAPPDATA%/AIUsageMonitor/profiles/personal")
     ];
     public WidgetSettings Widget { get; init; } = new();
     public int RefreshSeconds { get; init; } = 60;

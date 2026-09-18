@@ -80,16 +80,19 @@ Codex Desktop и внутри глобального npm-пакета. Найд�
 
 ## Конфигурация
 
-При установке создаётся `%LOCALAPPDATA%\CodexLimits\config.json`. Если приложение
+При установке создаётся `%LOCALAPPDATA%\AIUsageMonitor\config.json`. Если приложение
 запущено напрямую без установки, файл создаётся при первом обычном запуске. Меню
 **Открыть конфигурацию** открывает его в Блокноте; **Применить конфигурацию**
 перечитывает файл без перезапуска.
+Если новый файл ещё не создан, но найден `%LOCALAPPDATA%\CodexLimits\config.json`,
+приложение и установщик продолжают использовать прежний файл. Существующие пути
+`codexHome` сохраняются, поэтому повторный вход в аккаунты не требуется.
 При ошибке JSON или некорректных параметрах предыдущие настройки сохраняются.
 Редактировать файл во время процедуры входа можно, применять — после её завершения.
 
 Пример всех параметров находится в `config/config.example.json` в репозитории
 и в `config.example.json` рядом с установленным приложением.
-При установке `%LOCALAPPDATA%\CodexLimits\config.json` обновляется по текущему
+При установке выбранный конфигурационный файл обновляется по текущему
 шаблону: существующие значения сохраняются, пустой `codexExecutable` заполняется
 найденным путём, новые параметры получают значения
 по умолчанию, удалённые параметры исключаются (в том числе внутри аккаунтов и
@@ -145,35 +148,35 @@ Codex Desktop и внутри глобального npm-пакета. Найд�
 Произвольный конфигурационный файл:
 
 ```powershell
-.\CodexLimits.exe --config "D:\Settings\codex-limits.json"
+.\AIUsageMonitor.exe --config "D:\Settings\ai-usage-monitor.json"
 ```
 
 Просмотр интерфейса с явно обозначенными демонстрационными данными, без Codex,
 входа и сетевых запросов:
 
 ```powershell
-.\CodexLimits.exe --demo
+.\AIUsageMonitor.exe --demo
 ```
 
 ## Структура репозитория
 
 | Каталог | Назначение |
 |---|---|
-| `src/CodexLimits` | Исходный код приложения |
-| `tests/CodexLimits.Checks` | Исполняемые проверки логики, интеграции и интерфейса |
+| `src/AIUsageMonitor` | Исходный код приложения |
+| `tests/AIUsageMonitor.Checks` | Исполняемые проверки логики, интеграции и интерфейса |
 | `packaging/windows` | Сценарии установки и обновления конфигурации |
 | `config` | Эталонная конфигурация |
 | `docs` | Изображения и материалы README |
 | `.github/workflows` | Сборка, проверка и публикация установщика |
 
-`CodexLimits.sln` объединяет приложение и проверки для IDE и командной строки.
+`AIUsageMonitor.sln` объединяет приложение и проверки для IDE и командной строки.
 
 ## Авторизация и данные
 
 Для каждого профиля запускается собственный скрытый `codex app-server --stdio`.
 `CODEX_HOME` задаётся только этому дочернему процессу; пользовательские переменные
 окружения и основной профиль Codex не переключаются. По умолчанию используется
-папка `%LOCALAPPDATA%\CodexLimits\profiles\personal`; для каждого добавленного
+папка `%LOCALAPPDATA%\AIUsageMonitor\profiles\personal`; для каждого добавленного
 аккаунта нужна отдельная папка.
 
 Вход выполняется стандартным OAuth-механизмом Codex. Сам Codex сохраняет и обновляет
@@ -226,23 +229,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 и изменений в `main` тот же workflow сохраняет проверенный установщик как
 временный GitHub Actions artifact.
 
-`tests/CodexLimits.Checks` — исполняемые проверки без тестовых библиотек: разбор
+`tests/AIUsageMonitor.Checks` — исполняемые проверки без тестовых библиотек: разбор
 квот, валидация настроек и произвольного количества аккаунтов, четыре края,
 ограничения экрана, два независимых дочерних процесса,
 инициализация протокола, OAuth-уведомление, тайм-аут, 429, выход сервера и очистка.
 Тестовые профили создаются только в `.build\checks`.
 
 ```powershell
-dotnet run --project tests/CodexLimits.Checks/CodexLimits.Checks.csproj -c Release
+dotnet run --project tests/AIUsageMonitor.Checks/AIUsageMonitor.Checks.csproj -c Release
 # Optional: installed CLI with an isolated empty profile, without signing in.
-.\tests\CodexLimits.Checks\bin\Release\net8.0-windows\CodexLimits.Checks.exe --real-codex "C:\path\to\codex.exe"
+.\tests\AIUsageMonitor.Checks\bin\Release\net8.0-windows\AIUsageMonitor.Checks.exe --real-codex "C:\path\to\codex.exe"
 # Hover over configured icons on all edges and verify tooltips; save PNGs.
 # Uses demo data only and restores the cursor position afterwards.
-.\tests\CodexLimits.Checks\bin\Release\net8.0-windows\CodexLimits.Checks.exe --widget "$PWD\.build\icon-preview"
+.\tests\AIUsageMonitor.Checks\bin\Release\net8.0-windows\AIUsageMonitor.Checks.exe --widget "$PWD\.build\icon-preview"
 # Check card layout, dimensions and mode switching without moving the cursor.
-.\tests\CodexLimits.Checks\bin\Release\net8.0-windows\CodexLimits.Checks.exe --layout "$PWD\.build\cards-preview"
+.\tests\AIUsageMonitor.Checks\bin\Release\net8.0-windows\AIUsageMonitor.Checks.exe --layout "$PWD\.build\cards-preview"
 # Save a demo WPF window as PNG and exit.
-.\.build\publish\CodexLimits.exe --smoke-test "$PWD\.build\preview.png"
+.\.build\publish\AIUsageMonitor.exe --smoke-test "$PWD\.build\preview.png"
 ```
 
 Вход в настоящие аккаунты проверяется пользователем: тесты не открывают

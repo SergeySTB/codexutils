@@ -1,9 +1,9 @@
 {
   "codexExecutable": "",
   // Add another object to accounts for a second account, for example:
-  // { "name": "Work", "codexHome": "%LOCALAPPDATA%/CodexLimits/profiles/work" }
+  // { "name": "Work", "codexHome": "%LOCALAPPDATA%/AIUsageMonitor/profiles/work" }
   "accounts": [
-    { "name": "Личный", "codexHome": "%LOCALAPPDATA%/CodexLimits/profiles/personal" }
+    { "name": "Личный", "codexHome": "%LOCALAPPDATA%/AIUsageMonitor/profiles/personal" }
   ],
   "widget": {
     "displayMode": "icons",

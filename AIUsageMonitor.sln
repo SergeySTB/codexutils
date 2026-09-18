@@ -5,11 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E6DA4D4B-EF79-4361-94B8-944200C837B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodexLimits", "src\CodexLimits\CodexLimits.csproj", "{DEF6410E-70D4-47B3-BC7F-81C4C1A7C6A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIUsageMonitor", "src\AIUsageMonitor\AIUsageMonitor.csproj", "{DEF6410E-70D4-47B3-BC7F-81C4C1A7C6A4}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{ADE6BDBB-9775-4746-B96F-D71540CBA3A8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodexLimits.Checks", "tests\CodexLimits.Checks\CodexLimits.Checks.csproj", "{0A443EFA-372E-470F-BF20-98B013B697D1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIUsageMonitor.Checks", "tests\AIUsageMonitor.Checks\AIUsageMonitor.Checks.csproj", "{0A443EFA-372E-470F-BF20-98B013B697D1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

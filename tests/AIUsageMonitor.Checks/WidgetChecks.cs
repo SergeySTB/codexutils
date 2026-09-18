@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using CodexLimits;
+using AIUsageMonitor;
 
 internal static class WidgetChecks
 {

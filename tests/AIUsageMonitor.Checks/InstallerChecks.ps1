@@ -17,11 +17,11 @@ Check ($build.Contains('AppLaunched=SetupLauncher.exe') -and -not $build.Contain
 Check ($launcher.Contains('CreateNoWindow = true') -and -not $launcher.Contains('WindowStyle')) 'launcher avoids a console without hiding dialogs'
 Check ($install.Contains("Join-Path `$env:ProgramFiles 'AI Usage Monitor'")) 'installer targets the named Program Files folder'
 Check ($install.Contains("Join-Path `$env:ProgramFiles 'Codex Limits'")) 'installer removes the previous named Program Files folder during upgrade'
-Check ($install.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CodexLimits')) 'installer creates an uninstall registry entry'
+Check ($install.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AIUsageMonitor')) 'installer creates an uninstall registry entry'
 Check ($install.Contains("'CommonPrograms'")) 'installer creates an all-users Start menu shortcut'
 Check ($install.Contains("'Update-Config.ps1'")) 'installer migrates the existing user configuration'
 Check ($install.Contains('-Verb RunAs -WindowStyle Hidden')) 'elevated installer stays hidden'
-Check ($uninstall.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CodexLimits')) 'uninstaller removes its registry entry'
+Check ($uninstall.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AIUsageMonitor')) 'uninstaller removes its registry entry'
 Check ($uninstall.Contains("Join-Path `$env:ProgramFiles 'AI Usage Monitor'")) 'uninstaller validates its installation directory'
 Check ($uninstall.Contains('Remove-Item -LiteralPath $destination -Recurse -Force')) 'uninstaller removes the Program Files directory'
 Check ($uninstall.Contains('-Verb RunAs -WindowStyle Hidden')) 'elevated uninstaller stays hidden'
@@ -94,7 +94,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type 'public static class ConsoleProbe { [System.Runtime.InteropServices.DllImport("kernel32.dll")] public static extern System.IntPtr GetConsoleWindow(); [System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool IsWindowVisible(System.IntPtr handle); }'
 if ([ConsoleProbe]::GetConsoleWindow() -ne [IntPtr]::Zero) { exit 41 }
 $form = New-Object Windows.Forms.Form
-$form.Text = 'Codex Limits launcher check'
+$form.Text = 'AI Usage Monitor launcher check'
 $timer = New-Object Windows.Forms.Timer
 $timer.Interval = 300
 $timer.Add_Tick({

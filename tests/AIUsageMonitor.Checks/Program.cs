@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
-using CodexLimits;
+using AIUsageMonitor;
 
 if (args.Contains("app-server")) { await FakeServer(); return; }
 if (args.Length == 2 && args[0] is "--widget" or "--layout")
@@ -19,6 +19,16 @@ void Check(bool condition, string name)
     passed++;
     Console.WriteLine("PASS: " + name);
 }
+var currentConfig = Path.Combine(checkRoot, "AIUsageMonitor", "config.json");
+var legacyConfig = Path.Combine(checkRoot, "CodexLimits", "config.json");
+Check(ProductInfo.GetDefaultConfigPath(checkRoot) == currentConfig, "new installs use the renamed configuration path");
+Directory.CreateDirectory(Path.GetDirectoryName(legacyConfig)!);
+File.WriteAllText(legacyConfig, "{}");
+Check(ProductInfo.GetDefaultConfigPath(checkRoot) == legacyConfig, "existing configuration is reused after rename");
+Directory.CreateDirectory(Path.GetDirectoryName(currentConfig)!);
+File.WriteAllText(currentConfig, "{}");
+Check(ProductInfo.GetDefaultConfigPath(checkRoot) == currentConfig, "renamed configuration takes precedence when both exist");
+
 Limits Parse(string json)
 {
     using var doc = JsonDocument.Parse(json);

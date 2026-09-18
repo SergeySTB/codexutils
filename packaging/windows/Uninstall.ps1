@@ -20,7 +20,7 @@ if (-not $destination.Equals($expectedDestination, [StringComparison]::OrdinalIg
     throw "Refusing to uninstall from unexpected path: $destination"
 }
 
-Get-Process -Name CodexLimits -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Get-Process -Name AIUsageMonitor -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'AI Usage Monitor.lnk') -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $destination -Recurse -Force
-Remove-Item -LiteralPath 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CodexLimits' -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AIUsageMonitor' -Recurse -Force -ErrorAction SilentlyContinue

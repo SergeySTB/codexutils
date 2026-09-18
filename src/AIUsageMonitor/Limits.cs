@@ -1,7 +1,7 @@
 using System;
 using System.Text.Json;
 
-namespace CodexLimits;
+namespace AIUsageMonitor;
 
 public sealed record LimitWindow(double Remaining, DateTimeOffset? ResetsAt);
 public sealed record Limits(LimitWindow? FiveHour, LimitWindow? Weekly)

@@ -9,7 +9,7 @@ on:
       - 'packaging/**'
       - 'config/**'
       - 'build.ps1'
-      - 'CodexLimits.sln'
+      - 'AIUsageMonitor.sln'
       - 'global.json'
       - 'NuGet.Config'
       - 'README.md'
@@ -21,7 +21,7 @@ on:
       - 'packaging/**'
       - 'config/**'
       - 'build.ps1'
-      - 'CodexLimits.sln'
+      - 'AIUsageMonitor.sln'
       - 'global.json'
       - 'NuGet.Config'
       - 'README.md'
@@ -51,7 +51,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          [xml]$project = Get-Content src/CodexLimits/CodexLimits.csproj
+          [xml]$project = Get-Content src/AIUsageMonitor/AIUsageMonitor.csproj
           $version = [string]$project.Project.PropertyGroup.Version
           if ($env:RELEASE_TAG -ne "v$version") {
             throw "Release tag $env:RELEASE_TAG does not match project version $version"
