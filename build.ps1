@@ -33,7 +33,8 @@ try {
     New-Item -ItemType Directory -Force -Path $payloadRoot, (Split-Path $setupPath) | Out-Null
     $payloadFiles = @('CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md')
     foreach ($file in $payloadFiles) { Copy-Item -LiteralPath (Join-Path $publishRoot $file) -Destination $payloadRoot }
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/install.cmd') -Destination $payloadRoot
+    & "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /reference:System.Windows.Forms.dll "/out:$payloadRoot\SetupLauncher.exe" (Join-Path $PSScriptRoot 'packaging/windows/SetupLauncher.cs')
+    if ($LASTEXITCODE -ne 0) { throw 'Installer launcher build failed' }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/Install.ps1') -Destination $payloadRoot
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/Uninstall.ps1') -Destination $payloadRoot
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/Update-Config.ps1') -Destination $payloadRoot
@@ -56,13 +57,13 @@ DisplayLicense=
 FinishMessage=
 TargetName=$setupPath
 FriendlyName=Codex Limits for Windows 11
-AppLaunched=install.cmd
+AppLaunched=SetupLauncher.exe
 PostInstallCmd=<None>
 AdminQuietInstCmd=
-UserQuietInstCmd=install.cmd
+UserQuietInstCmd=SetupLauncher.exe
 SourceFiles=SourceFiles
 [Strings]
-FILE0="install.cmd"
+FILE0="SetupLauncher.exe"
 FILE1="Install.ps1"
 FILE2="Uninstall.ps1"
 FILE3="CodexLimits.exe"
@@ -112,7 +113,7 @@ SourceFiles0=$payloadRoot\
         [IO.File]::WriteAllBytes($cabPath, $cabinet)
         & "$env:WINDIR\System32\expand.exe" '-F:*' $cabPath $verifyRoot | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Installer extraction check failed' }
-        foreach ($file in @('install.cmd', 'Install.ps1', 'Uninstall.ps1', 'CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md', 'Update-Config.ps1')) {
+        foreach ($file in @('SetupLauncher.exe', 'Install.ps1', 'Uninstall.ps1', 'CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json', 'CodexLimits.runtimeconfig.json', 'config.example.json', 'README.md', 'Update-Config.ps1')) {
             $extracted = Join-Path $verifyRoot $file
             if (-not (Test-Path -LiteralPath $extracted)) { throw "Installer payload missing: $file" }
             if ((Get-FileHash -LiteralPath $extracted).Hash -ne (Get-FileHash -LiteralPath (Join-Path $payloadRoot $file)).Hash) { throw "Installer payload changed: $file" }

@@ -9,11 +9,12 @@ function Check($Condition, $Message) {
 $build = Get-Content -LiteralPath (Join-Path $repoRoot 'build.ps1') -Raw
 $install = Get-Content -LiteralPath (Join-Path $repoRoot 'packaging/windows/Install.ps1') -Raw
 $uninstall = Get-Content -LiteralPath (Join-Path $repoRoot 'packaging/windows/Uninstall.ps1') -Raw
-$cmd = Get-Content -LiteralPath (Join-Path $repoRoot 'packaging/windows/install.cmd') -Raw
+$launcher = Get-Content -LiteralPath (Join-Path $repoRoot 'packaging/windows/SetupLauncher.cs') -Raw
 
 Check ($build.Contains('CodexLimits-Setup_v$version.exe')) 'installer filename includes major.minor version'
 Check ($build.Contains("'Install.ps1'") -and $build.Contains("'Uninstall.ps1'")) 'installer payload includes install and uninstall scripts'
-Check ($cmd.Contains('powershell.exe -NoProfile -WindowStyle Hidden')) 'installer launcher hides its PowerShell window'
+Check ($build.Contains('AppLaunched=SetupLauncher.exe') -and -not $build.Contains('install.cmd')) 'installer starts a GUI launcher without CMD'
+Check ($launcher.Contains('CreateNoWindow = true') -and -not $launcher.Contains('WindowStyle')) 'launcher avoids a console without hiding dialogs'
 Check ($install.Contains("Join-Path `$env:ProgramFiles 'Codex Limits'")) 'installer targets Program Files'
 Check ($install.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CodexLimits')) 'installer creates an uninstall registry entry'
 Check ($install.Contains("'CommonPrograms'")) 'installer creates an all-users Start menu shortcut'
@@ -75,4 +76,40 @@ foreach ($scenario in @('launch', 'unchecked', 'failed', 'dismissed')) {
     Check ($shouldLaunch -eq ($scenario -eq 'launch')) "completion dialog handles $scenario"
 }
 Remove-Variable dialogProbe -Scope Script
+
+# Run the production child-launch path against a harmless script, without UAC or installation.
+$probeRoot = Join-Path $repoRoot '.build/installer-launch-check'
+New-Item -ItemType Directory -Force -Path $probeRoot | Out-Null
+@'
+internal static class LauncherProbe {
+    [System.STAThread]
+    private static int Main() { return SetupLauncher.RunScript(System.AppDomain.CurrentDomain.BaseDirectory); }
+}
+'@ | Set-Content -LiteralPath (Join-Path $probeRoot 'Probe.cs') -Encoding UTF8
+@'
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type 'public static class ConsoleProbe { [System.Runtime.InteropServices.DllImport("kernel32.dll")] public static extern System.IntPtr GetConsoleWindow(); [System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool IsWindowVisible(System.IntPtr handle); }'
+if ([ConsoleProbe]::GetConsoleWindow() -ne [IntPtr]::Zero) { exit 41 }
+$form = New-Object Windows.Forms.Form
+$form.Text = 'Codex Limits launcher check'
+$timer = New-Object Windows.Forms.Timer
+$timer.Interval = 300
+$timer.Add_Tick({
+    $script:visible = [ConsoleProbe]::IsWindowVisible($form.Handle)
+    $timer.Stop()
+    $form.Close()
+})
+$timer.Start()
+[void]$form.ShowDialog()
+$timer.Dispose()
+$form.Dispose()
+if (-not $script:visible) { exit 42 }
+exit 17
+'@ | Set-Content -LiteralPath (Join-Path $probeRoot 'Install.ps1') -Encoding UTF8
+$probeExe = Join-Path $probeRoot 'LauncherProbe.exe'
+& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /main:LauncherProbe /reference:System.Windows.Forms.dll "/out:$probeExe" (Join-Path $repoRoot 'packaging/windows/SetupLauncher.cs') (Join-Path $probeRoot 'Probe.cs')
+Check ($LASTEXITCODE -eq 0) 'GUI launcher compiles with built-in .NET Framework'
+$process = Start-Process -FilePath $probeExe -WindowStyle Hidden -PassThru
+if (-not $process.WaitForExit(15000)) { $process.Kill(); throw 'Launcher dialog check timed out' }
+Check ($process.ExitCode -eq 17) 'launcher creates no console, shows the dialog and returns its exit code'
 Write-Output 'All installer checks passed.'
