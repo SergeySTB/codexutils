@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [1.2] — 2026-09-18
+
 ### Исправлено
 
 - Установщик устанавливает приложение в `Program Files`, регистрирует его в
@@ -36,6 +38,7 @@
 - Необязательное звуковое уведомление о сбросе лимита.
 - Миграция существующей конфигурации при установке с резервной копией исходного файла.
 
-[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v1.1...HEAD
+[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v1.2...HEAD
+[1.2]: https://github.com/SergeySTB/codexutils/compare/v1.1...v1.2
 [1.1]: https://github.com/SergeySTB/codexutils/compare/v1.0...v1.1
 [1.0]: https://github.com/SergeySTB/codexutils/releases/tag/v1.0
