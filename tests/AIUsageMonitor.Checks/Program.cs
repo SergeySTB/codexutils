@@ -4,9 +4,9 @@ using System.Text.Json;
 using AIUsageMonitor;
 
 if (args.Contains("app-server")) { await FakeServer(); return; }
-if (args.Length == 2 && args[0] is "--widget" or "--layout")
+if (args.Length == 2 && args[0] is "--widget" or "--layout" or "--drag")
 {
-    try { WidgetChecks.Run(args[1], layoutOnly: args[0] == "--layout"); }
+    try { WidgetChecks.Run(args[1], layoutOnly: args[0] == "--layout", dragOnly: args[0] == "--drag"); }
     catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; }
     return;
 }
@@ -74,6 +74,13 @@ Check(Placement.Calculate(area, compact with { MarginPx = 8 }, screen).Y == 988,
 Check(Placement.Calculate(screen, compact with { MarginPx = 4, RespectTaskbar = false }, screen).Y == 1032, "full-screen anchor places widget on taskbar");
 Check(Placement.Calculate(new(-1920, 40, 1920, 1040), compact with { Edge = "top", MarginPx = -20 }, screen).Y == 20, "negative top margin crosses work-area boundary");
 var valid = new Settings { Accounts = [new("One", Path.Combine(checkRoot, "one")), new("Two", Path.Combine(checkRoot, "two"))] };
+foreach (string edge in new[] { "top", "bottom", "left", "right" })
+{
+    var target = new PixelRect(-1750, 320, 360, 144);
+    var dragged = Placement.FromPosition(screen, target, widget with { Edge = edge }, "secondary");
+    Check(Placement.Calculate(screen, dragged, screen) == target && dragged.Edge == edge &&
+        dragged.Monitor == "secondary" && !dragged.RespectTaskbar, "drag position round-trips for " + edge);
+}
 Check(valid.Validate().Accounts.Length == 2, "two profiles accepted");
 Check(new Settings().Accounts.Length == 1, "one profile configured by default");
 Check((valid with { Accounts = [valid.Accounts[0]] }).Validate().Accounts.Length == 1, "single profile accepted");
@@ -99,6 +106,21 @@ File.WriteAllText(configPath, $$"""
     }
     """);
 Check(Settings.Load(configPath).Accounts.Length == 1, "configuration comments accepted");
+Settings.SaveWidgetValues(configPath, new() { ["offsetPx"] = 170, ["marginPx"] = 320 });
+Check(Settings.Load(configPath).Widget is { OffsetPx: 170, MarginPx: 320 } &&
+    File.ReadAllText(configPath).Contains("// Add another object"), "position saving adds widget without losing comments or accounts");
+File.WriteAllText(configPath, """
+    { // "offsetPx": 999
+      "widget": { "offsetPx": 4, /* retain me */ "edge": "left" }
+    }
+    """);
+Settings.SaveWidgetValues(configPath, new() { ["offsetPx"] = 70, ["marginPx"] = 80, ["monitor"] = "\\\\.\\DISPLAY2" });
+Check(Settings.Load(configPath).Widget is { OffsetPx: 70, MarginPx: 80, Edge: "left", Monitor: "\\\\.\\DISPLAY2" } &&
+    File.ReadAllText(configPath).Contains("// \"offsetPx\": 999") && File.ReadAllText(configPath).Contains("/* retain me */"),
+    "saving edits only actual widget properties and preserves comments");
+string beforeInvalidSave = File.ReadAllText(configPath);
+Reject(() => Settings.SaveWidgetValues(configPath, new() { ["offsetPx"] = -1 }), "invalid position is not saved");
+Check(File.ReadAllText(configPath) == beforeInvalidSave, "failed save preserves original configuration");
 var shippedExample = Path.Combine(AppContext.BaseDirectory, "config.example.json");
 Check(Settings.Load(shippedExample).Accounts.Length == 1 && File.ReadAllText(shippedExample).Contains("// Add another object"),
     "shipped configuration has one account and an English second-account example");

@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Media;
-using System.Text.RegularExpressions;
+using System.Windows.Input;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -37,6 +37,8 @@ public sealed class WidgetWindow : Window
     private string? connectionProblem;
     private bool refreshing, closed, loggingIn, monitorMissing, placing, overlapsTaskbar;
     private int generation;
+    private Point? dragStart;
+    private bool dragging;
 
     private sealed class AccountView(AccountSettings config, CodexClient? client)
     {
@@ -92,6 +94,30 @@ public sealed class WidgetWindow : Window
         trayIcon = LoadApplicationIcon();
         tray = new Forms.NotifyIcon { Icon = trayIcon, Text = "AI Usage Monitor", Visible = true };
         tray.DoubleClick += (_, _) => { Show(); Activate(); };
+        PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            // Leave scrollbars and the sign-in button to their normal mouse handling.
+            for (var source = e.OriginalSource as DependencyObject; source != null && source != this;
+                source = source is Visual ? VisualTreeHelper.GetParent(source) : LogicalTreeHelper.GetParent(source))
+                if (source is ScrollBar || (cardsPanel != null && source is ButtonBase)) return;
+            dragStart = PointToScreen(e.GetPosition(this));
+        };
+        PreviewMouseLeftButtonUp += (_, _) => dragStart = null;
+        PreviewMouseMove += (_, e) =>
+        {
+            if (dragStart is not { } start || e.LeftButton != MouseButtonState.Pressed || dragging) return;
+            var point = PointToScreen(e.GetPosition(this));
+            if (Math.Abs(point.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(point.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            dragStart = null;
+            e.Handled = true;
+            foreach (var account in accounts) account.Details.IsOpen = false;
+            Mouse.Capture(null);
+            dragging = true;
+            try { DragMove(); SavePosition(); }
+            catch (Exception error) { MessageBox.Show("Позиция не сохранена.\n" + error.Message, "AI Usage Monitor"); }
+            finally { dragging = false; lastPlacement = null; Place(); }
+        };
         SourceInitialized += (_, _) =>
         {
             HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(WindowMessage);
@@ -488,21 +514,33 @@ public sealed class WidgetWindow : Window
     {
         try
         {
-            if (!File.Exists(configPath)) throw new InvalidDataException("Файл конфигурации не найден.");
-            string config = File.ReadAllText(configPath);
-            string updated = new Regex("(\\\"displayMode\\\"\\s*:\\s*\\\")[^\\\"]*(\\\")")
-                .Replace(config, match => match.Groups[1].Value + displayMode + match.Groups[2].Value, 1);
-            if (updated == config) throw new InvalidDataException("Добавьте widget.displayMode в конфигурацию.");
-            File.WriteAllText(configPath, updated);
+            if (loggingIn) { MessageBox.Show("Завершите вход в аккаунт перед изменением настроек.", "AI Usage Monitor"); return; }
+            Settings.SaveWidgetValues(configPath, new() { ["displayMode"] = displayMode });
             Reload();
         }
         catch (Exception error) { MessageBox.Show("Режим отображения не изменён.\n" + error.Message, "AI Usage Monitor"); }
     }
 
+    private void SavePosition()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        if (!GetWindowRect(handle, out var bounds)) throw new IOException("Не удалось прочитать позицию окна.");
+        var monitor = Forms.Screen.FromHandle(handle);
+        var screen = monitor.Bounds;
+        var widget = Placement.FromPosition(new(screen.X, screen.Y, screen.Width, screen.Height),
+            new(bounds.Left, bounds.Top, bounds.Right - bounds.Left, bounds.Bottom - bounds.Top), settings.Widget, monitor.DeviceName);
+        if (!demo) Settings.SaveWidgetValues(configPath, new()
+        {
+            ["monitor"] = widget.Monitor, ["offsetPx"] = widget.OffsetPx,
+            ["marginPx"] = widget.MarginPx, ["respectTaskbar"] = widget.RespectTaskbar
+        });
+        settings = settings with { Widget = widget };
+    }
+
     private void Place()
     {
         var handle = new WindowInteropHelper(this).Handle;
-        if (handle == IntPtr.Zero || placing || closed) return;
+        if (handle == IntPtr.Zero || placing || closed || dragging) return;
         placing = true;
         try
         {
@@ -548,7 +586,7 @@ public sealed class WidgetWindow : Window
 
     private void MaintainTaskbarOverlay()
     {
-        if (closed || !IsVisible || !Topmost || !overlapsTaskbar ||
+        if (closed || dragging || !IsVisible || !Topmost || !overlapsTaskbar ||
             accounts.Any(a => a.Details.IsOpen) || ContextMenu?.IsOpen == true || tray.ContextMenuStrip?.Visible == true) return;
         // ponytail: reuse the 1s timer; shell activation can cover us until its next tick.
         // Do not raise over our own tooltip or menus, and never take keyboard focus.
@@ -567,6 +605,9 @@ public sealed class WidgetWindow : Window
     }
 
     private static SolidColorBrush Brush(string color) => new((Color)ColorConverter.ConvertFromString(color));
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out NativeRect rectangle);
     [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr window);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
 }

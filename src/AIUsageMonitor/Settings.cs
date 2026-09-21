@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -81,14 +83,72 @@ public sealed record Settings
             (Widget.DisplayMode == "cards" &&
                 ((Widget.CardWidthPx != 0 && (Widget.CardWidthPx < 64 || Widget.CardWidthPx > 4096)) ||
                  (Widget.CardHeightPx != 0 && (Widget.CardHeightPx < 32 || Widget.CardHeightPx > 2160)))) || Widget.MarginPx < -4096 ||
-            Widget.MarginPx > 4096 || Widget.OffsetPx < 0 || Widget.OffsetPx > 100000 ||
+            Widget.MarginPx > 100000 || Widget.OffsetPx < 0 || Widget.OffsetPx > 100000 ||
             string.IsNullOrWhiteSpace(Widget.Monitor) ||
             Widget.Edge is not ("top" or "bottom" or "left" or "right"))
-            throw new InvalidDataException("Проверьте widget: displayMode icons/cards, иконки и карточки 64×32–4096×2160 (0 — авто только для карточек), marginPx от -4096 до 4096, offsetPx от 0 до 100000, edge: top/bottom/left/right.");
+            throw new InvalidDataException("Проверьте widget: displayMode icons/cards, иконки и карточки 64×32–4096×2160 (0 — авто только для карточек), marginPx от -4096 до 100000, offsetPx от 0 до 100000, edge: top/bottom/left/right.");
         if (RefreshSeconds < 30 || RefreshSeconds > 3600)
             throw new InvalidDataException("refreshSeconds должен быть от 30 до 3600.");
         if (CodexExecutable is null) throw new InvalidDataException("codexExecutable должен быть строкой.");
         return this with { Accounts = accounts };
+    }
+
+    public static void SaveWidgetValues(string path, Dictionary<string, object> values)
+    {
+        // Edit JSON tokens, preserving comments, formatting and unrelated settings.
+        byte[] original = File.ReadAllBytes(path);
+        byte[] json = original.AsSpan().StartsWith(Encoding.UTF8.Preamble) ? original[3..] : original;
+        var reader = new Utf8JsonReader(json, new JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip });
+        var edits = new List<(int Start, int Length, byte[] Value)>();
+        var missing = new Dictionary<string, object>(values);
+        int widgetStart = -1, rootStart = -1;
+        bool hasWidgetProperties = false, hasRootProperties = false;
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.StartObject && reader.CurrentDepth == 0) rootStart = (int)reader.BytesConsumed;
+            if (reader.TokenType != JsonTokenType.PropertyName || reader.CurrentDepth != 1) continue;
+            hasRootProperties = true;
+            if (!reader.ValueTextEquals("widget")) { reader.Read(); reader.Skip(); continue; }
+            reader.Read();
+            if (reader.TokenType != JsonTokenType.StartObject) throw new InvalidDataException("widget должен быть объектом.");
+            widgetStart = (int)reader.BytesConsumed;
+            while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+            {
+                string key = reader.GetString()!;
+                hasWidgetProperties = true;
+                reader.Read();
+                int start = (int)reader.TokenStartIndex;
+                reader.Skip();
+                if (values.TryGetValue(key, out var value))
+                {
+                    edits.Add((start, (int)reader.BytesConsumed - start, JsonSerializer.SerializeToUtf8Bytes(value)));
+                    missing.Remove(key);
+                }
+            }
+        }
+        if (rootStart < 0) throw new InvalidDataException("Пустой конфигурационный файл.");
+        if (missing.Count > 0)
+        {
+            string members = JsonSerializer.Serialize(missing)[1..^1];
+            string insert = widgetStart >= 0 ? members + (hasWidgetProperties ? "," : "")
+                : "\"widget\":{" + members + "}" + (hasRootProperties ? "," : "");
+            edits.Add((widgetStart >= 0 ? widgetStart : rootStart, 0, Encoding.UTF8.GetBytes(insert)));
+        }
+        var updated = json.ToList();
+        foreach (var edit in edits.OrderByDescending(e => e.Start))
+        {
+            updated.RemoveRange(edit.Start, edit.Length);
+            updated.InsertRange(edit.Start, edit.Value);
+        }
+        string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllBytes(temporary, updated.ToArray());
+            Load(temporary);
+            if (!File.ReadAllBytes(path).SequenceEqual(original)) throw new IOException("Конфигурация изменена другим процессом. Повторите действие.");
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
     public static string ExpandPath(string value)

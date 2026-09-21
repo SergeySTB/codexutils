@@ -10,7 +10,7 @@ using AIUsageMonitor;
 
 internal static class WidgetChecks
 {
-    public static void Run(string outputDirectory, bool layoutOnly = false)
+    public static void Run(string outputDirectory, bool layoutOnly = false, bool dragOnly = false)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -24,6 +24,11 @@ internal static class WidgetChecks
                 try
                 {
                     Directory.CreateDirectory(outputDirectory);
+                    if (dragOnly)
+                    {
+                        await CheckDrag(Path.GetFullPath(outputDirectory));
+                        return;
+                    }
                     if (layoutOnly)
                     {
                         await CheckLayouts(Path.GetFullPath(outputDirectory));
@@ -117,6 +122,58 @@ internal static class WidgetChecks
         thread.Start();
         thread.Join();
         if (failure != null) throw new Exception("Widget checks failed", failure);
+    }
+
+    private static async Task CheckDrag(string outputDirectory)
+    {
+        foreach (string mode in new[] { "icons", "cards" })
+        {
+            var config = Path.Combine(outputDirectory, "drag-" + mode + ".json");
+            var settings = new Settings
+            {
+                CodexExecutable = Path.Combine(outputDirectory, "missing.exe"),
+                Widget = new() { DisplayMode = mode, OffsetPx = 100, MarginPx = 100, RespectTaskbar = false }
+            };
+            File.WriteAllText(config, System.Text.Json.JsonSerializer.Serialize(settings, Settings.JsonOptions));
+            var window = new WidgetWindow(config, settings, demo: false);
+            try
+            {
+                window.Show();
+                await Task.Delay(250);
+                var handle = new WindowInteropHelper(window).Handle;
+                Require(GetWindowRect(handle, out var before), "read pre-drag bounds");
+                // The icon is a button; dragging it must not trigger its sign-in action.
+                int x = before.Left + 25, y = before.Top + 20;
+                await Task.Run(() =>
+                {
+                    SetCursorPos(x, y);
+                    Thread.Sleep(150);
+                    mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
+                    try
+                    {
+                        Thread.Sleep(100);
+                        SetCursorPos(x + 12, y + 12);
+                        Thread.Sleep(200);
+                        SetCursorPos(x + 92, y + 72);
+                        Thread.Sleep(150);
+                    }
+                    finally { mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero); }
+                });
+                await Task.Delay(1300);
+                Require(GetWindowRect(handle, out var after) && after.Left > before.Left + 30 && after.Top > before.Top + 20,
+                    mode + " follows mouse and stays in place across timer ticks");
+                var saved = Settings.Load(config);
+                Require(saved.Widget.OffsetPx != 100 && saved.Widget.MarginPx != 100, "drag writes configuration");
+                window.Close();
+                window = new WidgetWindow(config, saved, demo: false);
+                window.Show();
+                await Task.Delay(250);
+                Require(GetWindowRect(new WindowInteropHelper(window).Handle, out var restored) &&
+                    restored.Left == after.Left && restored.Top == after.Top, "restart restores " + mode + " position");
+            }
+            finally { window.Close(); }
+        }
+        Console.WriteLine("PASS: icons and cards drag, save, timer stability and restart restoration.");
     }
 
     private static async Task CheckLayouts(string outputDirectory)
@@ -252,4 +309,5 @@ internal static class WidgetChecks
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out ScreenPoint point);
     [DllImport("user32.dll")] private static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] private static extern void mouse_event(uint flags, uint x, uint y, uint data, UIntPtr extraInfo);
 }

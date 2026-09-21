@@ -58,6 +58,24 @@ public sealed record Limits(LimitWindow? FiveHour, LimitWindow? Weekly)
 public readonly record struct PixelRect(int X, int Y, int Width, int Height);
 public static class Placement
 {
+    public static WidgetSettings FromPosition(PixelRect screen, PixelRect window, WidgetSettings settings, string monitor)
+    {
+        int x = Math.Clamp(window.X - screen.X, 0, Math.Max(0, screen.Width - window.Width));
+        int y = Math.Clamp(window.Y - screen.Y, 0, Math.Max(0, screen.Height - window.Height));
+        return settings with
+        {
+            Monitor = monitor, RespectTaskbar = false,
+            OffsetPx = settings.Edge is "left" or "right" ? y : x,
+            MarginPx = settings.Edge switch
+            {
+                "bottom" => Math.Max(0, screen.Height - window.Height - y),
+                "right" => Math.Max(0, screen.Width - window.Width - x),
+                "left" => x,
+                _ => y
+            }
+        };
+    }
+
     public static PixelRect Calculate(PixelRect area, WidgetSettings settings, PixelRect? screen = null,
         int? widthPx = null, int? heightPx = null)
     {
