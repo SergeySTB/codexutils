@@ -14,9 +14,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.Menu;
+import android.view.SubMenu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -45,7 +48,6 @@ public final class MainActivity extends Activity {
     private AccountStore store;
     private LinearLayout cards;
     private TextView status;
-    private Button add;
     private boolean signingIn, refreshing, closed, storageUnavailable;
     private Future<?> loginTask;
     private final Runnable periodicRefresh = new Runnable() {
@@ -67,7 +69,6 @@ public final class MainActivity extends Activity {
         try { accounts.addAll(store.load()); }
         catch (Exception ignored) {
             storageUnavailable = true;
-            add.setEnabled(false);
             status.setText("Не удалось открыть сохранённые аккаунты. Очистите данные приложения в настройках Android.");
         }
         render();
@@ -107,22 +108,26 @@ public final class MainActivity extends Activity {
         scroll.addView(content);
         setContentView(scroll);
 
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout heading = new LinearLayout(this);
+        heading.setOrientation(LinearLayout.VERTICAL);
         TextView title = text("AI Usage Monitor", 25, TEXT);
         title.setTypeface(null, Typeface.BOLD);
-        content.addView(title);
-        content.addView(text("Остаток лимитов Codex", 14, MUTED));
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.setPadding(0, dp(16), 0, dp(8));
-        add = button("Добавить аккаунт", this::startLogin);
-        actions.addView(add, new LinearLayout.LayoutParams(0, dp(48), 1));
-        Button refresh = button("Обновить", this::refreshAll);
-        LinearLayout.LayoutParams refreshSize = new LinearLayout.LayoutParams(dp(112), dp(48));
-        refreshSize.leftMargin = dp(8);
-        actions.addView(refresh, refreshSize);
-        content.addView(actions);
-        Button settings = button("Настройки", () -> startActivity(new Intent(this, SettingsActivity.class)));
-        content.addView(settings, new LinearLayout.LayoutParams(-2, dp(48)));
+        heading.addView(title);
+        heading.addView(text("Остаток лимитов Codex", 14, MUTED));
+        header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+        Button menu = new Button(this);
+        menu.setText("⋮");
+        menu.setAllCaps(false);
+        menu.setTextSize(24);
+        menu.setTextColor(TEXT);
+        menu.setContentDescription("Меню действий");
+        menu.setPadding(0, 0, 0, 0);
+        menu.setBackgroundTintList(android.content.res.ColorStateList.valueOf(CARD));
+        menu.setOnClickListener(this::showMenu);
+        header.addView(menu, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        content.addView(header);
         status = text("", 13, MUTED);
         content.addView(status);
         cards = new LinearLayout(this);
@@ -130,11 +135,38 @@ public final class MainActivity extends Activity {
         content.addView(cards);
     }
 
+    private void showMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(this, anchor);
+        popup.setGravity(Gravity.END);
+        Menu menu = popup.getMenu();
+        menu.add(0, 1, 0, "Добавить аккаунт").setEnabled(!signingIn && !storageUnavailable);
+        menu.add(0, 2, 1, "Обновить").setEnabled(!refreshing && !signingIn && !accounts.isEmpty() && !storageUnavailable);
+        menu.add(0, 3, 2, "Настройки");
+        List<AccountStore.Account> shown = new ArrayList<>(accounts);
+        if (!shown.isEmpty()) {
+            SubMenu remove = menu.addSubMenu(0, 4, 3, "Убрать аккаунт");
+            for (int i = 0; i < shown.size(); i++) {
+                AccountStore.Account account = shown.get(i);
+                remove.add(0, 100 + i, i, account.email.isEmpty() ? "Аккаунт ChatGPT" : account.email);
+            }
+        }
+        popup.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == 1) startLogin();
+            else if (id == 2) refreshAll();
+            else if (id == 3) startActivity(new Intent(this, SettingsActivity.class));
+            else if (id >= 100 && id < 100 + shown.size()) removeAccount(shown.get(id - 100));
+            else return false;
+            return true;
+        });
+        popup.show();
+    }
+
     private void render() {
         cards.removeAllViews();
         if (accounts.isEmpty()) {
             TextView hint = text(storageUnavailable ? "Сохранённые данные входа недоступны." :
-                "Добавьте аккаунт и войдите через ChatGPT в браузере.", 16, MUTED);
+                "Откройте меню ⋮ и выберите «Добавить аккаунт», затем войдите через ChatGPT в браузере.", 16, MUTED);
             hint.setPadding(0, dp(48), 0, 0);
             cards.addView(hint);
             return;
@@ -162,11 +194,6 @@ public final class MainActivity extends Activity {
             if (account.error != null)
                 card.addView(text((account.usage == null ? "" : "Данные устарели · ") + account.error,
                     13, Color.rgb(255, 190, 138)));
-            Button remove = button("Убрать аккаунт", () -> removeAccount(account));
-            remove.setContentDescription("Убрать аккаунт " + account.email);
-            LinearLayout.LayoutParams removeSize = new LinearLayout.LayoutParams(-2, dp(44));
-            removeSize.topMargin = dp(8);
-            card.addView(remove, removeSize);
         }
     }
 
@@ -191,7 +218,6 @@ public final class MainActivity extends Activity {
     private void startLogin() {
         if (signingIn || storageUnavailable) return;
         signingIn = true;
-        add.setEnabled(false);
         status.setText("Получаем код входа…");
         loginTask = worker.submit(() -> {
             String stage = "получение кода";
@@ -212,7 +238,6 @@ public final class MainActivity extends Activity {
                         accounts.clear();
                         accounts.addAll(copy);
                         signingIn = false;
-                        add.setEnabled(true);
                         status.setText("Аккаунт подключён");
                         render();
                         WidgetRenderer.showCached(this);
@@ -231,7 +256,7 @@ public final class MainActivity extends Activity {
                 String message = "Вход не завершён: " + stage + " (" + detail + ")";
                 runOnUiThread(() -> { if (!closed) status.setText(message); });
             } finally {
-                runOnUiThread(() -> { if (!closed) { signingIn = false; add.setEnabled(true); } });
+                runOnUiThread(() -> { if (!closed) signingIn = false; });
             }
         });
     }
@@ -283,7 +308,8 @@ public final class MainActivity extends Activity {
 
     private void removeAccount(AccountStore.Account account) {
         new AlertDialog.Builder(this).setTitle("Убрать аккаунт?")
-            .setMessage("Данные входа будут удалены с этого телефона.")
+            .setMessage("Данные входа для " + (account.email.isEmpty() ? "аккаунта ChatGPT" : account.email) +
+                " будут удалены с этого телефона.")
             .setNegativeButton("Отмена", null)
             .setPositiveButton("Убрать", (dialog, which) -> worker.execute(() -> {
                 try {

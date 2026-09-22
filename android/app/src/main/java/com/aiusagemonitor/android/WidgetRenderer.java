@@ -11,11 +11,15 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
+import android.util.SizeF;
 import android.view.View;
 import android.widget.RemoteViews;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 final class WidgetRenderer {
     private static final int MINT = Color.rgb(100, 226, 204);
@@ -39,19 +43,19 @@ final class WidgetRenderer {
         try { accounts = new AccountStore(context).load(); }
         catch (Exception error) { accounts = new ArrayList<>(); unavailable = true; }
         for (int id : icons) {
-            RemoteViews view = new RemoteViews(context.getPackageName(), R.layout.widget_icons);
-            view.removeAllViews(R.id.widget_icons_list);
-            view.setViewVisibility(R.id.widget_icons_empty, accounts.isEmpty() ? View.VISIBLE : View.GONE);
-            view.setTextViewText(R.id.widget_icons_empty,
-                unavailable ? "Данные недоступны" : "Добавьте аккаунт");
-            for (AccountStore.Account account : accounts) {
-                RemoteViews icon = new RemoteViews(context.getPackageName(), R.layout.widget_icon);
-                icon.setImageViewBitmap(R.id.widget_icon_image, iconBitmap(context, account));
-                icon.setContentDescription(R.id.widget_icon_image, description(account));
-                view.addView(R.id.widget_icons_list, icon);
+            Bundle options = manager.getAppWidgetOptions(id);
+            if (Build.VERSION.SDK_INT >= 31 && options != null) {
+                ArrayList<SizeF> sizes = options.getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES);
+                if (sizes != null && !sizes.isEmpty()) {
+                    Map<SizeF, RemoteViews> layouts = new HashMap<>();
+                    for (SizeF size : sizes)
+                        layouts.put(size, iconViews(context, accounts, unavailable, Math.round(size.getWidth())));
+                    manager.updateAppWidget(id, new RemoteViews(layouts));
+                    continue;
+                }
             }
-            view.setOnClickPendingIntent(R.id.widget_icons_root, openApp(context, 1, false));
-            manager.updateAppWidget(id, view);
+            int width = options == null ? 120 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 120);
+            manager.updateAppWidget(id, iconViews(context, accounts, unavailable, width));
         }
         for (int id : cards) {
             RemoteViews view = new RemoteViews(context.getPackageName(), R.layout.widget_cards);
@@ -63,6 +67,41 @@ final class WidgetRenderer {
             manager.updateAppWidget(id, view);
             manager.notifyAppWidgetViewDataChanged(id, R.id.widget_cards_list);
         }
+    }
+
+    private static RemoteViews iconViews(Context context, List<AccountStore.Account> accounts,
+                                         boolean unavailable, int widthDp) {
+        RemoteViews view = new RemoteViews(context.getPackageName(), R.layout.widget_icons);
+        view.removeAllViews(R.id.widget_icons_list);
+        view.setViewVisibility(R.id.widget_icons_empty, accounts.isEmpty() ? View.VISIBLE : View.GONE);
+        int slots = WidgetIconSlots.capacity(widthDp > 0 ? widthDp : 120);
+        view.setTextViewText(R.id.widget_icons_empty, unavailable
+            ? (slots == 1 ? "!" : "Нет данных") : (slots == 1 ? "Нет" : "Нет аккаунтов"));
+        view.setContentDescription(R.id.widget_icons_empty, unavailable
+            ? "Сохранённые данные недоступны" : "Нет аккаунтов. Откройте приложение, чтобы добавить аккаунт");
+        int visible = WidgetIconSlots.visible(slots, accounts.size());
+        int hidden = accounts.size() - visible;
+        boolean overflowTile = hidden > 0 && slots > 1;
+        view.setViewVisibility(R.id.widget_icons_overflow, overflowTile ? View.VISIBLE : View.GONE);
+        if (overflowTile) {
+            view.setTextViewText(R.id.widget_icons_overflow, "+" + hidden);
+            view.setContentDescription(R.id.widget_icons_overflow, "Ещё " + hidden + " аккаунтов");
+        }
+        for (int index = 0; index < visible; index++) {
+            AccountStore.Account account = accounts.get(index);
+            RemoteViews icon = new RemoteViews(context.getPackageName(), R.layout.widget_icon);
+            icon.setImageViewBitmap(R.id.widget_icon_image, iconBitmap(context, account));
+            boolean badge = hidden > 0 && !overflowTile;
+            icon.setContentDescription(R.id.widget_icon_image, description(account) +
+                (badge ? ". Ещё " + hidden + " аккаунтов не показано" : ""));
+            if (badge) {
+                icon.setViewVisibility(R.id.widget_icon_more, View.VISIBLE);
+                icon.setTextViewText(R.id.widget_icon_more, "+" + hidden);
+            }
+            view.addView(R.id.widget_icons_list, icon);
+        }
+        view.setOnClickPendingIntent(R.id.widget_icons_root, openApp(context, 1, false));
+        return view;
     }
 
     private static PendingIntent openApp(Context context, int requestCode, boolean mutable) {
@@ -89,20 +128,20 @@ final class WidgetRenderer {
 
     private static Bitmap iconBitmap(Context context, AccountStore.Account account) {
         float density = context.getResources().getDisplayMetrics().density;
-        int pixels = Math.max(1, Math.round(38 * density));
+        int pixels = Math.max(1, Math.round(48 * density));
         Bitmap bitmap = Bitmap.createBitmap(pixels, pixels, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(2 * density);
+        paint.setStrokeWidth(2.5f * density);
         paint.setStrokeCap(Paint.Cap.ROUND);
         float center = pixels / 2f;
         Usage usage = account.usage;
-        ring(canvas, paint, center, 15 * density, usage == null ? null : usage.fiveHour, MINT, account.error != null);
-        ring(canvas, paint, center, 11.5f * density, usage == null ? null : usage.weekly, PURPLE, account.error != null);
+        ring(canvas, paint, center, 20 * density, usage == null ? null : usage.fiveHour, MINT, account.error != null);
+        ring(canvas, paint, center, 15 * density, usage == null ? null : usage.weekly, PURPLE, account.error != null);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(TEXT);
-        paint.setTextSize(12 * density);
+        paint.setTextSize(14 * density);
         paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         String label = account.email.trim();
         String name = label.isEmpty() ? "?" :

@@ -10,6 +10,11 @@ import java.util.Base64;
 public final class UsageCheck {
     public static void main(String[] args) throws Exception {
         Usage.demoCheck();
+        if (WidgetIconSlots.capacity(56) != 1 || WidgetIconSlots.capacity(120) != 2 ||
+            WidgetIconSlots.capacity(203) != 3 || WidgetIconSlots.visible(1, 3) != 1 ||
+            WidgetIconSlots.visible(2, 3) != 1 || WidgetIconSlots.visible(3, 3) != 3 ||
+            WidgetIconSlots.visible(3, 4) != 2)
+            throw new AssertionError("Widget icons must fit the available launcher width");
         if (WidgetSettings.normalized(15) != 15 || WidgetSettings.normalized(30) != 30 ||
             WidgetSettings.normalized(60) != 60 || WidgetSettings.normalized(1) != 30)
             throw new AssertionError("Widget interval must use a supported Android period");

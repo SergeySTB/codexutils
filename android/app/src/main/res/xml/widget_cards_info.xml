@@ -6,6 +6,8 @@
     android:minResizeWidth="160dp"
     android:minResizeHeight="110dp"
     android:initialLayout="@layout/widget_cards"
+    android:previewLayout="@layout/widget_cards_preview"
+    android:previewImage="@drawable/widget_cards_preview_image"
     android:description="@string/widget_cards_description"
     android:updatePeriodMillis="0"
     android:resizeMode="horizontal|vertical"

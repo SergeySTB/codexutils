@@ -5,6 +5,8 @@
     android:targetCellHeight="1"
     android:minResizeWidth="56dp"
     android:initialLayout="@layout/widget_icons"
+    android:previewLayout="@layout/widget_icons_preview"
+    android:previewImage="@drawable/widget_icons_preview_image"
     android:description="@string/widget_icons_description"
     android:updatePeriodMillis="0"
     android:resizeMode="horizontal"
