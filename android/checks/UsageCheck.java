@@ -10,6 +10,19 @@ import java.util.Base64;
 public final class UsageCheck {
     public static void main(String[] args) throws Exception {
         Usage.demoCheck();
+        Usage original = Usage.parse(new JSONObject("{\"rate_limit\":{\"primary_window\":{\"used_percent\":20,\"limit_window_seconds\":18000}}}"));
+        Usage saved = Usage.fromSaved(original.toJson());
+        if (saved == null || saved.fiveHour == null || saved.fiveHour.remaining != 80 || saved.weekly != null)
+            throw new AssertionError("Saved usage must preserve available windows");
+        AccountStore.Account account = new AccountStore.Account(new JSONObject()
+            .put("accountId", "account-1").put("email", "user@example.com")
+            .put("usage", original.toJson()).put("updatedAt", 1234));
+        AccountStore.Account restored = new AccountStore.Account(account.toJson());
+        if (restored.usage == null || restored.usage.fiveHour == null ||
+            restored.usage.fiveHour.remaining != 80 || restored.updatedAt != 1234 || restored.error != null)
+            throw new AssertionError("Account snapshot must survive encryption payload roundtrip");
+        if (Usage.fromSaved(new JSONObject("{\"fiveHour\":{\"remaining\":101}}")).fiveHour != null)
+            throw new AssertionError("Corrupt saved limits must not be displayed");
         Usage invalid = Usage.parse(new JSONObject("{\"rate_limit\":{\"primary_window\":{\"used_percent\":-1,\"limit_window_seconds\":18000}}}"));
         if (invalid.fiveHour != null || invalid.weekly != null)
             throw new AssertionError("Invalid limits must stay unavailable");

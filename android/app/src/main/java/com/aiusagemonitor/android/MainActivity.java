@@ -75,12 +75,14 @@ public final class MainActivity extends Activity {
 
     @Override protected void onStart() {
         super.onStart();
+        WidgetRefreshJob.activityVisible = true;
         handler.removeCallbacks(periodicRefresh);
         handler.post(periodicRefresh);
     }
 
     @Override protected void onStop() {
         handler.removeCallbacks(periodicRefresh);
+        WidgetRefreshJob.activityVisible = false;
         super.onStop();
     }
 
@@ -201,12 +203,7 @@ public final class MainActivity extends Activity {
                 AccountStore.Account account = CodexApi.exchangeCode(approved);
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
                 stage = "сохранение аккаунта";
-                List<AccountStore.Account> copy = new ArrayList<>(accounts);
-                int found = -1;
-                for (int i = 0; i < copy.size(); i++)
-                    if (copy.get(i).accountId.equals(account.accountId)) { found = i; break; }
-                if (found >= 0) copy.set(found, account); else copy.add(account);
-                store.save(copy);
+                List<AccountStore.Account> copy = store.upsert(account);
                 runOnUiThread(() -> {
                     if (!closed) {
                         accounts.clear();
@@ -215,6 +212,7 @@ public final class MainActivity extends Activity {
                         add.setEnabled(true);
                         status.setText("Аккаунт подключён");
                         render();
+                        WidgetRenderer.showCached(this);
                         refreshAll();
                     }
                 });
@@ -266,25 +264,15 @@ public final class MainActivity extends Activity {
         worker.execute(() -> {
             for (AccountStore.Account account : accounts) {
                 if (Thread.currentThread().isInterrupted()) break;
-                if (System.currentTimeMillis() < account.retryAt) continue;
-                try {
-                    account.usage = CodexApi.readUsage(account, () -> store.save(accounts));
-                    account.updatedAt = System.currentTimeMillis();
-                    account.error = null;
-                    account.retryAt = 0;
-                } catch (Exception ignored) {
-                    boolean limited = ignored instanceof CodexApi.HttpStatusException
-                        && ((CodexApi.HttpStatusException) ignored).status == 429;
-                    account.retryAt = limited ? System.currentTimeMillis() + 15 * 60_000L : 0;
-                    account.error = limited ? "Слишком частые запросы. Повтор через 15 минут." :
-                        "Не удалось получить лимиты. Проверьте вход и соединение.";
-                }
+                try { store.refresh(account); }
+                catch (Exception ignored) { account.error = "Не удалось сохранить лимиты на телефоне."; }
             }
             runOnUiThread(() -> {
                 if (!closed) {
                     refreshing = false;
                     status.setText("Остаток лимитов · обновление каждую минуту, пока приложение открыто");
                     render();
+                    WidgetRenderer.showCached(this);
                 }
             });
         });
@@ -295,15 +283,14 @@ public final class MainActivity extends Activity {
             .setMessage("Данные входа будут удалены с этого телефона.")
             .setNegativeButton("Отмена", null)
             .setPositiveButton("Убрать", (dialog, which) -> worker.execute(() -> {
-                List<AccountStore.Account> copy = new ArrayList<>(accounts);
-                copy.remove(account);
                 try {
-                    store.save(copy);
+                    List<AccountStore.Account> copy = store.remove(account.accountId);
                     runOnUiThread(() -> {
                         if (!closed) {
                             accounts.clear();
                             accounts.addAll(copy);
                             render();
+                            WidgetRenderer.showCached(this);
                         }
                     });
                 } catch (Exception ignored) {

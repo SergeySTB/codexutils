@@ -35,16 +35,37 @@ final class AccountStore {
             refreshToken = json.optString("refreshToken");
             idToken = json.optString("idToken");
             expiresAt = json.optLong("expiresAt");
+            usage = Usage.fromSaved(json.optJSONObject("usage"));
+            updatedAt = json.optLong("updatedAt");
+            retryAt = json.optLong("retryAt");
+            error = json.optString("error", null);
         }
 
         JSONObject toJson() throws Exception {
             return new JSONObject().put("email", email).put("plan", plan).put("accountId", accountId)
                 .put("accessToken", accessToken).put("refreshToken", refreshToken)
-                .put("idToken", idToken).put("expiresAt", expiresAt);
+                .put("idToken", idToken).put("expiresAt", expiresAt)
+                .put("usage", usage == null ? null : usage.toJson())
+                .put("updatedAt", updatedAt).put("retryAt", retryAt).put("error", error);
+        }
+
+        void copyFrom(Account other) {
+            email = other.email;
+            plan = other.plan;
+            accessToken = other.accessToken;
+            refreshToken = other.refreshToken;
+            idToken = other.idToken;
+            expiresAt = other.expiresAt;
+            usage = other.usage;
+            updatedAt = other.updatedAt;
+            retryAt = other.retryAt;
+            error = other.error;
         }
     }
 
     private static final String KEY_ALIAS = "AIUsageMonitorAccounts";
+    private static final Object LOCK = new Object();
+    private static final Object REFRESH_LOCK = new Object();
     private final Context context;
 
     AccountStore(Context context) { this.context = context.getApplicationContext(); }
@@ -62,6 +83,10 @@ final class AccountStore {
     }
 
     List<Account> load() throws Exception {
+        synchronized (LOCK) { return loadUnlocked(); }
+    }
+
+    private List<Account> loadUnlocked() throws Exception {
         String encoded = context.getSharedPreferences("accounts", Context.MODE_PRIVATE).getString("data", null);
         if (encoded == null) return new ArrayList<>();
         byte[] all = Base64.decode(encoded, Base64.NO_WRAP);
@@ -77,7 +102,7 @@ final class AccountStore {
         return accounts;
     }
 
-    void save(List<Account> accounts) throws Exception {
+    private void saveUnlocked(List<Account> accounts) throws Exception {
         JSONArray json = new JSONArray();
         for (Account account : accounts) json.put(account.toJson());
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
@@ -90,5 +115,79 @@ final class AccountStore {
         if (!context.getSharedPreferences("accounts", Context.MODE_PRIVATE).edit()
             .putString("data", Base64.encodeToString(all, Base64.NO_WRAP)).commit())
             throw new IllegalStateException("Could not save accounts");
+    }
+
+    List<Account> upsert(Account account) throws Exception {
+        synchronized (REFRESH_LOCK) { synchronized (LOCK) {
+            List<Account> current = loadUnlocked();
+            for (int i = 0; i < current.size(); i++) {
+                if (current.get(i).accountId.equals(account.accountId)) {
+                    account.usage = current.get(i).usage;
+                    account.updatedAt = current.get(i).updatedAt;
+                    current.set(i, account);
+                    saveUnlocked(current);
+                    return current;
+                }
+            }
+            current.add(account);
+            saveUnlocked(current);
+            return current;
+        } }
+    }
+
+    List<Account> remove(String accountId) throws Exception {
+        synchronized (REFRESH_LOCK) { synchronized (LOCK) {
+            List<Account> current = loadUnlocked();
+            current.removeIf(account -> account.accountId.equals(accountId));
+            saveUnlocked(current);
+            return current;
+        } }
+    }
+
+    void refresh(Account target) throws Exception {
+        synchronized (REFRESH_LOCK) {
+            Account current = null;
+            for (Account account : load())
+                if (account.accountId.equals(target.accountId)) { current = account; break; }
+            if (current == null) return;
+            if (System.currentTimeMillis() >= current.retryAt) {
+                Account saved = current;
+                try {
+                    current.usage = CodexApi.readUsage(current, () -> saveRefreshed(saved));
+                    current.updatedAt = System.currentTimeMillis();
+                    current.error = null;
+                    current.retryAt = 0;
+                } catch (Exception error) {
+                    boolean limited = error instanceof CodexApi.HttpStatusException &&
+                        ((CodexApi.HttpStatusException) error).status == 429;
+                    current.retryAt = limited ? System.currentTimeMillis() + 15 * 60_000L : 0;
+                    current.error = limited ? "Слишком частые запросы. Повтор через 15 минут." :
+                        "Не удалось получить лимиты. Проверьте вход и соединение.";
+                }
+                saveRefreshed(current);
+            }
+            target.copyFrom(current);
+        }
+    }
+
+    void saveRefreshed(Account refreshed) throws Exception {
+        synchronized (LOCK) {
+            List<Account> current = loadUnlocked();
+            for (Account account : current) {
+                if (!account.accountId.equals(refreshed.accountId)) continue;
+                account.email = refreshed.email;
+                account.plan = refreshed.plan;
+                account.accessToken = refreshed.accessToken;
+                account.refreshToken = refreshed.refreshToken;
+                account.idToken = refreshed.idToken;
+                account.expiresAt = refreshed.expiresAt;
+                account.usage = refreshed.usage;
+                account.updatedAt = refreshed.updatedAt;
+                account.retryAt = refreshed.retryAt;
+                account.error = refreshed.error;
+                saveUnlocked(current);
+                return;
+            }
+        }
     }
 }

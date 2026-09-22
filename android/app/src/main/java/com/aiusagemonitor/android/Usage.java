@@ -20,6 +20,28 @@ final class Usage {
         this.weekly = weekly;
     }
 
+    static Usage fromSaved(JSONObject json) {
+        if (json == null) return null;
+        return new Usage(savedWindow(json.optJSONObject("fiveHour")), savedWindow(json.optJSONObject("weekly")));
+    }
+
+    JSONObject toJson() throws Exception {
+        return new JSONObject().put("fiveHour", saveWindow(fiveHour)).put("weekly", saveWindow(weekly));
+    }
+
+    private static JSONObject saveWindow(Window window) throws Exception {
+        return window == null ? null : new JSONObject()
+            .put("remaining", window.remaining).put("resetsAt", window.resetsAt);
+    }
+
+    private static Window savedWindow(JSONObject json) {
+        if (json == null) return null;
+        int remaining = json.optInt("remaining", -1);
+        long reset = json.optLong("resetsAt", 0);
+        return remaining < 0 || remaining > 100 || reset < 0 || reset > 253_402_300_799L
+            ? null : new Window(remaining, reset);
+    }
+
     static Usage parse(JSONObject response) {
         JSONObject limit = response.optJSONObject("rate_limit");
         Window fiveHour = null;

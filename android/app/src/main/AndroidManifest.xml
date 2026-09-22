@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.aiusagemonitor.android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application android:label="AI Usage Monitor" android:icon="@drawable/monitor_icon"
         android:allowBackup="false"
         android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
@@ -10,5 +11,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <receiver android:name=".IconsWidget" android:exported="true"
+            android:label="@string/widget_icons_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/widget_icons_info" />
+        </receiver>
+        <receiver android:name=".CardsWidget" android:exported="true"
+            android:label="@string/widget_cards_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/widget_cards_info" />
+        </receiver>
+        <service android:name=".WidgetCardsService" android:exported="true"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+        <service android:name=".WidgetRefreshJob" android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 </manifest>

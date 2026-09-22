@@ -24,7 +24,19 @@ $classes = Join-Path $work 'classes'
 $dex = Join-Path $work 'dex'
 New-Item -ItemType Directory -Path $classes, $dex -Force | Out-Null
 
+$resources = Join-Path $work 'resources.zip'
+& (Join-Path $tools 'aapt2.exe') compile --dir (Join-Path $source 'res') -o $resources
+if ($LASTEXITCODE -ne 0) { throw 'Resource compilation failed.' }
+
+$unsigned = Join-Path $work 'unsigned.apk'
+$generated = Join-Path $work 'generated'
+& (Join-Path $tools 'aapt2.exe') link -o $unsigned --manifest (Join-Path $source 'AndroidManifest.xml') `
+    -I $platform --java $generated --min-sdk-version 26 --target-sdk-version 35 `
+    --version-code $versionCode --version-name $versionName $resources
+if ($LASTEXITCODE -ne 0) { throw 'APK linking failed.' }
+
 $sources = @(Get-ChildItem -LiteralPath (Join-Path $source 'java') -Filter '*.java' -Recurse | ForEach-Object FullName)
+$sources += @(Get-ChildItem -LiteralPath $generated -Filter '*.java' -Recurse | ForEach-Object FullName)
 & javac --release 17 -classpath $platform -d $classes $sources
 if ($LASTEXITCODE -ne 0) { throw 'Java compilation failed.' }
 
@@ -32,14 +44,6 @@ $classFiles = @(Get-ChildItem -LiteralPath $classes -Filter '*.class' -Recurse |
 & (Join-Path $tools 'd8.bat') --min-api 26 --lib $platform --output $dex $classFiles
 if ($LASTEXITCODE -ne 0) { throw 'DEX compilation failed.' }
 
-$resources = Join-Path $work 'resources.zip'
-& (Join-Path $tools 'aapt2.exe') compile --dir (Join-Path $source 'res') -o $resources
-if ($LASTEXITCODE -ne 0) { throw 'Resource compilation failed.' }
-
-$unsigned = Join-Path $work 'unsigned.apk'
-& (Join-Path $tools 'aapt2.exe') link -o $unsigned --manifest (Join-Path $source 'AndroidManifest.xml') `
-    -I $platform --min-sdk-version 26 --target-sdk-version 35 --version-code $versionCode --version-name $versionName $resources
-if ($LASTEXITCODE -ne 0) { throw 'APK linking failed.' }
 & jar uf $unsigned -C $dex classes.dex
 if ($LASTEXITCODE -ne 0) { throw 'Could not add app code to APK.' }
 
