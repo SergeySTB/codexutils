@@ -181,7 +181,7 @@ final class CodexApi {
             connection.setReadTimeout(20_000);
             connection.setRequestMethod(method);
             connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("User-Agent", "AIUsageMonitorAndroid/5.2");
+            connection.setRequestProperty("User-Agent", "AIUsageMonitorAndroid/5.3");
             if (headers != null) headers.forEach(connection::setRequestProperty);
             if (body != null) {
                 connection.setDoOutput(true);

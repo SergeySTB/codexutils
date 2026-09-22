@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [5.3] — 2026-09-22
+
 ### Добавлено
 
 - Android 5.2: действия с главного экрана перенесены в меню справа вверху;
@@ -16,6 +18,11 @@
 - Android 5.0: два виджета главного экрана — строка значков с дугами лимитов и
   прокручиваемые карточки аккаунтов. Лимиты сохраняются для виджетов и обновляются
   в фоне примерно раз в 30 минут, с учётом ограничений Android.
+
+### Исправлено
+
+- Android 5.3: индикаторы в виджете значков подстраиваются под его высоту;
+  фон вокруг кругов полупрозрачный, а внутри кругов — непрозрачный.
 
 ## [4.4] — 2026-09-22
 
@@ -142,7 +149,8 @@
 - Необязательное звуковое уведомление о сбросе лимита.
 - Миграция существующей конфигурации при установке с резервной копией исходного файла.
 
-[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v4.4...HEAD
+[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v5.3...HEAD
+[5.3]: https://github.com/SergeySTB/codexutils/releases/tag/v5.3
 [4.4]: https://github.com/SergeySTB/codexutils/releases/tag/v4.4
 [3.0]: https://github.com/SergeySTB/codexutils/compare/v2.0...v3.0
 [2.0]: https://github.com/SergeySTB/codexutils/compare/v1.3...v2.0

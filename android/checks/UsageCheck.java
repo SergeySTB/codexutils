@@ -10,8 +10,9 @@ import java.util.Base64;
 public final class UsageCheck {
     public static void main(String[] args) throws Exception {
         Usage.demoCheck();
-        if (WidgetIconSlots.capacity(56) != 1 || WidgetIconSlots.capacity(120) != 2 ||
-            WidgetIconSlots.capacity(203) != 3 || WidgetIconSlots.visible(1, 3) != 1 ||
+        if (WidgetIconSlots.diameter(264, 102) != 96 || WidgetIconSlots.diameter(56, 48) != 42 ||
+            WidgetIconSlots.capacity(264, 96) != 2 || WidgetIconSlots.capacity(120, 42) != 2 ||
+            WidgetIconSlots.capacity(56, 42) != 1 || WidgetIconSlots.visible(1, 3) != 1 ||
             WidgetIconSlots.visible(2, 3) != 1 || WidgetIconSlots.visible(3, 3) != 3 ||
             WidgetIconSlots.visible(3, 4) != 2)
             throw new AssertionError("Widget icons must fit the available launcher width");

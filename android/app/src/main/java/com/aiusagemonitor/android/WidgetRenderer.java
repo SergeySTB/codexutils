@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -49,13 +50,18 @@ final class WidgetRenderer {
                 if (sizes != null && !sizes.isEmpty()) {
                     Map<SizeF, RemoteViews> layouts = new HashMap<>();
                     for (SizeF size : sizes)
-                        layouts.put(size, iconViews(context, accounts, unavailable, Math.round(size.getWidth())));
+                        layouts.put(size, iconViews(context, accounts, unavailable,
+                            Math.round(size.getWidth()), Math.round(size.getHeight())));
                     manager.updateAppWidget(id, new RemoteViews(layouts));
                     continue;
                 }
             }
-            int width = options == null ? 120 : options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 120);
-            manager.updateAppWidget(id, iconViews(context, accounts, unavailable, width));
+            boolean landscape = context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+            int width = options == null ? 120 : options.getInt(landscape
+                ? AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH : AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 120);
+            int height = options == null ? 48 : options.getInt(landscape
+                ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 48);
+            manager.updateAppWidget(id, iconViews(context, accounts, unavailable, width, height));
         }
         for (int id : cards) {
             RemoteViews view = new RemoteViews(context.getPackageName(), R.layout.widget_cards);
@@ -70,11 +76,13 @@ final class WidgetRenderer {
     }
 
     private static RemoteViews iconViews(Context context, List<AccountStore.Account> accounts,
-                                         boolean unavailable, int widthDp) {
+                                         boolean unavailable, int widthDp, int heightDp) {
         RemoteViews view = new RemoteViews(context.getPackageName(), R.layout.widget_icons);
         view.removeAllViews(R.id.widget_icons_list);
         view.setViewVisibility(R.id.widget_icons_empty, accounts.isEmpty() ? View.VISIBLE : View.GONE);
-        int slots = WidgetIconSlots.capacity(widthDp > 0 ? widthDp : 120);
+        int availableWidth = widthDp > 0 ? widthDp : 120;
+        int diameter = WidgetIconSlots.diameter(availableWidth, heightDp > 0 ? heightDp : 48);
+        int slots = WidgetIconSlots.capacity(availableWidth, diameter);
         view.setTextViewText(R.id.widget_icons_empty, unavailable
             ? (slots == 1 ? "!" : "Нет данных") : (slots == 1 ? "Нет" : "Нет аккаунтов"));
         view.setContentDescription(R.id.widget_icons_empty, unavailable
@@ -90,7 +98,7 @@ final class WidgetRenderer {
         for (int index = 0; index < visible; index++) {
             AccountStore.Account account = accounts.get(index);
             RemoteViews icon = new RemoteViews(context.getPackageName(), R.layout.widget_icon);
-            icon.setImageViewBitmap(R.id.widget_icon_image, iconBitmap(context, account));
+            icon.setImageViewBitmap(R.id.widget_icon_image, iconBitmap(context, account, diameter));
             boolean badge = hidden > 0 && !overflowTile;
             icon.setContentDescription(R.id.widget_icon_image, description(account) +
                 (badge ? ". Ещё " + hidden + " аккаунтов не показано" : ""));
@@ -126,22 +134,30 @@ final class WidgetRenderer {
         return window == null ? "нет данных" : window.remaining + "% осталось";
     }
 
-    private static Bitmap iconBitmap(Context context, AccountStore.Account account) {
+    private static Bitmap iconBitmap(Context context, AccountStore.Account account, int diameterDp) {
         float density = context.getResources().getDisplayMetrics().density;
-        int pixels = Math.max(1, Math.round(48 * density));
+        int pixels = Math.max(1, Math.round(diameterDp * density));
         Bitmap bitmap = Bitmap.createBitmap(pixels, pixels, Bitmap.Config.ARGB_8888);
+        bitmap.setDensity(context.getResources().getDisplayMetrics().densityDpi);
         Canvas canvas = new Canvas(bitmap);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(2.5f * density);
-        paint.setStrokeCap(Paint.Cap.ROUND);
+        float scale = diameterDp / 48f;
         float center = pixels / 2f;
+        float stroke = 2.5f * density * scale;
+        float outer = center - stroke / 2 - density;
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.rgb(21, 27, 36));
+        canvas.drawCircle(center, center, outer + stroke / 2, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(stroke);
+        paint.setStrokeCap(Paint.Cap.ROUND);
         Usage usage = account.usage;
-        ring(canvas, paint, center, 20 * density, usage == null ? null : usage.fiveHour, MINT, account.error != null);
-        ring(canvas, paint, center, 15 * density, usage == null ? null : usage.weekly, PURPLE, account.error != null);
+        ring(canvas, paint, center, outer, usage == null ? null : usage.fiveHour, MINT, account.error != null);
+        ring(canvas, paint, center, outer - 5 * density * scale,
+            usage == null ? null : usage.weekly, PURPLE, account.error != null);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(TEXT);
-        paint.setTextSize(14 * density);
+        paint.setTextSize(14 * density * scale);
         paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         String label = account.email.trim();
         String name = label.isEmpty() ? "?" :
