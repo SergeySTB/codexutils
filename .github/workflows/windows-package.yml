@@ -33,6 +33,8 @@ on:
 jobs:
   package:
     name: Build and test installer
+    # Android assets are uploaded separately; keep Windows version validation for Windows releases.
+    if: ${{ github.event_name != 'release' || !startsWith(github.event.release.name, 'AI Usage Monitor Android ') }}
     runs-on: windows-latest
     permissions:
       contents: read
