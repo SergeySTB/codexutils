@@ -7,6 +7,7 @@ dist/
 releases/
 *.exe
 .build/
+.tmp/
 config.json
 auth.json
 *.user
@@ -14,3 +15,6 @@ auth.json
 *.userosscache
 *.sln.docstates
 Screenshot.jpg
+android/.gradle/
+android/app/build/
+android/local.properties
