@@ -2,6 +2,7 @@
     package="com.aiusagemonitor.android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application android:label="AI Usage Monitor" android:icon="@drawable/monitor_icon"
         android:allowBackup="false"
         android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
@@ -11,6 +12,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".SettingsActivity" android:exported="false" />
         <receiver android:name=".IconsWidget" android:exported="true"
             android:label="@string/widget_icons_name">
             <intent-filter>

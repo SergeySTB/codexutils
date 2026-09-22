@@ -76,6 +76,7 @@ public final class MainActivity extends Activity {
     @Override protected void onStart() {
         super.onStart();
         WidgetRefreshJob.activityVisible = true;
+        WidgetRefreshJob.schedulePeriodic(this);
         handler.removeCallbacks(periodicRefresh);
         handler.post(periodicRefresh);
     }
@@ -120,6 +121,8 @@ public final class MainActivity extends Activity {
         refreshSize.leftMargin = dp(8);
         actions.addView(refresh, refreshSize);
         content.addView(actions);
+        Button settings = button("Настройки", () -> startActivity(new Intent(this, SettingsActivity.class)));
+        content.addView(settings, new LinearLayout.LayoutParams(-2, dp(48)));
         status = text("", 13, MUTED);
         content.addView(status);
         cards = new LinearLayout(this);

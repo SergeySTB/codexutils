@@ -10,6 +10,9 @@ import java.util.Base64;
 public final class UsageCheck {
     public static void main(String[] args) throws Exception {
         Usage.demoCheck();
+        if (WidgetSettings.normalized(15) != 15 || WidgetSettings.normalized(30) != 30 ||
+            WidgetSettings.normalized(60) != 60 || WidgetSettings.normalized(1) != 30)
+            throw new AssertionError("Widget interval must use a supported Android period");
         Usage original = Usage.parse(new JSONObject("{\"rate_limit\":{\"primary_window\":{\"used_percent\":20,\"limit_window_seconds\":18000}}}"));
         Usage saved = Usage.fromSaved(original.toJson());
         if (saved == null || saved.fiveHour == null || saved.fiveHour.remaining != 80 || saved.weekly != null)

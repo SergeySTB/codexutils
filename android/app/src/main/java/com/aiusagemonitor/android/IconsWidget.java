@@ -8,7 +8,8 @@ import android.os.Bundle;
 public final class IconsWidget extends AppWidgetProvider {
     @Override public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         WidgetRenderer.showCached(context);
-        WidgetRefreshJob.schedule(context);
+        WidgetRefreshJob.schedulePeriodic(context);
+        WidgetRefreshJob.scheduleImmediate(context);
     }
 
     @Override public void onAppWidgetOptionsChanged(Context context, AppWidgetManager manager,
