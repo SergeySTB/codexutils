@@ -1,0 +1,37 @@
+package com.aiusagemonitor.android;
+
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+public final class UsageCheck {
+    public static void main(String[] args) throws Exception {
+        Usage.demoCheck();
+        Usage invalid = Usage.parse(new JSONObject("{\"rate_limit\":{\"primary_window\":{\"used_percent\":-1,\"limit_window_seconds\":18000}}}"));
+        if (invalid.fiveHour != null || invalid.weekly != null)
+            throw new AssertionError("Invalid limits must stay unavailable");
+        String id = token("{\"email\":\"user@example.com\"}");
+        String access = token("{\"exp\":2000000000,\"https://api.openai.com/auth\":{\"chatgpt_account_id\":\"account-1\",\"chatgpt_plan_type\":\"plus\"}}");
+        TokenClaims claims = TokenClaims.read(id, access);
+        if (!claims.accountId.equals("account-1") || !claims.email.equals("user@example.com") ||
+            !claims.plan.equals("plus") || claims.expiresAt != 2000000000)
+            throw new AssertionError("Account identity must fall back to access token");
+        try {
+            TokenClaims.read(token("{\"https://api.openai.com/auth\":{\"chatgpt_account_id\":\"other\"}}"), access);
+            throw new AssertionError("Mismatched account ids must be rejected");
+        } catch (IllegalArgumentException expected) { }
+        long now = System.currentTimeMillis();
+        if (!CodexApi.retryPolling(new UnknownHostException(), now + 60_000) ||
+            CodexApi.retryPolling(new IOException(), now + 60_000) ||
+            CodexApi.retryPolling(new UnknownHostException(), now - 1))
+            throw new AssertionError("Only temporary DNS failures during polling may be retried");
+        System.out.println("Android usage checks passed");
+    }
+
+    private static String token(String claims) {
+        return "e30." + Base64.getUrlEncoder().withoutPadding().encodeToString(claims.getBytes(StandardCharsets.UTF_8)) + ".sig";
+    }
+}
