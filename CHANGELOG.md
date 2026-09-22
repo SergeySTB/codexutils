@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [4.4] — 2026-09-22
+
 ### Добавлено
 
 - Исходный проект самостоятельного Android-приложения с входом по коду устройства,
@@ -128,7 +130,8 @@
 - Необязательное звуковое уведомление о сбросе лимита.
 - Миграция существующей конфигурации при установке с резервной копией исходного файла.
 
-[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v3.0...HEAD
+[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v4.4...HEAD
+[4.4]: https://github.com/SergeySTB/codexutils/releases/tag/v4.4
 [3.0]: https://github.com/SergeySTB/codexutils/compare/v2.0...v3.0
 [2.0]: https://github.com/SergeySTB/codexutils/compare/v1.3...v2.0
 [1.3]: https://github.com/SergeySTB/codexutils/compare/v1.2...v1.3

@@ -44,7 +44,7 @@
 
 ## Android
 
-[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v4.0/AIUsageMonitor-Android_v4.0-debug.apk)
+[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v4.4/AIUsageMonitor-Android_v4.4-debug.apk)
 
 В каталоге `android` находится самостоятельное Android-приложение (Android 8 и новее).
 Телефон выполняет вход через ChatGPT по коду устройства и сам получает лимиты Codex;
@@ -63,14 +63,14 @@
 Мобильная версия использует адреса сервиса из открытого исходного кода Codex.
 Они не объявлены стабильным публичным API для сторонних приложений, поэтому
 вход и получение лимитов требуют проверки на настоящем телефоне перед релизом.
-Android APK ещё не опубликован: кнопка загрузки заработает после публикации
-GitHub Release `v4.0` с указанным файлом. APK подписан отладочным ключом.
+Кнопка загружает APK из GitHub Release `v4.4`. APK подписан отладочным ключом;
+его можно установить поверх предыдущих отладочных сборок без удаления аккаунтов.
 
 Для локальной сборки откройте каталог `android` в Android Studio и соберите
 `app` как debug APK либо задайте `ANDROID_HOME` и запустите
 `powershell -NoProfile -ExecutionPolicy Bypass -File android/build.ps1`.
 Нужны Android SDK Platform 35, Build Tools 35 и JDK 17 или новее. Скрипт создаёт
-отладочный APK в `dist/AIUsageMonitor-Android_v4.0-debug.apk`; это не релизная подпись.
+отладочный APK в `dist/AIUsageMonitor-Android_v4.4-debug.apk`; это не релизная подпись.
 
 ## Запуск
 

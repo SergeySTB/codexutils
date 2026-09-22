@@ -10,6 +10,15 @@ if (-not (Test-Path -LiteralPath $platform) -or -not (Test-Path -LiteralPath $to
 
 $root = Split-Path -Parent $PSScriptRoot
 $source = Join-Path $PSScriptRoot 'app\src\main'
+$gradle = Get-Content -Raw (Join-Path $PSScriptRoot 'app\build.gradle')
+$codeMatch = [regex]::Match($gradle, '(?m)^\s*versionCode\s+(\d+)\s*$')
+$nameMatch = [regex]::Match($gradle, "(?m)^\s*versionName\s+'(\d+)\.(\d+)'\s*$")
+if (-not $codeMatch.Success -or -not $nameMatch.Success) { throw 'Android version is missing from app/build.gradle.' }
+$versionCode = [int]$codeMatch.Groups[1].Value
+$versionName = $nameMatch.Groups[1].Value + '.' + $nameMatch.Groups[2].Value
+if ($versionCode -ne (100 * [int]$nameMatch.Groups[1].Value + [int]$nameMatch.Groups[2].Value)) {
+    throw 'Android versionCode must match major.minor (for example, 4.4 = 404).'
+}
 $work = Join-Path $root ('.build\android\' + [guid]::NewGuid().ToString('N'))
 $classes = Join-Path $work 'classes'
 $dex = Join-Path $work 'dex'
@@ -29,7 +38,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Resource compilation failed.' }
 
 $unsigned = Join-Path $work 'unsigned.apk'
 & (Join-Path $tools 'aapt2.exe') link -o $unsigned --manifest (Join-Path $source 'AndroidManifest.xml') `
-    -I $platform --min-sdk-version 26 --target-sdk-version 35 --version-code 404 --version-name 4.0 $resources
+    -I $platform --min-sdk-version 26 --target-sdk-version 35 --version-code $versionCode --version-name $versionName $resources
 if ($LASTEXITCODE -ne 0) { throw 'APK linking failed.' }
 & jar uf $unsigned -C $dex classes.dex
 if ($LASTEXITCODE -ne 0) { throw 'Could not add app code to APK.' }
@@ -47,7 +56,7 @@ if (-not (Test-Path -LiteralPath $key)) {
 
 $dist = Join-Path $root 'dist'
 New-Item -ItemType Directory -Path $dist -Force | Out-Null
-$apk = Join-Path $dist 'AIUsageMonitor-Android_v4.0-debug.apk'
+$apk = Join-Path $dist "AIUsageMonitor-Android_v$versionName-debug.apk"
 & (Join-Path $tools 'apksigner.bat') sign --ks $key --ks-key-alias androiddebugkey `
     --ks-pass pass:android --key-pass pass:android --out $apk $aligned
 if ($LASTEXITCODE -ne 0) { throw 'APK signing failed.' }
