@@ -26,7 +26,7 @@ final class ClaudeApi {
             connection.setRequestProperty("Accept", "application/json");
             connection.setRequestProperty("Authorization", "Bearer " + token);
             connection.setRequestProperty("anthropic-beta", "oauth-2025-04-20");
-            connection.setRequestProperty("User-Agent", "AIUsageMonitorAndroid/6.0");
+            connection.setRequestProperty("User-Agent", "AIUsageMonitorAndroid/6.1");
             int status = connection.getResponseCode();
             if (status < 200 || status >= 300) throw new CodexApi.HttpStatusException(status);
             try (InputStream input = connection.getInputStream(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {

@@ -100,7 +100,7 @@ public sealed class WidgetWindow : Window
             // Leave scrollbars and the sign-in button to their normal mouse handling.
             for (var source = e.OriginalSource as DependencyObject; source != null && source != this;
                 source = source is Visual ? VisualTreeHelper.GetParent(source) : LogicalTreeHelper.GetParent(source))
-                if (source is ScrollBar || (cardsPanel != null && source is ButtonBase)) return;
+                if (source is ScrollBar || ((cardsPanel != null || accounts.Count == 0) && source is ButtonBase)) return;
             dragStart = PointToScreen(e.GetPosition(this));
         };
         PreviewMouseLeftButtonUp += (_, _) => dragStart = null;
@@ -150,7 +150,7 @@ public sealed class WidgetWindow : Window
     private void Apply(Settings next)
     {
         string? executable = null, problem = null;
-        if (!demo)
+        if (!demo && next.Accounts.Any(a => a.Provider == "codex"))
         {
             try { executable = next.FindCodex(); }
             catch (Exception error) when (error is IOException or ArgumentException) { problem = error.Message; }
@@ -194,6 +194,16 @@ public sealed class WidgetWindow : Window
     private void BuildContent()
     {
         cardsPanel = null;
+        if (accounts.Count == 0)
+        {
+            var add = new Button { Content = "+", FontSize = 22, Foreground = Ink, Background = Brushes.Transparent,
+                ToolTip = "Добавить аккаунт", Cursor = System.Windows.Input.Cursors.Hand };
+            AutomationProperties.SetName(add, "Добавить аккаунт");
+            add.Click += async (_, _) => await AddAccountAsync();
+            Content = new Border { Background = Brush("#151B24"), BorderBrush = Brush("#364153"),
+                BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Child = add };
+            return;
+        }
         if (settings.Widget.DisplayMode == "cards")
         {
             bool vertical = settings.Widget.Edge is "left" or "right";
@@ -239,7 +249,7 @@ public sealed class WidgetWindow : Window
             var label = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
             label.Children.Add(new Image
             {
-                Source = new BitmapImage(new Uri("pack://application:,,,/Assets/provider_" +
+                Source = new BitmapImage(new Uri("pack://application:,,,/AIUsageMonitor;component/Assets/provider_" +
                     (account.Config.Provider == "claude" ? "claude" : "openai") + ".png")),
                 Width = 12, Height = 12, HorizontalAlignment = HorizontalAlignment.Center
             });
@@ -357,6 +367,22 @@ public sealed class WidgetWindow : Window
         Item("Обновить сейчас", async () => await RefreshAsync(force: true));
         foreach (var account in accounts)
             Item("Войти: " + account.Config.Name, async () => await SignInAsync(account));
+        Item("Добавить аккаунт", async () => await AddAccountAsync());
+        if (accounts.Count > 0)
+        {
+            var remove = new MenuItem { Header = "Убрать аккаунт" };
+            var trayRemove = new Forms.ToolStripMenuItem("Убрать аккаунт");
+            foreach (var account in accounts)
+            {
+                string label = (account.Config.Provider == "claude" ? "Claude · " : "Codex · ") + account.Config.Name;
+                var item = new MenuItem { Header = label };
+                item.Click += (_, _) => RemoveAccount(account);
+                remove.Items.Add(item);
+                trayRemove.DropDownItems.Add(label, null, (_, _) => Dispatcher.Invoke(() => RemoveAccount(account)));
+            }
+            context.Items.Add(remove);
+            trayMenu.Items.Add(trayRemove);
+        }
         Item(settings.Widget.DisplayMode == "icons" ? "Показать карточки" : "Показать иконки",
             () => SetDisplayMode(settings.Widget.DisplayMode == "icons" ? "cards" : "icons"));
         Item("Открыть конфигурацию", OpenConfig);
@@ -497,6 +523,117 @@ public sealed class WidgetWindow : Window
             account.SigningIn = false;
             if (!closed) { UpdateDisplay(); await RefreshAsync(force: true); }
         }
+    }
+
+    private async Task AddAccountAsync()
+    {
+        if (demo) { MessageBox.Show("В демонстрации аккаунты не меняются.", "AI Usage Monitor"); return; }
+        if (loggingIn) { MessageBox.Show("Завершите вход перед изменением аккаунтов.", "AI Usage Monitor"); return; }
+        if (!IsVisible) Show();
+        var dialog = new Window { Title = "Добавить аккаунт", Owner = this, Width = 440,
+            SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, ShowInTaskbar = false };
+        var fields = new StackPanel { Margin = new Thickness(20) };
+        var provider = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 28 };
+        provider.Items.Add("Codex");
+        provider.Items.Add("Claude");
+        provider.SelectedIndex = 0;
+        AutomationProperties.SetName(provider, "Провайдер");
+        fields.Children.Add(new TextBlock { Text = "Провайдер" });
+        fields.Children.Add(provider);
+        var name = new TextBox { Margin = new Thickness(0, 4, 0, 12), MaxLength = 60, Height = 28 };
+        AutomationProperties.SetName(name, "Название аккаунта");
+        fields.Children.Add(new TextBlock { Text = "Название аккаунта" });
+        fields.Children.Add(name);
+        var pathLabel = new TextBlock();
+        fields.Children.Add(pathLabel);
+        var folder = new TextBox { Height = 28 };
+        AutomationProperties.SetName(folder, "Папка профиля");
+        var browse = new Button { Content = "Обзор…", Width = 82, Margin = new Thickness(8, 0, 0, 0) };
+        browse.Click += (_, _) =>
+        {
+            using var picker = new Forms.FolderBrowserDialog { Description = "Выберите папку профиля", ShowNewFolderButton = true };
+            try
+            {
+                var selected = Settings.ExpandPath(folder.Text.Trim());
+                if (Directory.Exists(selected)) picker.SelectedPath = selected;
+            }
+            catch (Exception) { }
+            if (picker.ShowDialog() == Forms.DialogResult.OK) folder.Text = picker.SelectedPath;
+        };
+        var folderRow = new DockPanel { Margin = new Thickness(0, 4, 0, 8) };
+        DockPanel.SetDock(browse, Dock.Right);
+        folderRow.Children.Add(browse);
+        folderRow.Children.Add(folder);
+        fields.Children.Add(folderRow);
+        var hint = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = Muted,
+            Margin = new Thickness(0, 0, 0, 16) };
+        fields.Children.Add(hint);
+        void UpdateHint()
+        {
+            bool claude = provider.SelectedIndex == 1;
+            pathLabel.Text = claude ? "Папка профиля Claude Code" : "Папка профиля Codex";
+            hint.Text = claude
+                ? "Например, %USERPROFILE%/.claude. Сначала войдите в Claude Code с этой папкой профиля."
+                : "Укажите отдельную папку профиля; после добавления откроется вход через ChatGPT.";
+        }
+        provider.SelectionChanged += (_, _) => UpdateHint();
+        UpdateHint();
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var cancel = new Button { Content = "Отмена", Width = 84, Height = 30, IsCancel = true };
+        var add = new Button { Content = "Добавить", Width = 92, Height = 30,
+            Margin = new Thickness(8, 0, 0, 0), IsDefault = true };
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(add);
+        fields.Children.Add(buttons);
+        dialog.Content = fields;
+        AccountSettings? added = null;
+        add.Click += (_, _) =>
+        {
+            try
+            {
+                string title = name.Text.Trim(), path = folder.Text.Trim();
+                var entry = provider.SelectedIndex == 1
+                    ? new AccountSettings(title, Provider: "claude", ClaudeConfigDir: path)
+                    : new AccountSettings(title, CodexHome: path);
+                Settings.EditAccounts(configPath, settings.Accounts, existing => [.. existing, entry]);
+                added = entry;
+                dialog.DialogResult = true;
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(dialog, "Аккаунт не добавлен.\n" + error.Message, "AI Usage Monitor",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        };
+        if (dialog.ShowDialog() != true || added is null) return;
+        try
+        {
+            Apply(Settings.Load(configPath));
+            if (added.Provider == "codex") await SignInAsync(accounts[^1]);
+            else await RefreshAsync(force: true);
+        }
+        catch (Exception error) { MessageBox.Show("Настройки сохранены, но не применены.\n" + error.Message, "AI Usage Monitor"); }
+    }
+
+    private void RemoveAccount(AccountView account)
+    {
+        if (demo) { MessageBox.Show("В демонстрации аккаунты не меняются.", "AI Usage Monitor"); return; }
+        if (loggingIn) { MessageBox.Show("Завершите вход перед изменением аккаунтов.", "AI Usage Monitor"); return; }
+        int index = accounts.IndexOf(account);
+        if (index < 0) return;
+        string profile = account.Config.Provider == "claude" ? account.Config.ClaudeConfigDir! : account.Config.CodexHome!;
+        if (MessageBox.Show("Убрать аккаунт «" + account.Config.Name + "» из приложения?\n\n" +
+            "Папка профиля и данные входа останутся на диске:\n" + profile,
+            "Убрать аккаунт", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        try
+        {
+            Settings.EditAccounts(configPath, settings.Accounts,
+                existing => existing.Where((_, position) => position != index).ToArray());
+            Apply(Settings.Load(configPath));
+            _ = RefreshAsync();
+        }
+        catch (Exception error) { MessageBox.Show("Аккаунт не убран.\n" + error.Message, "AI Usage Monitor"); }
     }
 
     private void OpenConfig()

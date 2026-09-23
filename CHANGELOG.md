@@ -5,6 +5,19 @@
 
 ## [Unreleased]
 
+## [6.1] — 2026-09-23
+
+### Добавлено
+
+- В Windows меню панели и трея позволяет добавить аккаунт Codex или Claude,
+  указать его название и папку профиля, а также убрать аккаунт из приложения.
+  После удаления данные входа в папке профиля остаются на диске.
+- Пустая панель Windows показывает кнопку добавления аккаунта.
+
+### Исправлено
+
+- Установщик Windows сохраняет пустой список аккаунтов при обновлении.
+
 ## [6.0] — 2026-09-23
 
 ### Добавлено
@@ -160,7 +173,8 @@
 - Необязательное звуковое уведомление о сбросе лимита.
 - Миграция существующей конфигурации при установке с резервной копией исходного файла.
 
-[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v6.0...HEAD
+[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v6.1...HEAD
+[6.1]: https://github.com/SergeySTB/codexutils/releases/tag/v6.1
 [6.0]: https://github.com/SergeySTB/codexutils/releases/tag/v6.0
 [5.3]: https://github.com/SergeySTB/codexutils/releases/tag/v5.3
 [4.4]: https://github.com/SergeySTB/codexutils/releases/tag/v4.4

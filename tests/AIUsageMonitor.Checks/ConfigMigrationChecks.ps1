@@ -76,6 +76,12 @@ Check (@($migratedClaude.accounts).Count -eq 2 -and $migratedClaude.accounts[0].
     $migratedClaude.accounts[1].claudeConfigDir -eq 'D:\Profiles\Claude-work' -and
     $null -eq $migratedClaude.accounts[1].PSObject.Properties['codexHome'] -and
     $null -eq $migratedClaude.accounts[1].PSObject.Properties['retired']) 'installer preserves Claude profiles without adding Codex fields'
+$emptyConfig = Join-Path $root 'empty-config.json'
+$withoutAccounts = Read-Config $template
+$withoutAccounts.accounts = @()
+[IO.File]::WriteAllText($emptyConfig, ($withoutAccounts | ConvertTo-Json -Depth 32))
+& $migration -ConfigPath $emptyConfig -TemplatePath $template
+Check ((Read-Config $emptyConfig).accounts -is [array] -and (Read-Config $emptyConfig).accounts.Count -eq 0) 'installer preserves an empty account list'
 $backup = @(Get-ChildItem $root -Filter 'config.json.*.bak')
 Check ($backup.Count -eq 1 -and [IO.File]::ReadAllText($backup[0].FullName) -ceq $original) 'original configuration is backed up exactly'
 $updated.notifyOnLimitReset = $true

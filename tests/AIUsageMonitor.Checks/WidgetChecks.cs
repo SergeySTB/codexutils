@@ -56,6 +56,9 @@ internal static class WidgetChecks
                         Require(window.ContextMenu?.Items.OfType<MenuItem>().Any(item =>
                             (string?)item.Header == "Версия " + ProductInfo.Version && !item.IsEnabled) == true,
                             "current version appears in the menu");
+                        Require(window.ContextMenu!.Items.OfType<MenuItem>().Any(item => (string?)item.Header == "Добавить аккаунт") &&
+                            window.ContextMenu.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Убрать аккаунт").Items.Count == configuredAccounts.Length,
+                            "account menu contains add and per-account removal");
                         var viewbox = (Viewbox)((Border)window.Content).Child;
                         var strip = (StackPanel)viewbox.Child;
                         Require(strip.Children.Count == configuredAccounts.Length && strip.Children.OfType<Button>().Count() == configuredAccounts.Length,
@@ -247,6 +250,18 @@ internal static class WidgetChecks
             }
             finally { window.Close(); }
         }
+        var empty = new WidgetWindow(Path.Combine(outputDirectory, "empty.json"),
+            new Settings { Accounts = [] }.Validate(), demo: true);
+        try
+        {
+            empty.Show();
+            await Task.Delay(100);
+            Require(empty.Content is Border { Child: Button } &&
+                empty.ContextMenu!.Items.OfType<MenuItem>().Any(item => (string?)item.Header == "Добавить аккаунт") &&
+                empty.ContextMenu.Items.OfType<MenuItem>().All(item => (string?)item.Header != "Убрать аккаунт"),
+                "empty widget offers account addition");
+        }
+        finally { empty.Close(); }
         var signedOutSettings = new Settings
         {
             CodexExecutable = Path.Combine(outputDirectory, "missing-codex.exe"),

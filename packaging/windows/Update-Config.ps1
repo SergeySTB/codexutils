@@ -83,7 +83,7 @@ function Merge-Config($Template, $Previous) {
         return [pscustomobject]$result
     }
     if ($Template -is [array]) {
-        if ($Previous -isnot [array] -or $Previous.Count -eq 0) {
+        if ($Previous -isnot [array]) {
             throw 'Unexpected number of accounts in configuration.'
         }
         $itemTemplate = $Template[0]

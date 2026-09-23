@@ -10,7 +10,7 @@
     <ApplicationIcon>Assets\AIUsageMonitor.ico</ApplicationIcon>
     <AssemblyTitle>AI Usage Monitor</AssemblyTitle>
     <Product>AI Usage Monitor</Product>
-    <Version>6.0</Version>
+    <Version>6.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../config/config.example.json" Link="config.example.json" CopyToOutputDirectory="PreserveNewest" />

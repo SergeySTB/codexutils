@@ -71,7 +71,7 @@ public sealed record Settings
 
     public Settings Validate()
     {
-        if (Accounts is null || Accounts.Length == 0 || Accounts.Any(a => a is null ||
+        if (Accounts is null || Accounts.Any(a => a is null ||
             string.IsNullOrWhiteSpace(a.Name) || a.Name.Length > 60 ||
             a.Provider is not ("codex" or "claude") ||
             (a.Provider == "codex" && (string.IsNullOrWhiteSpace(a.CodexHome) || a.ClaudeConfigDir != null)) ||
@@ -146,10 +146,110 @@ public sealed record Settings
             updated.RemoveRange(edit.Start, edit.Length);
             updated.InsertRange(edit.Start, edit.Value);
         }
+        SaveValidated(path, original, updated.ToArray());
+    }
+
+    public static void EditAccounts(string path, AccountSettings[] expected,
+        Func<AccountSettings[], AccountSettings[]> change)
+    {
+        byte[] original = File.ReadAllBytes(path);
+        byte[] json = original.AsSpan().StartsWith(Encoding.UTF8.Preamble) ? original[3..] : original;
+        var current = Load(path);
+        if (!current.Accounts.SequenceEqual(expected))
+            throw new IOException("Список аккаунтов изменился. Примените конфигурацию и повторите действие.");
+        var reader = new Utf8JsonReader(json, new JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip });
+        int rootStart = -1, start = -1, end = -1;
+        bool hasRootProperties = false;
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.StartObject && reader.CurrentDepth == 0) rootStart = (int)reader.BytesConsumed;
+            if (reader.TokenType != JsonTokenType.PropertyName || reader.CurrentDepth != 1) continue;
+            hasRootProperties = true;
+            bool isAccounts = reader.ValueTextEquals("accounts");
+            reader.Read();
+            int valueStart = (int)reader.TokenStartIndex;
+            reader.Skip();
+            if (isAccounts) { start = valueStart; end = (int)reader.BytesConsumed; }
+        }
+        if (rootStart < 0) throw new InvalidDataException("Пустой конфигурационный файл.");
+        var rawAccounts = start >= 0
+            ? JsonSerializer.Deserialize<AccountSettings[]>(json.AsSpan(start, end - start), JsonOptions)!
+            : new Settings().Accounts;
+        var updatedAccounts = change(rawAccounts);
+        (current with { Accounts = updatedAccounts }).Validate();
+        var format = new JsonSerializerOptions(JsonOptions) { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+        var updated = json.ToList();
+        if (start >= 0)
+        {
+            var entries = new List<(int Start, int End)>();
+            var arrayReader = new Utf8JsonReader(json.AsSpan(start, end - start),
+                new JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip });
+            arrayReader.Read();
+            while (arrayReader.Read() && arrayReader.TokenType != JsonTokenType.EndArray)
+            {
+                int entryStart = start + (int)arrayReader.TokenStartIndex;
+                arrayReader.Skip();
+                entries.Add((entryStart, start + (int)arrayReader.BytesConsumed));
+            }
+            if (updatedAccounts.Length == rawAccounts.Length + 1 &&
+                rawAccounts.SequenceEqual(updatedAccounts.Take(rawAccounts.Length)))
+            {
+                byte[] entry = JsonSerializer.SerializeToUtf8Bytes(updatedAccounts[^1], format);
+                int close = end - 1;
+                updated.InsertRange(close, entry);
+                if (entries.Count > 0) updated.Insert(entries[^1].End, (byte)',');
+            }
+            else if (updatedAccounts.Length == rawAccounts.Length - 1)
+            {
+                int removed = Enumerable.Range(0, rawAccounts.Length).FirstOrDefault(index =>
+                    updatedAccounts.SequenceEqual(rawAccounts.Where((_, position) => position != index)), -1);
+                if (removed < 0) throw new InvalidOperationException("Изменяйте по одному аккаунту.");
+                var entry = entries[removed];
+                if (entries.Count > 1)
+                {
+                    int comma = removed == 0
+                        ? FindComma(json, entry.End, entries[1].Start)
+                        : FindComma(json, entries[removed - 1].End, entry.Start);
+                    if (removed == 0) updated.RemoveAt(comma);
+                    updated.RemoveRange(entry.Start, entry.End - entry.Start);
+                    if (removed > 0) updated.RemoveAt(comma);
+                }
+                else updated.RemoveRange(entry.Start, entry.End - entry.Start);
+            }
+            else throw new InvalidOperationException("Изменяйте по одному аккаунту.");
+        }
+        else
+        {
+            byte[] value = JsonSerializer.SerializeToUtf8Bytes(updatedAccounts, format);
+            byte[] insert = Encoding.UTF8.GetBytes("\"accounts\":" + Encoding.UTF8.GetString(value) +
+                (hasRootProperties ? "," : ""));
+            updated.InsertRange(rootStart, insert);
+        }
+        SaveValidated(path, original, updated.ToArray());
+    }
+
+    private static int FindComma(byte[] json, int start, int end)
+    {
+        bool line = false, block = false;
+        for (int i = start; i < end; i++)
+        {
+            byte value = json[i];
+            if (line) { if (value is 10 or 13) line = false; continue; }
+            if (block) { if (value == '*' && i + 1 < end && json[i + 1] == '/') { block = false; i++; } continue; }
+            if (value == '/' && i + 1 < end && json[i + 1] == '/') { line = true; i++; continue; }
+            if (value == '/' && i + 1 < end && json[i + 1] == '*') { block = true; i++; continue; }
+            if (value == ',') return i;
+        }
+        throw new InvalidDataException("Между аккаунтами нет разделителя.");
+    }
+
+    private static void SaveValidated(string path, byte[] original, byte[] updated)
+    {
         string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
-            File.WriteAllBytes(temporary, updated.ToArray());
+            File.WriteAllBytes(temporary, original.AsSpan().StartsWith(Encoding.UTF8.Preamble)
+                ? [.. Encoding.UTF8.Preamble, .. updated] : updated);
             Load(temporary);
             if (!File.ReadAllBytes(path).SequenceEqual(original)) throw new IOException("Конфигурация изменена другим процессом. Повторите действие.");
             File.Move(temporary, path, overwrite: true);

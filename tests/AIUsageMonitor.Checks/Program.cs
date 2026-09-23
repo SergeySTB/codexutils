@@ -100,7 +100,7 @@ Check(new Settings().Accounts.Length == 1, "one profile configured by default");
 Check((valid with { Accounts = [valid.Accounts[0]] }).Validate().Accounts.Length == 1, "single profile accepted");
 var threeAccounts = valid with { Accounts = [valid.Accounts[0], valid.Accounts[1], new("Three", Path.Combine(checkRoot, "three"))] };
 Check(threeAccounts.Validate().Accounts.Length == 3, "account count follows configuration");
-Reject(() => (valid with { Accounts = [] }).Validate(), "empty account list rejected");
+Check((valid with { Accounts = [] }).Validate().Accounts.Length == 0, "empty account list accepted");
 Reject(() => (threeAccounts with { Accounts = [.. threeAccounts.Accounts, threeAccounts.Accounts[0] with { CodexHome = threeAccounts.Accounts[0].CodexHome!.ToUpperInvariant() + "/" }] }).Validate(), "duplicate profile paths rejected across all accounts");
 Reject(() => (valid with { RefreshSeconds = 0 }).Validate(), "polling interval validated");
 Reject(() => (valid with { Widget = widget with { Edge = "middle" } }).Validate(), "unknown edge rejected");
@@ -115,11 +115,48 @@ File.WriteAllText(configPath, $$"""
     {
       // Add another object to accounts for another Codex profile.
       "accounts": [
-        { "name": "One", "codexHome": "{{commentedHome}}" }
+        { "name": "One", "codexHome": "{{commentedHome}}" } // Keep this account, even with a comma in the comment.
       ]
     }
     """);
 Check(Settings.Load(configPath).Accounts.Length == 1, "configuration comments accepted");
+var beforeAccounts = Settings.Load(configPath).Accounts;
+Settings.EditAccounts(configPath, beforeAccounts, entries => [.. entries, claudeProfile]);
+Check(Settings.Load(configPath).Accounts.Length == 2 &&
+    File.ReadAllText(configPath).Contains("// Keep this account, even with a comma in the comment."),
+    "adding account preserves comments inside the account list");
+bool staleRejected = false;
+try { Settings.EditAccounts(configPath, beforeAccounts, entries => [.. entries, claudeProfile]); }
+catch (IOException) { staleRejected = true; }
+Check(staleRejected, "stale account list cannot overwrite new accounts");
+var currentAccounts = Settings.Load(configPath).Accounts;
+Reject(() => Settings.EditAccounts(configPath, currentAccounts, entries => [.. entries, claudeProfile]),
+    "duplicate account cannot overwrite configuration");
+Settings.EditAccounts(configPath, currentAccounts, entries => entries[1..]);
+Settings.EditAccounts(configPath, Settings.Load(configPath).Accounts, entries => entries[1..]);
+Check(Settings.Load(configPath).Accounts.Length == 0 &&
+    File.ReadAllText(configPath).Contains("// Keep this account, even with a comma in the comment."),
+    "last account can be removed without losing comments");
+File.WriteAllText(configPath, JsonSerializer.Serialize(threeAccounts, Settings.JsonOptions));
+Settings.EditAccounts(configPath, Settings.Load(configPath).Accounts,
+    entries => [entries[0], entries[2]]);
+Check(Settings.Load(configPath).Accounts.Select(account => account.Name).SequenceEqual(["One", "Three"]),
+    "middle account removal keeps the remaining order");
+File.WriteAllText(configPath, $$"""
+    {
+      "accounts": [{ "name": "One", "codexHome": "%TEMP%/ai-usage-monitor-test" }],
+      "widget": { "edge": "left" }
+    }
+    """);
+Settings.EditAccounts(configPath, Settings.Load(configPath).Accounts, entries => [.. entries, claudeProfile]);
+Check(File.ReadAllText(configPath).Contains("%TEMP%/ai-usage-monitor-test") &&
+    Settings.Load(configPath).Widget.Edge == "left", "adding account retains original path and widget settings");
+File.WriteAllText(configPath, $$"""
+    {
+      // Add another object to accounts for another Codex profile.
+      "accounts": [{ "name": "One", "codexHome": "{{commentedHome}}" }]
+    }
+    """);
 Settings.SaveWidgetValues(configPath, new() { ["offsetPx"] = 170, ["marginPx"] = 320 });
 Check(Settings.Load(configPath).Widget is { OffsetPx: 170, MarginPx: 320 } &&
     File.ReadAllText(configPath).Contains("// Add another object"), "position saving adds widget without losing comments or accounts");
