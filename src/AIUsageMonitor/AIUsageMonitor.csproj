@@ -14,5 +14,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../config/config.example.json" Link="config.example.json" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Assets\provider_openai.png" />
+    <Resource Include="Assets\provider_claude.png" />
   </ItemGroup>
 </Project>

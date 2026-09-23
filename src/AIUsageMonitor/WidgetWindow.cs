@@ -16,6 +16,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 using ShapePath = System.Windows.Shapes.Path;
@@ -236,9 +237,12 @@ public sealed class WidgetWindow : Window
                 icon.Children.Add(account.Rings[ring]);
             }
             var label = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            label.Children.Add(new TextBlock { Text = account.Config.Provider == "claude" ? "CL" : "GPT",
-                FontSize = 7, FontWeight = FontWeights.Bold, Foreground = account.Config.Provider == "claude" ? Claude : Mint,
-                TextAlignment = TextAlignment.Center });
+            label.Children.Add(new Image
+            {
+                Source = new BitmapImage(new Uri("pack://application:,,,/Assets/provider_" +
+                    (account.Config.Provider == "claude" ? "claude" : "openai") + ".png")),
+                Width = 12, Height = 12, HorizontalAlignment = HorizontalAlignment.Center
+            });
             label.Children.Add(new TextBlock { Text = StringInfo.GetNextTextElement(account.Config.Name.Trim()).ToUpperInvariant(),
                 FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = Ink, TextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, -2, 0, 0) });

@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -158,11 +159,14 @@ final class WidgetRenderer {
             usage == null ? null : usage.weekly, PURPLE, account.error != null);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(TEXT);
-        paint.setTextSize(9 * density * scale);
         paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
-        String provider = account.provider.equals("claude") ? "CL" : "GPT";
-        paint.setColor(account.provider.equals("claude") ? Color.rgb(255, 191, 138) : MINT);
-        canvas.drawText(provider, center - paint.measureText(provider) / 2, center - 2 * density * scale, paint);
+        Drawable logo = context.getDrawable(account.provider.equals("claude")
+            ? R.drawable.provider_claude : R.drawable.provider_openai);
+        int logoSize = Math.round(12 * density * scale);
+        int logoLeft = Math.round(center - logoSize / 2f);
+        int logoTop = Math.round(center - 15 * density * scale);
+        logo.setBounds(logoLeft, logoTop, logoLeft + logoSize, logoTop + logoSize);
+        logo.draw(canvas);
         paint.setColor(TEXT);
         paint.setTextSize(13 * density * scale);
         String label = account.email.trim();
