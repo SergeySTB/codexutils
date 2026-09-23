@@ -21,6 +21,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
+import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -115,7 +116,7 @@ public final class MainActivity extends Activity {
         TextView title = text("AI Usage Monitor", 25, TEXT);
         title.setTypeface(null, Typeface.BOLD);
         heading.addView(title);
-        heading.addView(text("Остаток лимитов Codex", 14, MUTED));
+        heading.addView(text("Остаток лимитов Codex и Claude", 14, MUTED));
         header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
         Button menu = new Button(this);
         menu.setText("⋮");
@@ -139,20 +140,23 @@ public final class MainActivity extends Activity {
         PopupMenu popup = new PopupMenu(this, anchor);
         popup.setGravity(Gravity.END);
         Menu menu = popup.getMenu();
-        menu.add(0, 1, 0, "Добавить аккаунт").setEnabled(!signingIn && !storageUnavailable);
-        menu.add(0, 2, 1, "Обновить").setEnabled(!refreshing && !signingIn && !accounts.isEmpty() && !storageUnavailable);
-        menu.add(0, 3, 2, "Настройки");
+        menu.add(0, 1, 0, "Добавить Codex").setEnabled(!signingIn && !storageUnavailable);
+        menu.add(0, 5, 1, "Добавить Claude").setEnabled(!signingIn && !storageUnavailable);
+        menu.add(0, 2, 2, "Обновить").setEnabled(!refreshing && !signingIn && !accounts.isEmpty() && !storageUnavailable);
+        menu.add(0, 3, 3, "Настройки");
         List<AccountStore.Account> shown = new ArrayList<>(accounts);
         if (!shown.isEmpty()) {
-            SubMenu remove = menu.addSubMenu(0, 4, 3, "Убрать аккаунт");
+            SubMenu remove = menu.addSubMenu(0, 4, 4, "Убрать аккаунт");
             for (int i = 0; i < shown.size(); i++) {
                 AccountStore.Account account = shown.get(i);
-                remove.add(0, 100 + i, i, account.email.isEmpty() ? "Аккаунт ChatGPT" : account.email);
+                remove.add(0, 100 + i, i, (account.provider.equals("claude") ? "Claude · " : "Codex · ") +
+                    (account.email.isEmpty() ? "аккаунт" : account.email));
             }
         }
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == 1) startLogin();
+            else if (id == 5) startClaudeLogin();
             else if (id == 2) refreshAll();
             else if (id == 3) startActivity(new Intent(this, SettingsActivity.class));
             else if (id >= 100 && id < 100 + shown.size()) removeAccount(shown.get(id - 100));
@@ -166,7 +170,7 @@ public final class MainActivity extends Activity {
         cards.removeAllViews();
         if (accounts.isEmpty()) {
             TextView hint = text(storageUnavailable ? "Сохранённые данные входа недоступны." :
-                "Откройте меню ⋮ и выберите «Добавить аккаунт», затем войдите через ChatGPT в браузере.", 16, MUTED);
+                "Откройте меню ⋮ и добавьте аккаунт Codex или Claude.", 16, MUTED);
             hint.setPadding(0, dp(48), 0, 0);
             cards.addView(hint);
             return;
@@ -183,6 +187,7 @@ public final class MainActivity extends Activity {
             cardSize.topMargin = dp(12);
             cards.addView(card, cardSize);
 
+            card.addView(text(account.provider.equals("claude") ? "CLAUDE" : "GPT / CODEX", 12, MUTED));
             TextView email = text(account.email.isEmpty() ? "Аккаунт ChatGPT" : account.email, 18, TEXT);
             email.setTypeface(null, Typeface.BOLD);
             card.addView(email);
@@ -261,6 +266,52 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private void startClaudeLogin() {
+        LinearLayout fields = new LinearLayout(this);
+        fields.setOrientation(LinearLayout.VERTICAL);
+        fields.setPadding(dp(20), dp(8), dp(20), 0);
+        EditText name = new EditText(this);
+        name.setHint("Название аккаунта, например Личный");
+        name.setSingleLine(true);
+        fields.addView(name);
+        EditText token = new EditText(this);
+        token.setHint("Токен из claude setup-token");
+        token.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        token.setSingleLine(true);
+        fields.addView(token);
+        new AlertDialog.Builder(this).setTitle("Добавить Claude")
+            .setMessage("Получите токен командой claude setup-token на компьютере и вставьте его здесь. Он хранится в зашифрованном хранилище телефона.")
+            .setView(fields).setNegativeButton("Отмена", null)
+            .setPositiveButton("Добавить", (dialog, which) -> {
+                String label = name.getText().toString().trim();
+                String secret = token.getText().toString().trim();
+                if (label.isEmpty() || label.length() > 60 || !ClaudeApi.validToken(secret)) {
+                    status.setText("Укажите название до 60 символов и токен Claude OAuth.");
+                    return;
+                }
+                worker.execute(() -> {
+                    try {
+                        AccountStore.Account account = new AccountStore.Account(new JSONObject());
+                        account.provider = "claude";
+                        account.accountId = java.util.UUID.randomUUID().toString();
+                        account.email = label;
+                        account.accessToken = secret;
+                        List<AccountStore.Account> copy = store.upsert(account);
+                        runOnUiThread(() -> {
+                            if (closed) return;
+                            accounts.clear();
+                            accounts.addAll(copy);
+                            render();
+                            WidgetRenderer.showCached(this);
+                            refreshAll();
+                        });
+                    } catch (Exception ignored) {
+                        runOnUiThread(() -> { if (!closed) status.setText("Не удалось сохранить аккаунт Claude."); });
+                    }
+                });
+            }).show();
+    }
+
     private void showDeviceCode(String code) {
         new AlertDialog.Builder(this).setTitle("Вход через ChatGPT")
             .setMessage("Откройте страницу входа и введите код: " + code + "\nКод действует 15 минут.")
@@ -308,7 +359,7 @@ public final class MainActivity extends Activity {
 
     private void removeAccount(AccountStore.Account account) {
         new AlertDialog.Builder(this).setTitle("Убрать аккаунт?")
-            .setMessage("Данные входа для " + (account.email.isEmpty() ? "аккаунта ChatGPT" : account.email) +
+            .setMessage("Данные входа для " + (account.email.isEmpty() ? "аккаунта" : account.email) +
                 " будут удалены с этого телефона.")
             .setNegativeButton("Отмена", null)
             .setPositiveButton("Убрать", (dialog, which) -> worker.execute(() -> {

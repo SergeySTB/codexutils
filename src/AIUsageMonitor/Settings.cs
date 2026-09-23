@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace AIUsageMonitor;
 
-public sealed record AccountSettings(string Name, string CodexHome);
+public sealed record AccountSettings(string Name, string? CodexHome = null, string Provider = "codex", string? ClaudeConfigDir = null);
 
 public sealed record WidgetSettings
 {
@@ -72,11 +72,17 @@ public sealed record Settings
     public Settings Validate()
     {
         if (Accounts is null || Accounts.Length == 0 || Accounts.Any(a => a is null ||
-            string.IsNullOrWhiteSpace(a.Name) || a.Name.Length > 60 || string.IsNullOrWhiteSpace(a.CodexHome)))
-            throw new InvalidDataException("Укажите хотя бы один аккаунт с именем и папкой codexHome.");
-        var accounts = Accounts.Select(a => a with { CodexHome = ExpandPath(a.CodexHome) }).ToArray();
-        if (accounts.Select(a => a.CodexHome).Distinct(StringComparer.OrdinalIgnoreCase).Count() != accounts.Length)
-            throw new InvalidDataException("Для аккаунтов нужны разные папки codexHome.");
+            string.IsNullOrWhiteSpace(a.Name) || a.Name.Length > 60 ||
+            a.Provider is not ("codex" or "claude") ||
+            (a.Provider == "codex" && (string.IsNullOrWhiteSpace(a.CodexHome) || a.ClaudeConfigDir != null)) ||
+            (a.Provider == "claude" && (a.CodexHome != null || string.IsNullOrWhiteSpace(a.ClaudeConfigDir)))))
+            throw new InvalidDataException("Укажите имя, provider (codex/claude) и соответствующий codexHome или claudeConfigDir.");
+        var accounts = Accounts.Select(a => a.Provider == "codex"
+            ? a with { CodexHome = ExpandPath(a.CodexHome!) }
+            : a with { ClaudeConfigDir = ExpandPath(a.ClaudeConfigDir!) }).ToArray();
+        if (accounts.Where(a => a.Provider == "codex").Select(a => a.CodexHome).Distinct(StringComparer.OrdinalIgnoreCase).Count() != accounts.Count(a => a.Provider == "codex") ||
+            accounts.Where(a => a.Provider == "claude").Select(a => a.ClaudeConfigDir).Distinct(StringComparer.OrdinalIgnoreCase).Count() != accounts.Count(a => a.Provider == "claude"))
+            throw new InvalidDataException("Для аккаунтов одного провайдера нужны разные папки профиля.");
         if (Widget is null || Widget.DisplayMode is not ("icons" or "cards") ||
             (Widget.DisplayMode == "icons" && (Widget.IconWidthPx < 64 || Widget.IconWidthPx > 4096 ||
                 Widget.IconHeightPx < 32 || Widget.IconHeightPx > 2160)) ||

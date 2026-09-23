@@ -20,7 +20,7 @@ import javax.crypto.spec.GCMParameterSpec;
 
 final class AccountStore {
     static final class Account {
-        String email, plan, accountId, accessToken, refreshToken, idToken;
+        String email, plan, accountId, accessToken, refreshToken, idToken, provider;
         long expiresAt;
         Usage usage;
         long updatedAt;
@@ -31,6 +31,7 @@ final class AccountStore {
             email = json.optString("email");
             plan = json.optString("plan");
             accountId = json.optString("accountId");
+            provider = json.optString("provider", "codex");
             accessToken = json.optString("accessToken");
             refreshToken = json.optString("refreshToken");
             idToken = json.optString("idToken");
@@ -42,7 +43,7 @@ final class AccountStore {
         }
 
         JSONObject toJson() throws Exception {
-            return new JSONObject().put("email", email).put("plan", plan).put("accountId", accountId)
+            return new JSONObject().put("email", email).put("plan", plan).put("accountId", accountId).put("provider", provider)
                 .put("accessToken", accessToken).put("refreshToken", refreshToken)
                 .put("idToken", idToken).put("expiresAt", expiresAt)
                 .put("usage", usage == null ? null : usage.toJson())
@@ -51,6 +52,7 @@ final class AccountStore {
 
         void copyFrom(Account other) {
             email = other.email;
+            provider = other.provider;
             plan = other.plan;
             accessToken = other.accessToken;
             refreshToken = other.refreshToken;
@@ -153,15 +155,21 @@ final class AccountStore {
             if (System.currentTimeMillis() >= current.retryAt) {
                 Account saved = current;
                 try {
-                    current.usage = CodexApi.readUsage(current, () -> saveRefreshed(saved));
+                    current.usage = current.provider.equals("claude") ? ClaudeApi.readUsage(current.accessToken)
+                        : CodexApi.readUsage(current, () -> saveRefreshed(saved));
                     current.updatedAt = System.currentTimeMillis();
                     current.error = null;
-                    current.retryAt = 0;
+                    current.retryAt = current.provider.equals("claude") ? System.currentTimeMillis() + 5 * 60_000L : 0;
                 } catch (Exception error) {
                     boolean limited = error instanceof CodexApi.HttpStatusException &&
                         ((CodexApi.HttpStatusException) error).status == 429;
-                    current.retryAt = limited ? System.currentTimeMillis() + 15 * 60_000L : 0;
+                    current.retryAt = limited ? System.currentTimeMillis() + 15 * 60_000L :
+                        current.provider.equals("claude") ? System.currentTimeMillis() + 5 * 60_000L : 0;
+                    boolean signIn = error instanceof CodexApi.HttpStatusException &&
+                        (((CodexApi.HttpStatusException) error).status == 401 ||
+                         ((CodexApi.HttpStatusException) error).status == 403);
                     current.error = limited ? "Слишком частые запросы. Повтор через 15 минут." :
+                        signIn ? (current.provider.equals("claude") ? "Нужен новый токен Claude." : "Нужен повторный вход в ChatGPT.") :
                         "Не удалось получить лимиты. Проверьте вход и соединение.";
                 }
                 saveRefreshed(current);

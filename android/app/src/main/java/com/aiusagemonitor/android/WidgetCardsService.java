@@ -49,7 +49,8 @@ public final class WidgetCardsService extends RemoteViewsService {
             AccountStore.Account account = accounts.get(position);
             RemoteViews card = new RemoteViews(context.getPackageName(), R.layout.widget_card);
             card.setTextViewText(R.id.widget_card_email,
-                account.email.isEmpty() ? "Аккаунт ChatGPT" : account.email);
+                (account.provider.equals("claude") ? "Claude · " : "GPT/Codex · ") +
+                (account.email.isEmpty() ? "аккаунт" : account.email));
             card.setTextViewText(R.id.widget_card_plan, account.plan.toUpperCase(Locale.ROOT));
             Usage usage = account.usage;
             Usage.Window five = usage == null ? null : usage.fiveHour;

@@ -53,6 +53,14 @@ Check(malformed.FiveHour == null && malformed.Weekly is { Remaining: 85, ResetsA
 Check(Parse("""{"rateLimits":{"primary":{"usedPercent":4,"windowDurationMins":15}}}""").FiveHour == null, "unknown durations are not guessed");
 Check(Parse("""{"rateLimits":{"primary":{"usedPercent":-1,"windowDurationMins":300}}}""").FiveHour == null, "negative usage rejected");
 Check(Parse("{}").Weekly == null, "missing data is not zero usage");
+using (var claudeResponse = JsonDocument.Parse("""{"five_hour":{"utilization":25.5,"resets_at":"2026-09-24T10:00:00Z"},"seven_day":{"utilization":80,"resets_at":"2026-09-30T10:00:00Z"}}"""))
+{
+    var claude = ClaudeClient.Parse(claudeResponse.RootElement);
+    Check(claude.FiveHour?.Remaining == 74.5 && claude.Weekly?.Remaining == 20 &&
+        claude.FiveHour.ResetsAt?.Offset == TimeSpan.Zero, "Claude windows map to remaining quota and UTC reset");
+}
+using (var badClaude = JsonDocument.Parse("""{"five_hour":{"utilization":-1},"seven_day":{"utilization":null}}"""))
+    Check(ClaudeClient.Parse(badClaude.RootElement) is { FiveHour: null, Weekly: null }, "invalid Claude windows stay unavailable");
 Check(Limits.WasReset(new(new(99, null), new(100, null)), new(new(100, null), new(100, null))), "reset notification detects a limit reaching 100%");
 Check(!Limits.WasReset(new(new(100, null), null), new(new(100, null), new(80, null))), "reset notification ignores unchanged and reduced limits");
 var now = DateTimeOffset.UtcNow;
@@ -82,12 +90,18 @@ foreach (string edge in new[] { "top", "bottom", "left", "right" })
         dragged.Monitor == "secondary" && !dragged.RespectTaskbar, "drag position round-trips for " + edge);
 }
 Check(valid.Validate().Accounts.Length == 2, "two profiles accepted");
+var claudeProfile = new AccountSettings("Work", Provider: "claude", ClaudeConfigDir: Path.Combine(checkRoot, ".claude-work"));
+Check((valid with { Accounts = [valid.Accounts[0], claudeProfile] }).Validate().Accounts[1].Provider == "claude", "Codex and Claude profiles coexist");
+var claudeJson = JsonSerializer.Serialize(valid with { Accounts = [claudeProfile] }, Settings.JsonOptions);
+File.WriteAllText(Path.Combine(checkRoot, "claude-config.json"), claudeJson);
+Check(Settings.Load(Path.Combine(checkRoot, "claude-config.json")).Accounts[0].Provider == "claude", "Claude profile loads from configuration");
+Reject(() => (valid with { Accounts = [claudeProfile, claudeProfile] }).Validate(), "duplicate Claude profile rejected");
 Check(new Settings().Accounts.Length == 1, "one profile configured by default");
 Check((valid with { Accounts = [valid.Accounts[0]] }).Validate().Accounts.Length == 1, "single profile accepted");
 var threeAccounts = valid with { Accounts = [valid.Accounts[0], valid.Accounts[1], new("Three", Path.Combine(checkRoot, "three"))] };
 Check(threeAccounts.Validate().Accounts.Length == 3, "account count follows configuration");
 Reject(() => (valid with { Accounts = [] }).Validate(), "empty account list rejected");
-Reject(() => (threeAccounts with { Accounts = [.. threeAccounts.Accounts, threeAccounts.Accounts[0] with { CodexHome = threeAccounts.Accounts[0].CodexHome.ToUpperInvariant() + "/" }] }).Validate(), "duplicate profile paths rejected across all accounts");
+Reject(() => (threeAccounts with { Accounts = [.. threeAccounts.Accounts, threeAccounts.Accounts[0] with { CodexHome = threeAccounts.Accounts[0].CodexHome!.ToUpperInvariant() + "/" }] }).Validate(), "duplicate profile paths rejected across all accounts");
 Reject(() => (valid with { RefreshSeconds = 0 }).Validate(), "polling interval validated");
 Reject(() => (valid with { Widget = widget with { Edge = "middle" } }).Validate(), "unknown edge rejected");
 Reject(() => (valid with { Widget = widget with { IconWidthPx = 0 } }).Validate(), "zero width rejected");
@@ -144,8 +158,8 @@ Check((valid with { Widget = new() { DisplayMode = "cards", CardWidthPx = 200, C
 Check(Placement.Calculate(area, compact, screen, 700, 320).Width == 700, "placement uses measured card dimensions");
 
 string exe = Environment.ProcessPath!;
-using (var one = new CodexClient(exe, valid.Accounts[0].CodexHome))
-using (var two = new CodexClient(exe, valid.Accounts[1].CodexHome))
+using (var one = new CodexClient(exe, valid.Accounts[0].CodexHome!))
+using (var two = new CodexClient(exe, valid.Accounts[1].CodexHome!))
 {
     var readings = await Task.WhenAll(one.ReadAsync(), two.ReadAsync());
     Check(readings[0].Email == "one@example.com" && readings[1].Email == "two@example.com", "parallel processes isolate account identity");
@@ -157,7 +171,7 @@ using (var two = new CodexClient(exe, valid.Accounts[1].CodexHome))
 }
 foreach (var profile in valid.Accounts)
 {
-    int pid = int.Parse(File.ReadAllText(Path.Combine(profile.CodexHome, "pid.txt")));
+    int pid = int.Parse(File.ReadAllText(Path.Combine(profile.CodexHome!, "pid.txt")));
     try { using var child = Process.GetProcessById(pid); await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)); }
     catch (ArgumentException) { }
 }

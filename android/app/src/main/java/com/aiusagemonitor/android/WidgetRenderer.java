@@ -123,7 +123,8 @@ final class WidgetRenderer {
     }
 
     static String description(AccountStore.Account account) {
-        String name = account.email.isEmpty() ? "Аккаунт ChatGPT" : account.email;
+        String name = (account.provider.equals("claude") ? "Claude" : "GPT Codex") + ", " +
+            (account.email.isEmpty() ? "аккаунт" : account.email);
         Usage usage = account.usage;
         return name + ". 5 часов: " + value(usage == null ? null : usage.fiveHour) +
             ". Неделя: " + value(usage == null ? null : usage.weekly) +
@@ -157,12 +158,17 @@ final class WidgetRenderer {
             usage == null ? null : usage.weekly, PURPLE, account.error != null);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(TEXT);
-        paint.setTextSize(14 * density * scale);
+        paint.setTextSize(9 * density * scale);
         paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+        String provider = account.provider.equals("claude") ? "CL" : "GPT";
+        paint.setColor(account.provider.equals("claude") ? Color.rgb(255, 191, 138) : MINT);
+        canvas.drawText(provider, center - paint.measureText(provider) / 2, center - 2 * density * scale, paint);
+        paint.setColor(TEXT);
+        paint.setTextSize(13 * density * scale);
         String label = account.email.trim();
         String name = label.isEmpty() ? "?" :
             new String(Character.toChars(Character.toUpperCase(label.codePointAt(0))));
-        canvas.drawText(name, center - paint.measureText(name) / 2, center - (paint.ascent() + paint.descent()) / 2, paint);
+        canvas.drawText(name, center - paint.measureText(name) / 2, center + 11 * density * scale, paint);
         return bitmap;
     }
 

@@ -24,7 +24,7 @@ namespace AIUsageMonitor;
 
 public sealed class WidgetWindow : Window
 {
-    private static readonly Brush Ink = Brush("#EEF4FC"), Muted = Brush("#9CAFC5"), Mint = Brush("#77E5CB"), Purple = Brush("#B6A3FF");
+    private static readonly Brush Ink = Brush("#EEF4FC"), Muted = Brush("#9CAFC5"), Mint = Brush("#77E5CB"), Purple = Brush("#B6A3FF"), Claude = Brush("#FFBF8A");
     private readonly string configPath;
     private readonly bool demo;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -40,10 +40,10 @@ public sealed class WidgetWindow : Window
     private Point? dragStart;
     private bool dragging;
 
-    private sealed class AccountView(AccountSettings config, CodexClient? client)
+    private sealed class AccountView(AccountSettings config, IUsageClient? client)
     {
         public AccountSettings Config = config;
-        public CodexClient? Client = client;
+        public IUsageClient? Client = client;
         public AccountSnapshot? Snapshot;
         public string Status = "Подключение…";
         public bool Failed;
@@ -161,8 +161,10 @@ public sealed class WidgetWindow : Window
         Topmost = settings.Widget.AlwaysOnTop;
         foreach (var config in settings.Accounts)
         {
-            var view = new AccountView(config, executable == null ? null : new CodexClient(executable, config.CodexHome));
-            if (problem != null) { view.Status = "Codex не найден"; view.Failed = true; }
+            IUsageClient? client = config.Provider == "claude" ? new ClaudeClient(config.ClaudeConfigDir!)
+                : executable == null ? null : new CodexClient(executable, config.CodexHome!);
+            var view = new AccountView(config, client);
+            if (config.Provider == "codex" && problem != null) { view.Status = "Codex не найден"; view.Failed = true; }
             accounts.Add(view);
         }
         if (demo)
@@ -198,7 +200,7 @@ public sealed class WidgetWindow : Window
             foreach (var account in accounts)
             {
                 var cardContent = BuildDetailsContent(account);
-                account.Name = new Button { Content = "Войти через ChatGPT", Foreground = Ink, Margin = new Thickness(0, 8, 0, 0) };
+                account.Name = new Button { Content = account.Config.Provider == "claude" ? "Как войти в Claude Code" : "Войти через ChatGPT", Foreground = Ink, Margin = new Thickness(0, 8, 0, 0) };
                 AutomationProperties.SetName(account.Name, "Войти: " + account.Config.Name);
                 account.Name.Click += async (_, _) => await SignInAsync(account);
                 cardContent.Children.Add(account.Name);
@@ -233,12 +235,14 @@ public sealed class WidgetWindow : Window
                 account.Rings[ring] = new ShapePath { Stroke = ring == 0 ? Mint : Purple, StrokeThickness = 2, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
                 icon.Children.Add(account.Rings[ring]);
             }
-            icon.Children.Add(new TextBlock
-            {
-                Text = StringInfo.GetNextTextElement(account.Config.Name.Trim()).ToUpperInvariant(),
-                FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = Ink,
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
-            });
+            var label = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            label.Children.Add(new TextBlock { Text = account.Config.Provider == "claude" ? "CL" : "GPT",
+                FontSize = 7, FontWeight = FontWeights.Bold, Foreground = account.Config.Provider == "claude" ? Claude : Mint,
+                TextAlignment = TextAlignment.Center });
+            label.Children.Add(new TextBlock { Text = StringInfo.GetNextTextElement(account.Config.Name.Trim()).ToUpperInvariant(),
+                FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = Ink, TextAlignment = TextAlignment.Center,
+                Margin = new Thickness(0, -2, 0, 0) });
+            icon.Children.Add(label);
             account.Name = new Button
             {
                 Content = icon, Margin = new Thickness(1, 0, 1, 0), Padding = new Thickness(0),
@@ -277,7 +281,8 @@ public sealed class WidgetWindow : Window
     private StackPanel BuildDetailsContent(AccountView account)
     {
         var panel = new StackPanel { Width = 270, Margin = new Thickness(15) };
-        panel.Children.Add(new TextBlock { Text = demo ? "CODEX / DEMO" : "CODEX", Foreground = Mint, FontSize = 10, Margin = new Thickness(0, 0, 0, 8) });
+        panel.Children.Add(new TextBlock { Text = (account.Config.Provider == "claude" ? "CLAUDE CODE" : "GPT / CODEX") + (demo ? " / DEMO" : ""),
+            Foreground = account.Config.Provider == "claude" ? Claude : Mint, FontSize = 10, Margin = new Thickness(0, 0, 0, 8) });
         panel.Children.Add(new TextBlock { Text = account.Config.Name, FontSize = 17, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
         account.Email = new TextBlock { Foreground = Muted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) };
         account.Caption = new TextBlock { FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };
@@ -384,7 +389,7 @@ public sealed class WidgetWindow : Window
                     account.Failed = false;
                     account.Failures = 0;
                     account.Status = "Подключён";
-                    account.NextRefresh = DateTimeOffset.Now.AddSeconds(settings.RefreshSeconds);
+                    account.NextRefresh = DateTimeOffset.Now.AddSeconds(account.Config.Provider == "claude" ? Math.Max(300, settings.RefreshSeconds) : settings.RefreshSeconds);
                 }
                 catch (Exception error)
                 {
@@ -394,11 +399,11 @@ public sealed class WidgetWindow : Window
                     account.Status = error switch
                     {
                         CodexException known => known.Message,
-                        TimeoutException => "Нет ответа от Codex",
+                        TimeoutException => "Нет ответа от сервиса",
                         UnauthorizedAccessException => "Нет доступа к профилю",
                         _ => "Не удалось подключиться"
                     };
-                    var wait = Math.Min(900, Math.Max(60, settings.RefreshSeconds) * Math.Pow(2, Math.Min(account.Failures - 1, 4)));
+                    var wait = Math.Min(900, Math.Max(account.Config.Provider == "claude" ? 300 : 60, settings.RefreshSeconds) * Math.Pow(2, Math.Min(account.Failures - 1, 4)));
                     account.NextRefresh = DateTimeOffset.Now.AddSeconds(wait);
                     if (error is CodexException { Kind: FailureKind.RateLimited }) account.RateLimitUntil = account.NextRefresh;
                 }
@@ -418,7 +423,7 @@ public sealed class WidgetWindow : Window
             account.Caption.Text = account.SigningIn ? "Вход в браузере…" : account.Failed && account.Snapshot != null ? "Данные устарели · " + account.Status : account.Status;
             if (account.Snapshot?.Plan is { } plan) account.Caption.Text = plan.ToUpperInvariant() + " · " + account.Caption.Text;
             account.Caption.Foreground = account.Failed ? Brush("#FFC38A") : Muted;
-            account.Email.Text = account.Snapshot?.Email ?? "Аккаунт ещё не подключён";
+            account.Email.Text = account.Snapshot?.Email ?? (account.Config.Provider == "claude" ? "Claude Code" : "Аккаунт ещё не подключён");
             account.Name.Opacity = account.Failed ? 0.55 : 1;
             if (cardsPanel != null)
             {
@@ -427,11 +432,12 @@ public sealed class WidgetWindow : Window
             }
             account.Footer.Text = (demo ? "Пример данных · " : "") + (account.Snapshot is { } snapshot
                 ? $"Остаток лимитов · обновлено {snapshot.UpdatedAt:HH:mm:ss}"
+                : account.Config.Provider == "claude" ? "Войдите в Claude Code в указанном профиле"
                 : cardsPanel == null ? "Нажмите иконку для входа через ChatGPT" : "Войдите через ChatGPT") + "\nПравый клик — меню";
             if (account.Snapshot?.Email is { } email && duplicateEmails.Contains(email))
                 account.Footer.Text += "\nПроверьте профили: одинаковый email";
             if (monitorMissing) account.Footer.Text += "\nМонитор недоступен · показано на основном";
-            if (connectionProblem != null) account.Footer.Text += "\n" + connectionProblem;
+            if (connectionProblem != null && account.Config.Provider == "codex") account.Footer.Text += "\n" + connectionProblem;
             var windows = new[] { account.Snapshot?.Limits.FiveHour, account.Snapshot?.Limits.Weekly };
             for (int i = 0; i < 2; i++)
             {
@@ -447,7 +453,7 @@ public sealed class WidgetWindow : Window
                 AutomationProperties.SetName(account.Bars[i], account.Config.Name + (i == 0 ? ", 5 часов. " : ", неделя. ") + detail);
             }
             if (cardsPanel == null)
-                AutomationProperties.SetName(account.Name, $"{account.Config.Name}. {account.Caption.Text}. 5 часов: {account.Values[0].Text}. Неделя: {account.Values[1].Text}");
+                AutomationProperties.SetName(account.Name, $"{(account.Config.Provider == "claude" ? "Claude" : "GPT Codex")}, {account.Config.Name}. {account.Caption.Text}. 5 часов: {account.Values[0].Text}. Неделя: {account.Values[1].Text}");
         }
         if (cardsPanel != null && IsLoaded) Place();
     }
@@ -455,6 +461,12 @@ public sealed class WidgetWindow : Window
     private async Task SignInAsync(AccountView account)
     {
         if (demo || loggingIn || closed) return;
+        if (account.Config.Provider == "claude")
+        {
+            MessageBox.Show("Войдите в Claude Code с CLAUDE_CONFIG_DIR=" + account.Config.ClaudeConfigDir +
+                " и затем нажмите «Обновить сейчас». Приложение читает сохранённый вход, но не изменяет его.", "Claude Code");
+            return;
+        }
         if (account.Client == null) { MessageBox.Show(connectionProblem, "AI Usage Monitor"); return; }
         loggingIn = true;
         account.SigningIn = true;
@@ -463,7 +475,7 @@ public sealed class WidgetWindow : Window
         UpdateDisplay();
         try
         {
-            await account.Client.LoginAsync(url => Process.Start(new ProcessStartInfo(url.AbsoluteUri) { UseShellExecute = true }));
+            await ((CodexClient)account.Client).LoginAsync(url => Process.Start(new ProcessStartInfo(url.AbsoluteUri) { UseShellExecute = true }));
             account.Failed = false;
             account.Status = "Вход выполнен";
             account.NextRefresh = account.RateLimitUntil = DateTimeOffset.MinValue;

@@ -2,8 +2,9 @@
   "codexExecutable": "",
   // Add another object to accounts for a second account, for example:
   // { "name": "Work", "codexHome": "%LOCALAPPDATA%/AIUsageMonitor/profiles/work" }
+  // Claude Code: { "name": "Claude work", "provider": "claude", "claudeConfigDir": "%USERPROFILE%/.claude-work" }
   "accounts": [
-    { "name": "Личный", "codexHome": "%LOCALAPPDATA%/AIUsageMonitor/profiles/personal" }
+    { "name": "Личный", "provider": "codex", "codexHome": "%LOCALAPPDATA%/AIUsageMonitor/profiles/personal" }
   ],
   "widget": {
     "displayMode": "icons",

@@ -15,8 +15,12 @@ public sealed class CodexException(FailureKind kind, string message) : Exception
     public FailureKind Kind { get; } = kind;
 }
 public sealed record AccountSnapshot(string? Email, string? Plan, Limits Limits, DateTimeOffset UpdatedAt);
+public interface IUsageClient : IDisposable
+{
+    Task<AccountSnapshot> ReadAsync();
+}
 
-public sealed class CodexClient(string executable, string profile, TimeSpan? requestTimeout = null) : IDisposable
+public sealed class CodexClient(string executable, string profile, TimeSpan? requestTimeout = null) : IUsageClient
 {
     private readonly SemaphoreSlim operation = new(1, 1);
     private readonly SemaphoreSlim writer = new(1, 1);

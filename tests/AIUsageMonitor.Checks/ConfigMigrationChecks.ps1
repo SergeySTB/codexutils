@@ -63,7 +63,20 @@ Check (@($updated.accounts).Count -eq 3 -and $updated.accounts[0].name -eq 'Pers
     $updated.accounts[1].codexHome -eq 'D:\Profiles\Work' -and $updated.accounts[2].name -eq 'Third custom') 'configured account count, order and paths survive'
 Check ($updated.codexExecutable -eq 'D:\Custom\codex.exe') 'explicit Codex executable survives migration'
 Check (-not ([IO.File]::ReadAllText($config).Contains('retired'))) 'obsolete root, widget and account keys are removed'
-$backup = @(Get-ChildItem $root -Filter '*.bak')
+$claudeConfig = Join-Path $root 'claude-config.json'
+$withClaude = Read-Config $template
+$withClaude.accounts = @($withClaude.accounts) + @([pscustomobject]@{
+    name = 'Claude work'; provider = 'claude'; claudeConfigDir = 'D:\Profiles\Claude-work'; retired = 1
+})
+[IO.File]::WriteAllText($claudeConfig, ($withClaude | ConvertTo-Json -Depth 32))
+& $migration -ConfigPath $claudeConfig -TemplatePath $template
+$migratedClaude = Read-Config $claudeConfig
+Check (@($migratedClaude.accounts).Count -eq 2 -and $migratedClaude.accounts[0].provider -eq 'codex' -and
+    $migratedClaude.accounts[1].provider -eq 'claude' -and
+    $migratedClaude.accounts[1].claudeConfigDir -eq 'D:\Profiles\Claude-work' -and
+    $null -eq $migratedClaude.accounts[1].PSObject.Properties['codexHome'] -and
+    $null -eq $migratedClaude.accounts[1].PSObject.Properties['retired']) 'installer preserves Claude profiles without adding Codex fields'
+$backup = @(Get-ChildItem $root -Filter 'config.json.*.bak')
 Check ($backup.Count -eq 1 -and [IO.File]::ReadAllText($backup[0].FullName) -ceq $original) 'original configuration is backed up exactly'
 $updated.notifyOnLimitReset = $true
 $updated.widget.displayMode = 'cards'

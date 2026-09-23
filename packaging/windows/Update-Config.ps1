@@ -63,7 +63,8 @@ function ConvertTo-ConfigJson($Config) {
     if (-not $accountLine.Success) { throw 'The accounts property is missing from the configuration.' }
     $indent = $accountLine.Groups['indent'].Value
     $comment = $indent + '// Add another object to accounts for a second account, for example:' + [Environment]::NewLine +
-        $indent + '// { "name": "Work", "codexHome": "%LOCALAPPDATA%/AIUsageMonitor/profiles/work" }' + [Environment]::NewLine
+        $indent + '// { "name": "Work", "provider": "codex", "codexHome": "%LOCALAPPDATA%/AIUsageMonitor/profiles/work" }' + [Environment]::NewLine +
+        $indent + '// { "name": "Claude work", "provider": "claude", "claudeConfigDir": "%USERPROFILE%/.claude-work" }' + [Environment]::NewLine
     return $json.Insert($accountLine.Index, $comment)
 }
 
@@ -87,7 +88,15 @@ function Merge-Config($Template, $Previous) {
         }
         $itemTemplate = $Template[0]
         $items = foreach ($item in $Previous) {
-            Merge-Config $itemTemplate $item
+            if ($item -is [pscustomobject] -and $item.provider -eq 'claude') {
+                if ($item.name -isnot [string] -or $item.claudeConfigDir -isnot [string] -or
+                    $null -ne $item.PSObject.Properties['codexHome']) {
+                    throw 'Invalid Claude account configuration.'
+                }
+                [pscustomobject][ordered]@{ name = $item.name; provider = 'claude'; claudeConfigDir = $item.claudeConfigDir }
+            } else {
+                Merge-Config $itemTemplate $item
+            }
         }
         return ,@($items)
     }

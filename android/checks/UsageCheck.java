@@ -10,6 +10,10 @@ import java.util.Base64;
 public final class UsageCheck {
     public static void main(String[] args) throws Exception {
         Usage.demoCheck();
+        if (!ClaudeApi.validToken("sk-ant-oat01-example") || ClaudeApi.validToken("sk-ant-oat01-\nBearer"))
+            throw new AssertionError("Claude token validation must reject header controls");
+        if (!ClaudeApi.validToken("sk-ant-oat01-example") || ClaudeApi.validToken("sk-ant-oat01-\nBearer"))
+            throw new AssertionError("Claude token validation must reject header controls");
         if (WidgetIconSlots.diameter(264, 102) != 96 || WidgetIconSlots.diameter(56, 48) != 42 ||
             WidgetIconSlots.capacity(264, 96) != 2 || WidgetIconSlots.capacity(120, 42) != 2 ||
             WidgetIconSlots.capacity(56, 42) != 1 || WidgetIconSlots.visible(1, 3) != 1 ||
@@ -27,9 +31,14 @@ public final class UsageCheck {
             .put("accountId", "account-1").put("email", "user@example.com")
             .put("usage", original.toJson()).put("updatedAt", 1234));
         AccountStore.Account restored = new AccountStore.Account(account.toJson());
-        if (restored.usage == null || restored.usage.fiveHour == null ||
+        if (!restored.provider.equals("codex") || restored.usage == null || restored.usage.fiveHour == null ||
             restored.usage.fiveHour.remaining != 80 || restored.updatedAt != 1234 || restored.error != null)
             throw new AssertionError("Account snapshot must survive encryption payload roundtrip");
+        AccountStore.Account claude = new AccountStore.Account(new JSONObject()
+            .put("provider", "claude").put("accountId", "claude-1").put("email", "Work")
+            .put("accessToken", "sk-ant-oat-test"));
+        if (!new AccountStore.Account(claude.toJson()).provider.equals("claude"))
+            throw new AssertionError("Claude account provider must survive encryption payload roundtrip");
         if (Usage.fromSaved(new JSONObject("{\"fiveHour\":{\"remaining\":101}}")).fiveHour != null)
             throw new AssertionError("Corrupt saved limits must not be displayed");
         Usage invalid = Usage.parse(new JSONObject("{\"rate_limit\":{\"primary_window\":{\"used_percent\":-1,\"limit_window_seconds\":18000}}}"));

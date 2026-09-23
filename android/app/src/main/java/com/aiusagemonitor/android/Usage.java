@@ -63,14 +63,37 @@ final class Usage {
         return new Usage(fiveHour, weekly);
     }
 
+    static Usage parseClaude(JSONObject response) {
+        return new Usage(claudeWindow(response.optJSONObject("five_hour")),
+            claudeWindow(response.optJSONObject("seven_day")));
+    }
+
+    private static Window claudeWindow(JSONObject value) {
+        if (value == null || !value.has("utilization")) return null;
+        double used = value.optDouble("utilization", Double.NaN);
+        if (!Double.isFinite(used) || used < 0 || used > 100) return null;
+        long reset = 0;
+        String date = value.optString("resets_at", "");
+        if (!date.isEmpty()) {
+            try { reset = java.time.OffsetDateTime.parse(date).toEpochSecond(); }
+            catch (java.time.format.DateTimeParseException ignored) { }
+        }
+        if (reset < 0 || reset > 253_402_300_799L) reset = 0;
+        return new Window((int) Math.floor(100 - used), reset);
+    }
+
     static void demoCheck() throws Exception {
         JSONObject response = new JSONObject("{\"rate_limit\":{\"primary_window\":{\"used_percent\":25.5,\"limit_window_seconds\":604800,\"reset_at\":2000000000},\"secondary_window\":{\"used_percent\":80,\"limit_window_seconds\":18000,\"reset_at\":2000000100}}}");
         Usage result = parse(response);
+        Usage claude = parseClaude(new JSONObject("{\"five_hour\":{\"utilization\":25.5,\"resets_at\":\"2026-09-24T10:00:00Z\"},\"seven_day\":{\"utilization\":80}}"));
+        Usage invalidClaude = parseClaude(new JSONObject("{\"five_hour\":{\"utilization\":-1},\"seven_day\":null}"));
         Usage weeklyOnly = parse(new JSONObject("{\"rate_limit\":{\"primary_window\":{\"used_percent\":5,\"limit_window_seconds\":604800}}}"));
         if (result.fiveHour == null || result.fiveHour.remaining != 20 ||
             result.weekly == null || result.weekly.remaining != 74 ||
             weeklyOnly.fiveHour != null || weeklyOnly.weekly == null || weeklyOnly.weekly.remaining != 95 ||
-            parse(new JSONObject("{}")).fiveHour != null)
+            parse(new JSONObject("{}")).fiveHour != null ||
+            claude.fiveHour == null || claude.fiveHour.remaining != 74 || claude.weekly == null ||
+            claude.weekly.remaining != 20 || invalidClaude.fiveHour != null || invalidClaude.weekly != null)
             throw new AssertionError("Codex usage parsing failed");
     }
 }

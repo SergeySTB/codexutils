@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+## [6.0] — 2026-09-23
+
+### Добавлено
+
+- Общая версия Windows и Android: `6.0`. Оба приложения отслеживают 5-часовой и
+  недельный лимиты Claude Code наряду с Codex.
+- Значки показывают `GPT` или `CL` и букву аккаунта внутри прежних колец лимитов;
+  карточки явно называют провайдера.
+- Windows читает вход из профиля Claude Code. Android принимает OAuth-токен Claude
+  и хранит его в зашифрованном хранилище телефона.
+
 ## [5.3] — 2026-09-22
 
 ### Добавлено
@@ -149,7 +160,8 @@
 - Необязательное звуковое уведомление о сбросе лимита.
 - Миграция существующей конфигурации при установке с резервной копией исходного файла.
 
-[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v5.3...HEAD
+[Unreleased]: https://github.com/SergeySTB/codexutils/compare/v6.0...HEAD
+[6.0]: https://github.com/SergeySTB/codexutils/releases/tag/v6.0
 [5.3]: https://github.com/SergeySTB/codexutils/releases/tag/v5.3
 [4.4]: https://github.com/SergeySTB/codexutils/releases/tag/v4.4
 [3.0]: https://github.com/SergeySTB/codexutils/compare/v2.0...v3.0
