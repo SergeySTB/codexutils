@@ -22,7 +22,7 @@
         android:id="@+id/widget_icons_empty"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Добавьте аккаунт"
+        android:text="@string/localized_092"
         android:textColor="#EEF5FA"
         android:textSize="13sp" />
 </LinearLayout>

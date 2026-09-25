@@ -3,6 +3,8 @@ using System.IO;
 using System.Text.Json;
 using AIUsageMonitor;
 
+System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("ru-RU");
+
 if (args.Contains("app-server")) { await FakeServer(); return; }
 if (args.Length == 2 && args[0] is "--widget" or "--layout" or "--drag")
 {
@@ -71,6 +73,11 @@ using (var fanfare = typeof(WidgetWindow).Assembly.GetManifestResourceStream("AI
 }
 var now = DateTimeOffset.UtcNow;
 Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Ожидается"), "elapsed reset does not invent a replenished quota");
+System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
+Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Waiting"), "English system UI uses English reset text");
+System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("de-DE");
+Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Waiting"), "other system languages fall back to English");
+System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("ru-RU");
 
 var area = new PixelRect(-1920, 0, 1920, 1040);
 var widget = new WidgetSettings { IconWidthPx = 360, IconHeightPx = 144, MarginPx = 8, OffsetPx = 400 };

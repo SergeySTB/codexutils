@@ -69,10 +69,24 @@ $probeRoot = Join-Path $repoRoot '.build/installer-launch-check'
 New-Item -ItemType Directory -Force -Path $probeRoot | Out-Null
 @'
 using System;
+using System.Globalization;
 using System.Windows.Forms;
 internal static class LauncherProbe {
     [System.STAThread]
     private static int Main() {
+        CultureInfo.CurrentUICulture = new CultureInfo("en-US");
+        using (Form english = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory)) {
+            if (!english.Text.StartsWith("AI Usage Monitor Setup")) return 51;
+            if (((Button)english.AcceptButton).Text != "Install") return 52;
+        }
+        CultureInfo.CurrentUICulture = new CultureInfo("ru-RU");
+        using (Form russian = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory)) {
+            if (!russian.Text.StartsWith("\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430")) return 53;
+        }
+        CultureInfo.CurrentUICulture = new CultureInfo("de-DE");
+        using (Form fallback = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory)) {
+            if (((Button)fallback.AcceptButton).Text != "Install") return 54;
+        }
         using (Form welcome = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory)) {
             if (welcome.AcceptButton == null) return 43;
             if (welcome.CancelButton == null) return 46;

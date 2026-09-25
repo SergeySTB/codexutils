@@ -17,28 +17,28 @@ public sealed class ClaudeClient(string configDir) : IUsageClient
     public async Task<AccountSnapshot> ReadAsync()
     {
         string path = Path.Combine(configDir, ".credentials.json");
-        if (!File.Exists(path)) throw new CodexException(FailureKind.SignIn, "Войдите в Claude Code для этого профиля");
+        if (!File.Exists(path)) throw new CodexException(FailureKind.SignIn, UiText.T("Войдите в Claude Code для этого профиля", "Sign in to Claude Code for this profile"));
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(path));
         if (!document.RootElement.TryGetProperty("claudeAiOauth", out var credentials) ||
             credentials.ValueKind != JsonValueKind.Object ||
             !credentials.TryGetProperty("accessToken", out var token) || token.ValueKind != JsonValueKind.String ||
             string.IsNullOrWhiteSpace(token.GetString()))
-            throw new CodexException(FailureKind.SignIn, "Нужен вход в Claude Code через подписку");
+            throw new CodexException(FailureKind.SignIn, UiText.T("Нужен вход в Claude Code через подписку", "Sign in to Claude Code with a subscription"));
         if (!credentials.TryGetProperty("expiresAt", out var expiry) || expiry.ValueKind != JsonValueKind.Number ||
             !expiry.TryGetInt64(out var milliseconds) ||
             milliseconds <= DateTimeOffset.UtcNow.AddMinutes(1).ToUnixTimeMilliseconds())
-            throw new CodexException(FailureKind.SignIn, "Откройте Claude Code для обновления входа");
+            throw new CodexException(FailureKind.SignIn, UiText.T("Откройте Claude Code для обновления входа", "Open Claude Code to refresh your sign-in"));
         using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.anthropic.com/api/oauth/usage");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.GetString());
         request.Headers.TryAddWithoutValidation("anthropic-beta", "oauth-2025-04-20");
         request.Headers.UserAgent.ParseAdd("AIUsageMonitor/" + ProductInfo.Version);
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
         if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-            throw new CodexException(FailureKind.SignIn, "Нужен повторный вход в Claude Code");
+            throw new CodexException(FailureKind.SignIn, UiText.T("Нужен повторный вход в Claude Code", "Sign in to Claude Code again"));
         if (response.StatusCode == HttpStatusCode.TooManyRequests)
-            throw new CodexException(FailureKind.RateLimited, "Claude ограничил запросы. Ожидание повтора");
+            throw new CodexException(FailureKind.RateLimited, UiText.T("Claude ограничил запросы. Ожидание повтора", "Claude rate limited requests. Waiting to retry"));
         if (!response.IsSuccessStatusCode)
-            throw new CodexException(FailureKind.Connection, "Не удалось получить лимиты Claude");
+            throw new CodexException(FailureKind.Connection, UiText.T("Не удалось получить лимиты Claude", "Could not retrieve Claude limits"));
         await response.Content.LoadIntoBufferAsync(1_048_576);
         await using var stream = await response.Content.ReadAsStreamAsync();
         using var payload = await JsonDocument.ParseAsync(stream, new JsonDocumentOptions { MaxDepth = 16 });

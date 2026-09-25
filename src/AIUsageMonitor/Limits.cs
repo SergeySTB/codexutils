@@ -46,12 +46,18 @@ public sealed record Limits(LimitWindow? FiveHour, LimitWindow? Weekly)
 
     public static string ResetText(LimitWindow? window, DateTimeOffset now)
     {
-        if (window?.ResetsAt is not { } reset) return "Время сброса неизвестно";
+        if (window?.ResetsAt is not { } reset) return UiText.T("Время сброса неизвестно", "Reset time unknown");
         var delta = reset - now;
-        if (delta <= TimeSpan.Zero) return "Ожидается обновление лимита";
-        if (delta.TotalDays >= 1) return $"Сброс через {(int)delta.TotalDays} д {delta.Hours} ч";
-        if (delta.TotalHours >= 1) return $"Сброс через {(int)delta.TotalHours} ч {delta.Minutes} мин";
-        return $"Сброс через {Math.Max(1, (int)Math.Ceiling(delta.TotalMinutes))} мин";
+        if (delta <= TimeSpan.Zero) return UiText.T("Ожидается обновление лимита", "Waiting for limit refresh");
+        if (delta.TotalDays >= 1) return UiText.Russian
+            ? $"Сброс через {(int)delta.TotalDays} д {delta.Hours} ч"
+            : $"Resets in {(int)delta.TotalDays}d {delta.Hours}h";
+        if (delta.TotalHours >= 1) return UiText.Russian
+            ? $"Сброс через {(int)delta.TotalHours} ч {delta.Minutes} мин"
+            : $"Resets in {(int)delta.TotalHours}h {delta.Minutes}m";
+        return UiText.Russian
+            ? $"Сброс через {Math.Max(1, (int)Math.Ceiling(delta.TotalMinutes))} мин"
+            : $"Resets in {Math.Max(1, (int)Math.Ceiling(delta.TotalMinutes))}m";
     }
 }
 

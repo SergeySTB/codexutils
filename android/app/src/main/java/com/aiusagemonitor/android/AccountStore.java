@@ -72,6 +72,21 @@ final class AccountStore {
 
     AccountStore(Context context) { this.context = context.getApplicationContext(); }
 
+    static String errorText(Context context, String error) {
+        if (error == null) return "";
+        switch (error) {
+            case "rate_limited": case "Слишком частые запросы. Повтор через 15 минут.":
+                return context.getString(R.string.localized_087);
+            case "claude_sign_in": case "Нужен новый токен Claude.":
+                return context.getString(R.string.localized_088);
+            case "codex_sign_in": case "Нужен повторный вход в ChatGPT.":
+                return context.getString(R.string.localized_089);
+            case "save_failed": case "Не удалось сохранить лимиты на телефоне.":
+                return context.getString(R.string.localized_047);
+            default: return context.getString(R.string.localized_090);
+        }
+    }
+
     private SecretKey key() throws Exception {
         KeyStore store = KeyStore.getInstance("AndroidKeyStore");
         store.load(null);
@@ -168,9 +183,9 @@ final class AccountStore {
                     boolean signIn = error instanceof CodexApi.HttpStatusException &&
                         (((CodexApi.HttpStatusException) error).status == 401 ||
                          ((CodexApi.HttpStatusException) error).status == 403);
-                    current.error = limited ? "Слишком частые запросы. Повтор через 15 минут." :
-                        signIn ? (current.provider.equals("claude") ? "Нужен новый токен Claude." : "Нужен повторный вход в ChatGPT.") :
-                        "Не удалось получить лимиты. Проверьте вход и соединение.";
+                    current.error = limited ? "rate_limited" :
+                        signIn ? (current.provider.equals("claude") ? "claude_sign_in" : "codex_sign_in") :
+                        "limits_unavailable";
                 }
                 saveRefreshed(current);
             }

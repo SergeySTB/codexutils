@@ -11,7 +11,7 @@
         android:paddingStart="8dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
-        android:text="CODEX · ОСТАТОК ЛИМИТОВ"
+        android:text="@string/localized_093"
         android:textColor="#64E2CC"
         android:textSize="11sp" />
     <ListView

@@ -85,24 +85,24 @@ final class WidgetRenderer {
         int diameter = WidgetIconSlots.diameter(availableWidth, heightDp > 0 ? heightDp : 48);
         int slots = WidgetIconSlots.capacity(availableWidth, diameter);
         view.setTextViewText(R.id.widget_icons_empty, unavailable
-            ? (slots == 1 ? "!" : "Нет данных") : (slots == 1 ? "Нет" : "Нет аккаунтов"));
+            ? (slots == 1 ? "!" : context.getString(R.string.localized_060)) : (slots == 1 ? context.getString(R.string.localized_061) : context.getString(R.string.localized_062)));
         view.setContentDescription(R.id.widget_icons_empty, unavailable
-            ? "Сохранённые данные недоступны" : "Нет аккаунтов. Откройте приложение, чтобы добавить аккаунт");
+            ? context.getString(R.string.localized_063) : context.getString(R.string.localized_064));
         int visible = WidgetIconSlots.visible(slots, accounts.size());
         int hidden = accounts.size() - visible;
         boolean overflowTile = hidden > 0 && slots > 1;
         view.setViewVisibility(R.id.widget_icons_overflow, overflowTile ? View.VISIBLE : View.GONE);
         if (overflowTile) {
             view.setTextViewText(R.id.widget_icons_overflow, "+" + hidden);
-            view.setContentDescription(R.id.widget_icons_overflow, "Ещё " + hidden + " аккаунтов");
+            view.setContentDescription(R.id.widget_icons_overflow, context.getString(R.string.localized_065) + hidden + context.getString(R.string.localized_066));
         }
         for (int index = 0; index < visible; index++) {
             AccountStore.Account account = accounts.get(index);
             RemoteViews icon = new RemoteViews(context.getPackageName(), R.layout.widget_icon);
             icon.setImageViewBitmap(R.id.widget_icon_image, iconBitmap(context, account, diameter));
             boolean badge = hidden > 0 && !overflowTile;
-            icon.setContentDescription(R.id.widget_icon_image, description(account) +
-                (badge ? ". Ещё " + hidden + " аккаунтов не показано" : ""));
+            icon.setContentDescription(R.id.widget_icon_image, description(context, account) +
+                (badge ? context.getString(R.string.localized_067) + hidden + context.getString(R.string.localized_068) : ""));
             if (badge) {
                 icon.setViewVisibility(R.id.widget_icon_more, View.VISIBLE);
                 icon.setTextViewText(R.id.widget_icon_more, "+" + hidden);
@@ -123,17 +123,17 @@ final class WidgetRenderer {
         return PendingIntent.getActivity(context, requestCode, intent, flags);
     }
 
-    static String description(AccountStore.Account account) {
+    static String description(Context context, AccountStore.Account account) {
         String name = (account.provider.equals("claude") ? "Claude" : "GPT Codex") + ", " +
-            (account.email.isEmpty() ? "аккаунт" : account.email);
+            (account.email.isEmpty() ? context.getString(R.string.localized_009) : account.email);
         Usage usage = account.usage;
-        return name + ". 5 часов: " + value(usage == null ? null : usage.fiveHour) +
-            ". Неделя: " + value(usage == null ? null : usage.weekly) +
-            (account.error == null ? "" : usage == null ? ". Ошибка обновления" : ". Данные устарели");
+        return name + context.getString(R.string.localized_069) + value(context, usage == null ? null : usage.fiveHour) +
+            context.getString(R.string.localized_070) + value(context, usage == null ? null : usage.weekly) +
+            (account.error == null ? "" : usage == null ? context.getString(R.string.localized_071) : context.getString(R.string.localized_072));
     }
 
-    static String value(Usage.Window window) {
-        return window == null ? "нет данных" : window.remaining + "% осталось";
+    static String value(Context context, Usage.Window window) {
+        return window == null ? context.getString(R.string.localized_017) : window.remaining + context.getString(R.string.localized_018);
     }
 
     private static Bitmap iconBitmap(Context context, AccountStore.Account account, int diameterDp) {

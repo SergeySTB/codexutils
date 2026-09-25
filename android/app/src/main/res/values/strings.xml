@@ -1,6 +1,101 @@
 <resources>
-    <string name="widget_icons_name">AI Usage Monitor · значки</string>
-    <string name="widget_icons_description">Остаток лимитов аккаунтов в одной строке</string>
-    <string name="widget_cards_name">AI Usage Monitor · карточки</string>
-    <string name="widget_cards_description">Карточки аккаунтов с лимитами без значков</string>
+    <string name="widget_icons_name">AI Usage Monitor · icons</string>
+    <string name="widget_icons_description">Account limits in one row</string>
+    <string name="widget_cards_name">AI Usage Monitor · cards</string>
+    <string name="widget_cards_description">Account cards with limits, without icons</string>
+    <string name="localized_001" formatted="false">Could not open saved accounts. Clear the app data in Android settings.</string>
+    <string name="localized_002" formatted="false">Remaining Codex and Claude limits</string>
+    <string name="localized_003" formatted="false">Actions menu</string>
+    <string name="localized_004" formatted="false">Add Codex</string>
+    <string name="localized_005" formatted="false">Add Claude</string>
+    <string name="localized_006" formatted="false">Refresh</string>
+    <string name="localized_007" formatted="false">Settings</string>
+    <string name="localized_008" formatted="false">Remove account</string>
+    <string name="localized_009" formatted="false">account</string>
+    <string name="localized_010" formatted="false">Saved sign-in data is unavailable.</string>
+    <string name="localized_011" formatted="false">Open the ⋮ menu and add a Codex or Claude account.</string>
+    <string name="localized_012" formatted="false">ChatGPT account</string>
+    <string name="localized_013" formatted="false">5 hours</string>
+    <string name="localized_014" formatted="false">Week</string>
+    <string name="localized_015" formatted="false">Updated </string>
+    <string name="localized_016" formatted="false">Outdated data · </string>
+    <string name="localized_017" formatted="false">no data</string>
+    <string name="localized_018" formatted="false">% remaining</string>
+    <string name="localized_019" formatted="false">Resets </string>
+    <string name="localized_020" formatted="false">Getting sign-in code…</string>
+    <string name="localized_021" formatted="false">getting code</string>
+    <string name="localized_022" formatted="false">waiting for code approval</string>
+    <string name="localized_023" formatted="false">exchanging code for tokens</string>
+    <string name="localized_024" formatted="false">saving account</string>
+    <string name="localized_025" formatted="false">Account connected</string>
+    <string name="localized_026" formatted="false">Sign-in cancelled</string>
+    <string name="localized_027" formatted="false">account data unavailable</string>
+    <string name="localized_028" formatted="false">timed out</string>
+    <string name="localized_029" formatted="false">app error</string>
+    <string name="localized_030" formatted="false">Sign-in failed: </string>
+    <string name="localized_031" formatted="false">Account name, e.g. Personal</string>
+    <string name="localized_032" formatted="false">Token from claude setup-token</string>
+    <string name="localized_033" formatted="false">Run claude setup-token on your computer and paste the token here. It is stored encrypted on this phone.</string>
+    <string name="localized_034" formatted="false">Cancel</string>
+    <string name="localized_035" formatted="false">Add</string>
+    <string name="localized_036" formatted="false">Enter a name of up to 60 characters and a Claude OAuth token.</string>
+    <string name="localized_037" formatted="false">Could not save the Claude account.</string>
+    <string name="localized_038" formatted="false">Sign in with ChatGPT</string>
+    <string name="localized_039" formatted="false">Open the sign-in page and enter this code: </string>
+    <string name="localized_040" formatted="false">\nThe code is valid for 15 minutes.</string>
+    <string name="localized_041" formatted="false">Copy and open</string>
+    <string name="localized_042" formatted="false">Copy code</string>
+    <string name="localized_043" formatted="false">Code copied. Open auth.openai.com/codex/device in your browser.</string>
+    <string name="localized_044" formatted="false">Waiting for sign-in approval…</string>
+    <string name="localized_045" formatted="false">Codex sign-in code</string>
+    <string name="localized_046" formatted="false">Refreshing limits…</string>
+    <string name="localized_047" formatted="false">Could not save limits on this phone.</string>
+    <string name="localized_048" formatted="false">Remaining limits · refreshed every minute while the app is open</string>
+    <string name="localized_049" formatted="false">Remove account?</string>
+    <string name="localized_050" formatted="false">Sign-in data for </string>
+    <string name="localized_051" formatted="false">the account</string>
+    <string name="localized_052" formatted="false"> will be deleted from this phone.</string>
+    <string name="localized_053" formatted="false">Remove</string>
+    <string name="localized_054" formatted="false">Could not remove account</string>
+    <string name="localized_055" formatted="false">Account data unavailable. Open the app.</string>
+    <string name="localized_056" formatted="false">Add an account in the app.</string>
+    <string name="localized_057" formatted="false">Waiting for refresh</string>
+    <string name="localized_058" formatted="false">No data for this limit</string>
+    <string name="localized_059" formatted="false">Reset time unknown</string>
+    <string name="localized_060" formatted="false">No data</string>
+    <string name="localized_061" formatted="false">None</string>
+    <string name="localized_062" formatted="false">No accounts</string>
+    <string name="localized_063" formatted="false">Saved data unavailable</string>
+    <string name="localized_064" formatted="false">No accounts. Open the app to add one</string>
+    <string name="localized_065" formatted="false">Hidden accounts: </string>
+    <string name="localized_066" formatted="false"></string>
+    <string name="localized_067" formatted="false">. Hidden accounts: </string>
+    <string name="localized_068" formatted="false"></string>
+    <string name="localized_069" formatted="false">. 5 hours: </string>
+    <string name="localized_070" formatted="false">. Week: </string>
+    <string name="localized_071" formatted="false">. Refresh failed</string>
+    <string name="localized_072" formatted="false">. Data outdated</string>
+    <string name="localized_073" formatted="false">Back</string>
+    <string name="localized_074" formatted="false">Widget refresh frequency</string>
+    <string name="localized_075" formatted="false">Choose how often to check limits when a widget is on your home screen.</string>
+    <string name="localized_076" formatted="false">Could not save the setting.</string>
+    <string name="localized_077" formatted="false">Saved</string>
+    <string name="localized_078" formatted="false">Saved, but could not schedule a refresh.</string>
+    <string name="localized_079" formatted="false">Android may delay background refreshes to save battery. While this app is open, limits refresh every minute.</string>
+    <string name="localized_080" formatted="false">15 minutes</string>
+    <string name="localized_081" formatted="false">30 minutes</string>
+    <string name="localized_082" formatted="false">1 hour</string>
+    <string name="localized_083" formatted="false">2 hours</string>
+    <string name="localized_084" formatted="false">6 hours</string>
+    <string name="localized_085" formatted="false">12 hours</string>
+    <string name="localized_086" formatted="false">24 hours</string>
+    <string name="localized_087" formatted="false">Too many requests. Retry in 15 minutes.</string>
+    <string name="localized_088" formatted="false">A new Claude token is required.</string>
+    <string name="localized_089" formatted="false">Sign in with ChatGPT again.</string>
+    <string name="localized_090" formatted="false">Could not retrieve limits. Check sign-in and connection.</string>
+    <string name="localized_091" formatted="false">Add an account in the app</string>
+    <string name="localized_092" formatted="false">Add account</string>
+    <string name="localized_093" formatted="false">CODEX · REMAINING LIMITS</string>
+    <string name="localized_094" formatted="false">Updated recently</string>
+    <string name="localized_095" formatted="false">P</string>
 </resources>

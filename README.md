@@ -5,6 +5,10 @@
 внутреннее фиолетовое — за неделю. В центре значка показаны логотип провайдера
 и первая буква аккаунта.
 
+Интерфейс установщика Windows и приложений Windows/Android автоматически использует
+язык системы: русский или английский. Для других языков используется английский.
+Названия уже добавленных аккаунтов сохраняются как пользовательские данные.
+
 В Windows компактная панель показывает по одной круглой иконке на аккаунт.
 При наведении открывается карточка с тарифом, процентами, временем сброса и
 последнего обновления.
@@ -29,7 +33,7 @@
 
 ## Windows
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.3/AIUsageMonitor-Setup_v6.3.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.4/AIUsageMonitor-Setup_v6.4.exe)
 
 Сначала установщик предложит начать установку или отменить её. После нажатия
 «Установить» он запросит права администратора, установит приложение в
@@ -40,7 +44,7 @@
 
 ## Android
 
-[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.3/AIUsageMonitor-Android_v6.3-debug.apk)
+[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.4/AIUsageMonitor-Android_v6.4-debug.apk)
 
 Приложение работает на Android 8 и новее без компьютера после настройки аккаунтов.
 Для Codex войдите через ChatGPT по коду устройства. Для Claude выполните

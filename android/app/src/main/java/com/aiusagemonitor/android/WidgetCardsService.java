@@ -41,7 +41,7 @@ public final class WidgetCardsService extends RemoteViewsService {
             if (accounts.isEmpty()) {
                 RemoteViews empty = new RemoteViews(context.getPackageName(), R.layout.widget_empty_card);
                 empty.setTextViewText(R.id.widget_empty_text, unavailable ?
-                    "Данные аккаунтов недоступны. Откройте приложение." : "Добавьте аккаунт в приложении.");
+                    context.getString(R.string.localized_055) : context.getString(R.string.localized_056));
                 empty.setOnClickFillInIntent(R.id.widget_empty_text, new Intent());
                 return empty;
             }
@@ -50,7 +50,7 @@ public final class WidgetCardsService extends RemoteViewsService {
             RemoteViews card = new RemoteViews(context.getPackageName(), R.layout.widget_card);
             card.setTextViewText(R.id.widget_card_email,
                 (account.provider.equals("claude") ? "Claude · " : "GPT/Codex · ") +
-                (account.email.isEmpty() ? "аккаунт" : account.email));
+                (account.email.isEmpty() ? context.getString(R.string.localized_009) : account.email));
             card.setTextViewText(R.id.widget_card_plan, account.plan.toUpperCase(Locale.ROOT));
             Usage usage = account.usage;
             Usage.Window five = usage == null ? null : usage.fiveHour;
@@ -61,20 +61,20 @@ public final class WidgetCardsService extends RemoteViewsService {
             card.setProgressBar(R.id.widget_card_week_bar, 100, week == null ? 0 : week.remaining, false);
             card.setTextViewText(R.id.widget_card_five_reset, resetText(five));
             card.setTextViewText(R.id.widget_card_week_reset, resetText(week));
-            String status = account.updatedAt == 0 ? "Ожидание обновления" : "Обновлено " +
+            String status = account.updatedAt == 0 ? context.getString(R.string.localized_057) : context.getString(R.string.localized_015) +
                 DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
                     .format(new Date(account.updatedAt));
-            if (account.error != null) status += " · " + account.error;
+            if (account.error != null) status += " · " + AccountStore.errorText(context, account.error);
             card.setTextViewText(R.id.widget_card_status, status);
             if (account.error != null) card.setTextColor(R.id.widget_card_status, 0xFFFFBE8A);
-            card.setContentDescription(R.id.widget_card_root, WidgetRenderer.description(account) + ". " + status);
+            card.setContentDescription(R.id.widget_card_root, WidgetRenderer.description(context, account) + ". " + status);
             card.setOnClickFillInIntent(R.id.widget_card_root, new Intent());
             return card;
         }
 
         private String resetText(Usage.Window window) {
-            return window == null ? "Нет данных об этом лимите" : window.resetsAt <= 0 ?
-                "Время сброса неизвестно" : "Сброс " +
+            return window == null ? context.getString(R.string.localized_058) : window.resetsAt <= 0 ?
+                context.getString(R.string.localized_059) : context.getString(R.string.localized_019) +
                 DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
                     .format(new Date(window.resetsAt * 1000));
         }

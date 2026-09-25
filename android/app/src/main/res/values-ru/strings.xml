@@ -1,0 +1,101 @@
+<resources>
+    <string name="widget_icons_name">AI Usage Monitor · значки</string>
+    <string name="widget_icons_description">Остаток лимитов аккаунтов в одной строке</string>
+    <string name="widget_cards_name">AI Usage Monitor · карточки</string>
+    <string name="widget_cards_description">Карточки аккаунтов с лимитами без значков</string>
+    <string name="localized_001" formatted="false">Не удалось открыть сохранённые аккаунты. Очистите данные приложения в настройках Android.</string>
+    <string name="localized_002" formatted="false">Остаток лимитов Codex и Claude</string>
+    <string name="localized_003" formatted="false">Меню действий</string>
+    <string name="localized_004" formatted="false">Добавить Codex</string>
+    <string name="localized_005" formatted="false">Добавить Claude</string>
+    <string name="localized_006" formatted="false">Обновить</string>
+    <string name="localized_007" formatted="false">Настройки</string>
+    <string name="localized_008" formatted="false">Убрать аккаунт</string>
+    <string name="localized_009" formatted="false">аккаунт</string>
+    <string name="localized_010" formatted="false">Сохранённые данные входа недоступны.</string>
+    <string name="localized_011" formatted="false">Откройте меню ⋮ и добавьте аккаунт Codex или Claude.</string>
+    <string name="localized_012" formatted="false">Аккаунт ChatGPT</string>
+    <string name="localized_013" formatted="false">5 часов</string>
+    <string name="localized_014" formatted="false">Неделя</string>
+    <string name="localized_015" formatted="false">Обновлено </string>
+    <string name="localized_016" formatted="false">Данные устарели · </string>
+    <string name="localized_017" formatted="false">нет данных</string>
+    <string name="localized_018" formatted="false">% осталось</string>
+    <string name="localized_019" formatted="false">Сброс </string>
+    <string name="localized_020" formatted="false">Получаем код входа…</string>
+    <string name="localized_021" formatted="false">получение кода</string>
+    <string name="localized_022" formatted="false">ожидание подтверждения кода</string>
+    <string name="localized_023" formatted="false">обмен кода на токены</string>
+    <string name="localized_024" formatted="false">сохранение аккаунта</string>
+    <string name="localized_025" formatted="false">Аккаунт подключён</string>
+    <string name="localized_026" formatted="false">Вход отменён</string>
+    <string name="localized_027" formatted="false">данные аккаунта недоступны</string>
+    <string name="localized_028" formatted="false">истекло время ожидания</string>
+    <string name="localized_029" formatted="false">ошибка приложения</string>
+    <string name="localized_030" formatted="false">Вход не завершён: </string>
+    <string name="localized_031" formatted="false">Название аккаунта, например Личный</string>
+    <string name="localized_032" formatted="false">Токен из claude setup-token</string>
+    <string name="localized_033" formatted="false">Получите токен командой claude setup-token на компьютере и вставьте его здесь. Он хранится в зашифрованном хранилище телефона.</string>
+    <string name="localized_034" formatted="false">Отмена</string>
+    <string name="localized_035" formatted="false">Добавить</string>
+    <string name="localized_036" formatted="false">Укажите название до 60 символов и токен Claude OAuth.</string>
+    <string name="localized_037" formatted="false">Не удалось сохранить аккаунт Claude.</string>
+    <string name="localized_038" formatted="false">Вход через ChatGPT</string>
+    <string name="localized_039" formatted="false">Откройте страницу входа и введите код: </string>
+    <string name="localized_040" formatted="false">\nКод действует 15 минут.</string>
+    <string name="localized_041" formatted="false">Скопировать и открыть</string>
+    <string name="localized_042" formatted="false">Скопировать код</string>
+    <string name="localized_043" formatted="false">Код скопирован. Откройте auth.openai.com/codex/device в браузере.</string>
+    <string name="localized_044" formatted="false">Ожидаем подтверждения входа…</string>
+    <string name="localized_045" formatted="false">Код входа Codex</string>
+    <string name="localized_046" formatted="false">Обновляем лимиты…</string>
+    <string name="localized_047" formatted="false">Не удалось сохранить лимиты на телефоне.</string>
+    <string name="localized_048" formatted="false">Остаток лимитов · обновление каждую минуту, пока приложение открыто</string>
+    <string name="localized_049" formatted="false">Убрать аккаунт?</string>
+    <string name="localized_050" formatted="false">Данные входа для </string>
+    <string name="localized_051" formatted="false">аккаунта</string>
+    <string name="localized_052" formatted="false"> будут удалены с этого телефона.</string>
+    <string name="localized_053" formatted="false">Убрать</string>
+    <string name="localized_054" formatted="false">Не удалось убрать аккаунт</string>
+    <string name="localized_055" formatted="false">Данные аккаунтов недоступны. Откройте приложение.</string>
+    <string name="localized_056" formatted="false">Добавьте аккаунт в приложении.</string>
+    <string name="localized_057" formatted="false">Ожидание обновления</string>
+    <string name="localized_058" formatted="false">Нет данных об этом лимите</string>
+    <string name="localized_059" formatted="false">Время сброса неизвестно</string>
+    <string name="localized_060" formatted="false">Нет данных</string>
+    <string name="localized_061" formatted="false">Нет</string>
+    <string name="localized_062" formatted="false">Нет аккаунтов</string>
+    <string name="localized_063" formatted="false">Сохранённые данные недоступны</string>
+    <string name="localized_064" formatted="false">Нет аккаунтов. Откройте приложение, чтобы добавить аккаунт</string>
+    <string name="localized_065" formatted="false">Скрыто аккаунтов: </string>
+    <string name="localized_066" formatted="false"></string>
+    <string name="localized_067" formatted="false">. Скрыто аккаунтов: </string>
+    <string name="localized_068" formatted="false"></string>
+    <string name="localized_069" formatted="false">. 5 часов: </string>
+    <string name="localized_070" formatted="false">. Неделя: </string>
+    <string name="localized_071" formatted="false">. Ошибка обновления</string>
+    <string name="localized_072" formatted="false">. Данные устарели</string>
+    <string name="localized_073" formatted="false">Назад</string>
+    <string name="localized_074" formatted="false">Частота обновления виджетов</string>
+    <string name="localized_075" formatted="false">Выберите, как часто запрашивать новые лимиты, когда виджет размещён на экране.</string>
+    <string name="localized_076" formatted="false">Не удалось сохранить настройку.</string>
+    <string name="localized_077" formatted="false">Сохранено</string>
+    <string name="localized_078" formatted="false">Сохранено, но не удалось запланировать обновление.</string>
+    <string name="localized_079" formatted="false">Android может задерживать фоновые обновления для экономии батареи. Пока открыт главный экран приложения, лимиты обновляются каждую минуту.</string>
+    <string name="localized_080" formatted="false">15 минут</string>
+    <string name="localized_081" formatted="false">30 минут</string>
+    <string name="localized_082" formatted="false">1 час</string>
+    <string name="localized_083" formatted="false">2 часа</string>
+    <string name="localized_084" formatted="false">6 часов</string>
+    <string name="localized_085" formatted="false">12 часов</string>
+    <string name="localized_086" formatted="false">24 часа</string>
+    <string name="localized_087" formatted="false">Слишком частые запросы. Повтор через 15 минут.</string>
+    <string name="localized_088" formatted="false">Нужен новый токен Claude.</string>
+    <string name="localized_089" formatted="false">Нужен повторный вход в ChatGPT.</string>
+    <string name="localized_090" formatted="false">Не удалось получить лимиты. Проверьте вход и соединение.</string>
+    <string name="localized_091" formatted="false">Добавьте аккаунт в приложении</string>
+    <string name="localized_092" formatted="false">Добавьте аккаунт</string>
+    <string name="localized_093" formatted="false">CODEX · ОСТАТОК ЛИМИТОВ</string>
+    <string name="localized_094" formatted="false">Обновлено недавно</string>
+    <string name="localized_095" formatted="false">Л</string>
+</resources>

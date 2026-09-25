@@ -70,7 +70,7 @@ public final class MainActivity extends Activity {
         try { accounts.addAll(store.load()); }
         catch (Exception ignored) {
             storageUnavailable = true;
-            status.setText("Не удалось открыть сохранённые аккаунты. Очистите данные приложения в настройках Android.");
+            status.setText(getString(R.string.localized_001));
         }
         render();
     }
@@ -116,14 +116,14 @@ public final class MainActivity extends Activity {
         TextView title = text("AI Usage Monitor", 25, TEXT);
         title.setTypeface(null, Typeface.BOLD);
         heading.addView(title);
-        heading.addView(text("Остаток лимитов Codex и Claude", 14, MUTED));
+        heading.addView(text(getString(R.string.localized_002), 14, MUTED));
         header.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
         Button menu = new Button(this);
         menu.setText("⋮");
         menu.setAllCaps(false);
         menu.setTextSize(24);
         menu.setTextColor(TEXT);
-        menu.setContentDescription("Меню действий");
+        menu.setContentDescription(getString(R.string.localized_003));
         menu.setPadding(0, 0, 0, 0);
         menu.setBackgroundTintList(android.content.res.ColorStateList.valueOf(CARD));
         menu.setOnClickListener(this::showMenu);
@@ -140,17 +140,17 @@ public final class MainActivity extends Activity {
         PopupMenu popup = new PopupMenu(this, anchor);
         popup.setGravity(Gravity.END);
         Menu menu = popup.getMenu();
-        menu.add(0, 1, 0, "Добавить Codex").setEnabled(!signingIn && !storageUnavailable);
-        menu.add(0, 5, 1, "Добавить Claude").setEnabled(!signingIn && !storageUnavailable);
-        menu.add(0, 2, 2, "Обновить").setEnabled(!refreshing && !signingIn && !accounts.isEmpty() && !storageUnavailable);
-        menu.add(0, 3, 3, "Настройки");
+        menu.add(0, 1, 0, getString(R.string.localized_004)).setEnabled(!signingIn && !storageUnavailable);
+        menu.add(0, 5, 1, getString(R.string.localized_005)).setEnabled(!signingIn && !storageUnavailable);
+        menu.add(0, 2, 2, getString(R.string.localized_006)).setEnabled(!refreshing && !signingIn && !accounts.isEmpty() && !storageUnavailable);
+        menu.add(0, 3, 3, getString(R.string.localized_007));
         List<AccountStore.Account> shown = new ArrayList<>(accounts);
         if (!shown.isEmpty()) {
-            SubMenu remove = menu.addSubMenu(0, 4, 4, "Убрать аккаунт");
+            SubMenu remove = menu.addSubMenu(0, 4, 4, getString(R.string.localized_008));
             for (int i = 0; i < shown.size(); i++) {
                 AccountStore.Account account = shown.get(i);
                 remove.add(0, 100 + i, i, (account.provider.equals("claude") ? "Claude · " : "Codex · ") +
-                    (account.email.isEmpty() ? "аккаунт" : account.email));
+                    (account.email.isEmpty() ? getString(R.string.localized_009) : account.email));
             }
         }
         popup.setOnMenuItemClickListener(item -> {
@@ -169,8 +169,8 @@ public final class MainActivity extends Activity {
     private void render() {
         cards.removeAllViews();
         if (accounts.isEmpty()) {
-            TextView hint = text(storageUnavailable ? "Сохранённые данные входа недоступны." :
-                "Откройте меню ⋮ и добавьте аккаунт Codex или Claude.", 16, MUTED);
+            TextView hint = text(storageUnavailable ? getString(R.string.localized_010) :
+                getString(R.string.localized_011), 16, MUTED);
             hint.setPadding(0, dp(48), 0, 0);
             cards.addView(hint);
             return;
@@ -188,16 +188,16 @@ public final class MainActivity extends Activity {
             cards.addView(card, cardSize);
 
             card.addView(text(account.provider.equals("claude") ? "CLAUDE" : "GPT / CODEX", 12, MUTED));
-            TextView email = text(account.email.isEmpty() ? "Аккаунт ChatGPT" : account.email, 18, TEXT);
+            TextView email = text(account.email.isEmpty() ? getString(R.string.localized_012) : account.email, 18, TEXT);
             email.setTypeface(null, Typeface.BOLD);
             card.addView(email);
             if (!account.plan.isEmpty()) card.addView(text(account.plan.toUpperCase(), 12, MUTED));
-            limit(card, "5 часов", account.usage == null ? null : account.usage.fiveHour, FIVE_HOUR);
-            limit(card, "Неделя", account.usage == null ? null : account.usage.weekly, WEEKLY);
+            limit(card, getString(R.string.localized_013), account.usage == null ? null : account.usage.fiveHour, FIVE_HOUR);
+            limit(card, getString(R.string.localized_014), account.usage == null ? null : account.usage.weekly, WEEKLY);
             if (account.updatedAt > 0)
-                card.addView(text("Обновлено " + formatTime(account.updatedAt), 12, MUTED));
+                card.addView(text(getString(R.string.localized_015) + formatTime(account.updatedAt), 12, MUTED));
             if (account.error != null)
-                card.addView(text((account.usage == null ? "" : "Данные устарели · ") + account.error,
+                card.addView(text((account.usage == null ? "" : getString(R.string.localized_016)) + AccountStore.errorText(this, account.error),
                     13, Color.rgb(255, 190, 138)));
         }
     }
@@ -214,36 +214,36 @@ public final class MainActivity extends Activity {
         bar.setProgress(window == null ? 0 : window.remaining);
         bar.setProgressTintList(android.content.res.ColorStateList.valueOf(color));
         bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(BACKGROUND));
-        bar.setContentDescription(name + ": " + (window == null ? "нет данных" : window.remaining + "% осталось"));
+        bar.setContentDescription(name + ": " + (window == null ? getString(R.string.localized_017) : window.remaining + getString(R.string.localized_018)));
         card.addView(bar, new LinearLayout.LayoutParams(-1, dp(7)));
         if (window != null && window.resetsAt > 0)
-            card.addView(text("Сброс " + formatTime(window.resetsAt * 1000), 12, MUTED));
+            card.addView(text(getString(R.string.localized_019) + formatTime(window.resetsAt * 1000), 12, MUTED));
     }
 
     private void startLogin() {
         if (signingIn || storageUnavailable) return;
         signingIn = true;
-        status.setText("Получаем код входа…");
+        status.setText(getString(R.string.localized_020));
         loginTask = worker.submit(() -> {
-            String stage = "получение кода";
+            String stage = getString(R.string.localized_021);
             try {
                 CodexApi.DeviceCode device = CodexApi.beginLogin();
                 runOnUiThread(() -> {
                     if (!closed) showDeviceCode(device.code);
                 });
-                stage = "ожидание подтверждения кода";
+                stage = getString(R.string.localized_022);
                 JSONObject approved = CodexApi.awaitApproval(device);
-                stage = "обмен кода на токены";
+                stage = getString(R.string.localized_023);
                 AccountStore.Account account = CodexApi.exchangeCode(approved);
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-                stage = "сохранение аккаунта";
+                stage = getString(R.string.localized_024);
                 List<AccountStore.Account> copy = store.upsert(account);
                 runOnUiThread(() -> {
                     if (!closed) {
                         accounts.clear();
                         accounts.addAll(copy);
                         signingIn = false;
-                        status.setText("Аккаунт подключён");
+                        status.setText(getString(R.string.localized_025));
                         render();
                         WidgetRenderer.showCached(this);
                         refreshAll();
@@ -251,14 +251,14 @@ public final class MainActivity extends Activity {
                 });
             } catch (InterruptedException ignored) {
                 Thread.currentThread().interrupt();
-                runOnUiThread(() -> { if (!closed) status.setText("Вход отменён"); });
+                runOnUiThread(() -> { if (!closed) status.setText(getString(R.string.localized_026)); });
             } catch (Exception error) {
                 String detail = error instanceof CodexApi.HttpStatusException
                     ? "HTTP " + ((CodexApi.HttpStatusException) error).status
-                    : error instanceof IllegalArgumentException ? "данные аккаунта недоступны"
+                    : error instanceof IllegalArgumentException ? getString(R.string.localized_027)
                     : error instanceof java.io.IOException ? error.getClass().getSimpleName()
-                    : error instanceof IllegalStateException ? "истекло время ожидания" : "ошибка приложения";
-                String message = "Вход не завершён: " + stage + " (" + detail + ")";
+                    : error instanceof IllegalStateException ? getString(R.string.localized_028) : getString(R.string.localized_029);
+                String message = getString(R.string.localized_030) + stage + " (" + detail + ")";
                 runOnUiThread(() -> { if (!closed) status.setText(message); });
             } finally {
                 runOnUiThread(() -> { if (!closed) signingIn = false; });
@@ -271,22 +271,22 @@ public final class MainActivity extends Activity {
         fields.setOrientation(LinearLayout.VERTICAL);
         fields.setPadding(dp(20), dp(8), dp(20), 0);
         EditText name = new EditText(this);
-        name.setHint("Название аккаунта, например Личный");
+        name.setHint(getString(R.string.localized_031));
         name.setSingleLine(true);
         fields.addView(name);
         EditText token = new EditText(this);
-        token.setHint("Токен из claude setup-token");
+        token.setHint(getString(R.string.localized_032));
         token.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
         token.setSingleLine(true);
         fields.addView(token);
-        new AlertDialog.Builder(this).setTitle("Добавить Claude")
-            .setMessage("Получите токен командой claude setup-token на компьютере и вставьте его здесь. Он хранится в зашифрованном хранилище телефона.")
-            .setView(fields).setNegativeButton("Отмена", null)
-            .setPositiveButton("Добавить", (dialog, which) -> {
+        new AlertDialog.Builder(this).setTitle(getString(R.string.localized_005))
+            .setMessage(getString(R.string.localized_033))
+            .setView(fields).setNegativeButton(getString(R.string.localized_034), null)
+            .setPositiveButton(getString(R.string.localized_035), (dialog, which) -> {
                 String label = name.getText().toString().trim();
                 String secret = token.getText().toString().trim();
                 if (label.isEmpty() || label.length() > 60 || !ClaudeApi.validToken(secret)) {
-                    status.setText("Укажите название до 60 символов и токен Claude OAuth.");
+                    status.setText(getString(R.string.localized_036));
                     return;
                 }
                 worker.execute(() -> {
@@ -306,50 +306,50 @@ public final class MainActivity extends Activity {
                             refreshAll();
                         });
                     } catch (Exception ignored) {
-                        runOnUiThread(() -> { if (!closed) status.setText("Не удалось сохранить аккаунт Claude."); });
+                        runOnUiThread(() -> { if (!closed) status.setText(getString(R.string.localized_037)); });
                     }
                 });
             }).show();
     }
 
     private void showDeviceCode(String code) {
-        new AlertDialog.Builder(this).setTitle("Вход через ChatGPT")
-            .setMessage("Откройте страницу входа и введите код: " + code + "\nКод действует 15 минут.")
-            .setPositiveButton("Скопировать и открыть", (dialog, which) -> {
+        new AlertDialog.Builder(this).setTitle(getString(R.string.localized_038))
+            .setMessage(getString(R.string.localized_039) + code + getString(R.string.localized_040))
+            .setPositiveButton(getString(R.string.localized_041), (dialog, which) -> {
                 copyCode(code);
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://auth.openai.com/codex/device")));
             })
-            .setNeutralButton("Скопировать код", (dialog, which) -> {
+            .setNeutralButton(getString(R.string.localized_042), (dialog, which) -> {
                 copyCode(code);
-                status.setText("Код скопирован. Откройте auth.openai.com/codex/device в браузере.");
+                status.setText(getString(R.string.localized_043));
             })
-            .setNegativeButton("Отмена", (dialog, which) -> {
+            .setNegativeButton(getString(R.string.localized_034), (dialog, which) -> {
                 if (loginTask != null) loginTask.cancel(true);
             }).setOnCancelListener(dialog -> {
                 if (loginTask != null) loginTask.cancel(true);
             }).show();
-        status.setText("Ожидаем подтверждения входа…");
+        status.setText(getString(R.string.localized_044));
     }
 
     private void copyCode(String code) {
         ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-        clipboard.setPrimaryClip(ClipData.newPlainText("Код входа Codex", code));
+        clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.localized_045), code));
     }
 
     private void refreshAll() {
         if (refreshing || signingIn || accounts.isEmpty() || storageUnavailable) return;
         refreshing = true;
-        status.setText("Обновляем лимиты…");
+        status.setText(getString(R.string.localized_046));
         worker.execute(() -> {
             for (AccountStore.Account account : accounts) {
                 if (Thread.currentThread().isInterrupted()) break;
                 try { store.refresh(account); }
-                catch (Exception ignored) { account.error = "Не удалось сохранить лимиты на телефоне."; }
+                catch (Exception ignored) { account.error = "save_failed"; }
             }
             runOnUiThread(() -> {
                 if (!closed) {
                     refreshing = false;
-                    status.setText("Остаток лимитов · обновление каждую минуту, пока приложение открыто");
+                    status.setText(getString(R.string.localized_048));
                     render();
                     WidgetRenderer.showCached(this);
                 }
@@ -358,11 +358,11 @@ public final class MainActivity extends Activity {
     }
 
     private void removeAccount(AccountStore.Account account) {
-        new AlertDialog.Builder(this).setTitle("Убрать аккаунт?")
-            .setMessage("Данные входа для " + (account.email.isEmpty() ? "аккаунта" : account.email) +
-                " будут удалены с этого телефона.")
-            .setNegativeButton("Отмена", null)
-            .setPositiveButton("Убрать", (dialog, which) -> worker.execute(() -> {
+        new AlertDialog.Builder(this).setTitle(getString(R.string.localized_049))
+            .setMessage(getString(R.string.localized_050) + (account.email.isEmpty() ? getString(R.string.localized_051) : account.email) +
+                getString(R.string.localized_052))
+            .setNegativeButton(getString(R.string.localized_034), null)
+            .setPositiveButton(getString(R.string.localized_053), (dialog, which) -> worker.execute(() -> {
                 try {
                     List<AccountStore.Account> copy = store.remove(account.accountId);
                     runOnUiThread(() -> {
@@ -374,7 +374,7 @@ public final class MainActivity extends Activity {
                         }
                     });
                 } catch (Exception ignored) {
-                    runOnUiThread(() -> { if (!closed) status.setText("Не удалось убрать аккаунт"); });
+                    runOnUiThread(() -> { if (!closed) status.setText(getString(R.string.localized_054)); });
                 }
             })).show();
     }

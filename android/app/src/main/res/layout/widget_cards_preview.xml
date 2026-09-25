@@ -10,7 +10,7 @@
         android:paddingStart="8dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
-        android:text="CODEX · ОСТАТОК ЛИМИТОВ"
+        android:text="@string/localized_093"
         android:textColor="#64E2CC"
         android:textSize="11sp" />
     <LinearLayout
@@ -35,7 +35,7 @@
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="8dp" android:orientation="horizontal">
             <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:text="5 часов"
+                android:layout_weight="1" android:text="@string/localized_013"
                 android:textColor="#EEF5FA" android:textSize="13sp" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="80%" android:textColor="#64E2CC" android:textSize="15sp" />
@@ -47,7 +47,7 @@
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="8dp" android:orientation="horizontal">
             <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:text="Неделя"
+                android:layout_weight="1" android:text="@string/localized_014"
                 android:textColor="#EEF5FA" android:textSize="13sp" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="35%" android:textColor="#B197FA" android:textSize="15sp" />
@@ -57,7 +57,7 @@
             android:max="100" android:progress="35" android:progressTint="#B197FA"
             android:progressBackgroundTint="#364153" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="7dp" android:text="Обновлено недавно"
+            android:layout_marginTop="7dp" android:text="@string/localized_094"
             android:textColor="#AABBC8" android:textSize="11sp" />
     </LinearLayout>
 </LinearLayout>

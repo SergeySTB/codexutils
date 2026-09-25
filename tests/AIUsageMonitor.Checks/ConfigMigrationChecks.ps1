@@ -18,19 +18,33 @@ $fakeCodex = Join-Path $fakeLocalAppData 'Programs/OpenAI/Codex/bin/codex.exe'
 [IO.File]::WriteAllText($fakeCodex, '')
 $previousLocalAppData = $env:LOCALAPPDATA
 $previousPath = $env:PATH
+$originalCulture = [Threading.Thread]::CurrentThread.CurrentUICulture
 try {
+    [Threading.Thread]::CurrentThread.CurrentUICulture = [Globalization.CultureInfo]::GetCultureInfo('en-US')
     $env:LOCALAPPDATA = $fakeLocalAppData
     $env:PATH = ''
     & $migration -ConfigPath $config -TemplatePath $template
 } finally {
     $env:LOCALAPPDATA = $previousLocalAppData
     $env:PATH = $previousPath
+    [Threading.Thread]::CurrentThread.CurrentUICulture = $originalCulture
 }
 $generated = [IO.File]::ReadAllText($config)
 $old = Read-Config $config
 Check ($old.notifyOnLimitReset -eq $false) 'fresh installation uses current defaults'
 Check ($old.codexExecutable -eq $fakeCodex) 'fresh installation records the detected Codex executable'
 Check (@($old.accounts).Count -eq 1) 'fresh installation configures one account by default'
+Check ($old.accounts[0].name -eq 'Personal') 'English installation names the default account in English'
+$previousCulture = [Threading.Thread]::CurrentThread.CurrentUICulture
+try {
+    [Threading.Thread]::CurrentThread.CurrentUICulture = [Globalization.CultureInfo]::GetCultureInfo('ru-RU')
+    $russianConfig = Join-Path $root 'russian-config.json'
+    & $migration -ConfigPath $russianConfig -TemplatePath $template
+    $russianName = -join @([char]0x041B, [char]0x0438, [char]0x0447, [char]0x043D, [char]0x044B, [char]0x0439)
+    Check ((Read-Config $russianConfig).accounts[0].name -eq $russianName) 'Russian installation names the default account in Russian'
+} finally {
+    [Threading.Thread]::CurrentThread.CurrentUICulture = $previousCulture
+}
 Check ($generated.Contains('//') -and $generated.Contains('%LOCALAPPDATA%/AIUsageMonitor/profiles/work')) 'generated configuration includes a commented second-account example'
 $old.PSObject.Properties.Remove('notifyOnLimitReset')
 $old.widget.PSObject.Properties.Remove('displayMode')

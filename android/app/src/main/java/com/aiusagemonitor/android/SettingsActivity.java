@@ -17,8 +17,9 @@ public final class SettingsActivity extends Activity {
     private static final int TEXT = Color.rgb(238, 245, 250);
     private static final int MUTED = Color.rgb(170, 187, 200);
     private static final int ACCENT = Color.rgb(100, 226, 204);
-    private static final String[] LABELS = {
-        "15 минут", "30 минут", "1 час", "2 часа", "6 часов", "12 часов", "24 часа"
+    private static final int[] LABELS = {
+        R.string.localized_080, R.string.localized_081, R.string.localized_082, R.string.localized_083,
+        R.string.localized_084, R.string.localized_085, R.string.localized_086
     };
 
     @Override public void onCreate(Bundle state) {
@@ -37,18 +38,18 @@ public final class SettingsActivity extends Activity {
         setContentView(scroll);
 
         Button back = new Button(this);
-        back.setText("Назад");
+        back.setText(getString(R.string.localized_073));
         back.setAllCaps(false);
         back.setOnClickListener(view -> finish());
         content.addView(back, new LinearLayout.LayoutParams(-2, dp(48)));
 
-        TextView title = text("Настройки", 25, TEXT);
+        TextView title = text(getString(R.string.localized_007), 25, TEXT);
         title.setTypeface(null, Typeface.BOLD);
         content.addView(title);
-        TextView heading = text("Частота обновления виджетов", 18, TEXT);
+        TextView heading = text(getString(R.string.localized_074), 18, TEXT);
         heading.setPadding(0, dp(24), 0, dp(8));
         content.addView(heading);
-        content.addView(text("Выберите, как часто запрашивать новые лимиты, когда виджет размещён на экране.", 14, MUTED));
+        content.addView(text(getString(R.string.localized_075), 14, MUTED));
 
         RadioGroup options = new RadioGroup(this);
         options.setOrientation(LinearLayout.VERTICAL);
@@ -76,15 +77,15 @@ public final class SettingsActivity extends Activity {
             int minutes = (int) group.findViewById(checkedId).getTag();
             if (!WidgetSettings.save(this, minutes)) {
                 group.check(selectedId[0]);
-                result.setText("Не удалось сохранить настройку.");
+                result.setText(getString(R.string.localized_076));
                 return;
             }
             selectedId[0] = checkedId;
             result.setText(WidgetRefreshJob.schedulePeriodic(this)
-                ? "Сохранено" : "Сохранено, но не удалось запланировать обновление.");
+                ? getString(R.string.localized_077) : getString(R.string.localized_078));
         });
         content.addView(result);
-        content.addView(text("Android может задерживать фоновые обновления для экономии батареи. Пока открыт главный экран приложения, лимиты обновляются каждую минуту.", 14, MUTED));
+        content.addView(text(getString(R.string.localized_079), 14, MUTED));
     }
 
     private TextView text(String value, int size, int color) {

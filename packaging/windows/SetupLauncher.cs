@@ -4,12 +4,18 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Windows.Forms;
 
 internal static class SetupLauncher
 {
+    private static string Tr(string russian, string english)
+    {
+        return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? russian : english;
+    }
+
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
 
@@ -55,7 +61,7 @@ internal static class SetupLauncher
                     }
                     catch (Exception error)
                     {
-                        MessageBox.Show(error.Message, "Не удалось запустить AI Usage Monitor", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(error.Message, Tr("Не удалось запустить AI Usage Monitor", "Could not start AI Usage Monitor"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return 1;
                     }
                 }
@@ -77,16 +83,17 @@ internal static class SetupLauncher
 
     internal static Form CreateWelcomeDialog(string directory)
     {
-        Form form = CreateDialog(directory, "Установите за пару секунд",
-            "Лимиты Codex и Claude всегда перед глазами.",
-            "Готово к установке",
-            "Для всех пользователей · C:\\Program Files\\AI Usage Monitor\nНастройки сохранятся при обновлении.", false);
-        Button cancel = Action("Отмена", 310, false);
+        Form form = CreateDialog(directory, Tr("Установите за пару секунд", "Install in a few seconds"),
+            Tr("Лимиты Codex и Claude всегда перед глазами.", "Keep Codex and Claude limits in view."),
+            Tr("Готово к установке", "Ready to install"),
+            Tr("Для всех пользователей · C:\\Program Files\\AI Usage Monitor\nНастройки сохранятся при обновлении.",
+                "For all users · C:\\Program Files\\AI Usage Monitor\nYour settings are kept during updates."), false);
+        Button cancel = Action(Tr("Отмена", "Cancel"), 310, false);
         cancel.DialogResult = DialogResult.Cancel;
-        cancel.AccessibleName = "Отмена установки";
-        Button install = Action("Установить", 474, true);
+        cancel.AccessibleName = Tr("Отмена установки", "Cancel installation");
+        Button install = Action(Tr("Установить", "Install"), 474, true);
         install.DialogResult = DialogResult.OK;
-        install.AccessibleName = "Начать установку";
+        install.AccessibleName = Tr("Начать установку", "Start installation");
         form.Controls.AddRange(new Control[] { cancel, install });
         form.AcceptButton = install;
         form.CancelButton = cancel;
@@ -95,24 +102,27 @@ internal static class SetupLauncher
 
     internal static Form CreateResultDialog(string directory, bool succeeded, out CheckBox launch)
     {
-        Form form = CreateDialog(directory, succeeded ? "Всё готово" : "Не удалось установить",
-            succeeded ? "AI Usage Monitor готов следить за вашими лимитами." : "Проверьте права доступа и повторите установку.",
-            succeeded ? "Установка завершена" : "Установка прервана",
-            succeeded ? "Приложение добавлено в меню «Пуск».\nВаши настройки сохранены." :
-                "Закройте установщик и повторите попытку.\nЕсли ошибка повторится, проверьте права доступа.", !succeeded);
+        Form form = CreateDialog(directory, succeeded ? Tr("Всё готово", "All set") : Tr("Не удалось установить", "Installation failed"),
+            succeeded ? Tr("AI Usage Monitor готов следить за вашими лимитами.", "AI Usage Monitor is ready to track your limits.") :
+                Tr("Проверьте права доступа и повторите установку.", "Check your permissions and try again."),
+            succeeded ? Tr("Установка завершена", "Installation complete") : Tr("Установка прервана", "Installation interrupted"),
+            succeeded ? Tr("Приложение добавлено в меню «Пуск».\nВаши настройки сохранены.",
+                "The app was added to the Start menu.\nYour settings were kept.") :
+                Tr("Закройте установщик и повторите попытку.\nЕсли ошибка повторится, проверьте права доступа.",
+                    "Close the installer and try again.\nIf it still fails, check your permissions."), !succeeded);
         launch = new CheckBox
         {
-            Text = "Запустить AI Usage Monitor",
-            AccessibleName = "Запустить AI Usage Monitor после установки",
+            Text = Tr("Запустить AI Usage Monitor", "Launch AI Usage Monitor"),
+            AccessibleName = Tr("Запустить AI Usage Monitor после установки", "Launch AI Usage Monitor after installation"),
             Checked = succeeded,
             Enabled = succeeded,
             ForeColor = SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(226, 235, 242),
             BackColor = form.BackColor,
             Location = new Point(37, 331), Size = new Size(290, 32), TabIndex = 0
         };
-        Button finish = Action("Готово", 474, true);
+        Button finish = Action(Tr("Готово", "Finish"), 474, true);
         finish.DialogResult = DialogResult.OK;
-        finish.AccessibleName = "Закрыть установщик";
+        finish.AccessibleName = Tr("Закрыть установщик", "Close installer");
         finish.TabIndex = 1;
         form.Controls.AddRange(new Control[] { launch, finish });
         form.AcceptButton = finish;
@@ -128,7 +138,7 @@ internal static class SetupLauncher
         Color muted = contrast ? SystemColors.WindowText : Color.FromArgb(164, 184, 198);
         Form form = new Form
         {
-            Text = "Установка AI Usage Monitor " + Version(directory),
+            Text = Tr("Установка AI Usage Monitor ", "AI Usage Monitor Setup ") + Version(directory),
             ClientSize = new Size(660, 410),
             StartPosition = FormStartPosition.CenterScreen,
             FormBorderStyle = FormBorderStyle.FixedDialog,

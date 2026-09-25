@@ -30,7 +30,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="5 часов"
+            android:text="@string/localized_013"
             android:textColor="#EEF5FA"
             android:textSize="13sp" />
         <TextView
@@ -64,7 +64,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Неделя"
+            android:text="@string/localized_014"
             android:textColor="#EEF5FA"
             android:textSize="13sp" />
         <TextView

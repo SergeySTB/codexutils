@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$ConfigPath,
     [string]$TemplatePath = (Join-Path $PSScriptRoot 'config.example.json')
 )
@@ -146,6 +146,10 @@ function Find-CodexExecutable {
 }
 
 $template = ConvertFrom-ConfigJson $TemplatePath
+$uiLanguage = [Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName
+if ($uiLanguage -eq 'ru' -and $template.accounts.Count -gt 0 -and $template.accounts[0].name -eq 'Personal') {
+    $template.accounts[0].name = 'Личный'
+}
 $exists = Test-Path -LiteralPath $ConfigPath
 if ($exists) {
     $previous = ConvertFrom-ConfigJson $ConfigPath

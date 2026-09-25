@@ -42,7 +42,7 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
             var identity = await RequestAsync("account/read", new { refreshToken = false });
             if (!identity.TryGetProperty("account", out var account) || account.ValueKind != JsonValueKind.Object ||
                 Text(account, "type") != "chatgpt")
-                throw new CodexException(FailureKind.SignIn, "Нужен вход через ChatGPT");
+                throw new CodexException(FailureKind.SignIn, UiText.T("Нужен вход через ChatGPT", "Sign in with ChatGPT"));
             var result = await RequestAsync("account/rateLimits/read", null);
             return new(Text(account, "email"), Text(account, "planType"), Limits.Parse(result), DateTimeOffset.Now);
         }
@@ -67,12 +67,12 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
             if (!Uri.TryCreate(Text(result, "authUrl"), UriKind.Absolute, out var url) ||
                 url.Scheme != "https" || url.UserInfo.Length != 0 ||
                 (url.Host != "auth.openai.com" && url.Host != "chatgpt.com"))
-                throw new CodexException(FailureKind.Protocol, "Codex вернул неизвестный адрес входа");
+                throw new CodexException(FailureKind.Protocol, UiText.T("Codex вернул неизвестный адрес входа", "Codex returned an unknown sign-in URL"));
             openBrowser(url);
             var completed = await login.Task.WaitAsync(TimeSpan.FromMinutes(5), lifetime.Token);
             if (!completed.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True ||
                 (loginId != null && Text(completed, "loginId") != loginId))
-                throw new CodexException(FailureKind.SignIn, "Вход не завершён. Повторите попытку");
+                throw new CodexException(FailureKind.SignIn, UiText.T("Вход не завершён. Повторите попытку", "Sign-in was not completed. Try again"));
             loginId = null;
         }
         finally
@@ -107,7 +107,7 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
         start.Environment["CODEX_HOME"] = profile;
         start.Environment.Remove("OPENAI_API_KEY");
         start.Environment.Remove("CODEX_API_KEY");
-        process = Process.Start(start) ?? throw new IOException("Не удалось запустить Codex");
+        process = Process.Start(start) ?? throw new IOException(UiText.T("Не удалось запустить Codex", "Could not start Codex"));
         var current = process;
         // Drain diagnostics without persisting tokens, authorization URLs or raw responses.
         _ = DrainErrorsAsync(current);
@@ -134,7 +134,7 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
         await writer.WaitAsync(lifetime.Token);
         try
         {
-            var target = process ?? throw new IOException("Codex остановлен");
+            var target = process ?? throw new IOException(UiText.T("Codex остановлен", "Codex stopped"));
             await target.StandardInput.WriteLineAsync(JsonSerializer.Serialize(message).AsMemory(), lifetime.Token);
             await target.StandardInput.FlushAsync(lifetime.Token);
         }
@@ -147,7 +147,7 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
         {
             while (await current.StandardOutput.ReadLineAsync(lifetime.Token) is { } line)
             {
-                if (line.Length > 1_048_576) throw new InvalidDataException("Слишком большой ответ Codex");
+                if (line.Length > 1_048_576) throw new InvalidDataException(UiText.T("Слишком большой ответ Codex", "Codex response is too large"));
                 using var document = JsonDocument.Parse(line);
                 var message = document.RootElement;
                 if (message.TryGetProperty("method", out var method))
@@ -165,14 +165,14 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
                     !responseId.TryGetInt32(out var id) || !pending.TryGetValue(id, out var completion)) continue;
                 if (message.TryGetProperty("error", out var error)) completion.TrySetException(Classify(error));
                 else if (message.TryGetProperty("result", out var result)) completion.TrySetResult(result.Clone());
-                else completion.TrySetException(new CodexException(FailureKind.Protocol, "Неполный ответ Codex"));
+                else completion.TrySetException(new CodexException(FailureKind.Protocol, UiText.T("Неполный ответ Codex", "Incomplete response from Codex")));
             }
         }
         catch (Exception error) when (error is IOException or JsonException or OperationCanceledException or InvalidOperationException)
         { /* All outstanding operations receive a sanitized error below. */ }
         finally
         {
-            var error = new CodexException(FailureKind.Connection, "Соединение с Codex прервано");
+            var error = new CodexException(FailureKind.Connection, UiText.T("Соединение с Codex прервано", "Connection to Codex was interrupted"));
             foreach (var request in pending.Values) request.TrySetException(error);
             login?.TrySetException(error);
         }
@@ -183,10 +183,10 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
         var message = (Text(error, "message") ?? "").ToLowerInvariant();
         if (message.Contains("401") || message.Contains("403") || message.Contains("unauthorized") ||
             message.Contains("not authenticated") || message.Contains("sign in") || message.Contains("refresh token"))
-            return new(FailureKind.SignIn, "Нужен повторный вход через ChatGPT");
+            return new(FailureKind.SignIn, UiText.T("Нужен повторный вход через ChatGPT", "Sign in with ChatGPT again"));
         if (message.Contains("429") || message.Contains("too many requests"))
-            return new(FailureKind.RateLimited, "Слишком частые запросы. Ожидание повтора");
-        return new(FailureKind.Connection, "Не удалось получить лимиты Codex");
+            return new(FailureKind.RateLimited, UiText.T("Слишком частые запросы. Ожидание повтора", "Too many requests. Waiting to retry"));
+        return new(FailureKind.Connection, UiText.T("Не удалось получить лимиты Codex", "Could not retrieve Codex limits"));
     }
 
     private static async Task DrainErrorsAsync(Process current)

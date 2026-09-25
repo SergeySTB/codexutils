@@ -4,6 +4,6 @@
     android:layout_height="wrap_content"
     android:padding="16dp"
     android:background="@drawable/widget_card_background"
-    android:text="Добавьте аккаунт в приложении"
+    android:text="@string/localized_091"
     android:textColor="#EEF5FA"
     android:textSize="14sp" />

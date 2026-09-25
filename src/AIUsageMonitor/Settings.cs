@@ -31,7 +31,7 @@ public sealed record Settings
     public string CodexExecutable { get; init; } = "";
     public AccountSettings[] Accounts { get; init; } =
     [
-        new("Личный", "%LOCALAPPDATA%/AIUsageMonitor/profiles/personal")
+        new(UiText.T("Личный", "Personal"), "%LOCALAPPDATA%/AIUsageMonitor/profiles/personal")
     ];
     public WidgetSettings Widget { get; init; } = new();
     public int RefreshSeconds { get; init; } = 60;
@@ -65,7 +65,7 @@ public sealed record Settings
             }
         }
         var settings = document.Deserialize<Settings>(JsonOptions)
-            ?? throw new InvalidDataException("Пустой конфигурационный файл.");
+            ?? throw new InvalidDataException(UiText.T("Пустой конфигурационный файл.", "Empty configuration file."));
         return settings.Validate();
     }
 
@@ -76,13 +76,13 @@ public sealed record Settings
             a.Provider is not ("codex" or "claude") ||
             (a.Provider == "codex" && (string.IsNullOrWhiteSpace(a.CodexHome) || a.ClaudeConfigDir != null)) ||
             (a.Provider == "claude" && (a.CodexHome != null || string.IsNullOrWhiteSpace(a.ClaudeConfigDir)))))
-            throw new InvalidDataException("Укажите имя, provider (codex/claude) и соответствующий codexHome или claudeConfigDir.");
+            throw new InvalidDataException(UiText.T("Укажите имя, provider (codex/claude) и соответствующий codexHome или claudeConfigDir.", "Provide a name, provider (codex/claude), and the matching codexHome or claudeConfigDir."));
         var accounts = Accounts.Select(a => a.Provider == "codex"
             ? a with { CodexHome = ExpandPath(a.CodexHome!) }
             : a with { ClaudeConfigDir = ExpandPath(a.ClaudeConfigDir!) }).ToArray();
         if (accounts.Where(a => a.Provider == "codex").Select(a => a.CodexHome).Distinct(StringComparer.OrdinalIgnoreCase).Count() != accounts.Count(a => a.Provider == "codex") ||
             accounts.Where(a => a.Provider == "claude").Select(a => a.ClaudeConfigDir).Distinct(StringComparer.OrdinalIgnoreCase).Count() != accounts.Count(a => a.Provider == "claude"))
-            throw new InvalidDataException("Для аккаунтов одного провайдера нужны разные папки профиля.");
+            throw new InvalidDataException(UiText.T("Для аккаунтов одного провайдера нужны разные папки профиля.", "Accounts of the same provider need separate profile folders."));
         if (Widget is null || Widget.DisplayMode is not ("icons" or "cards") ||
             (Widget.DisplayMode == "icons" && (Widget.IconWidthPx < 64 || Widget.IconWidthPx > 4096 ||
                 Widget.IconHeightPx < 32 || Widget.IconHeightPx > 2160)) ||
@@ -92,10 +92,10 @@ public sealed record Settings
             Widget.MarginPx > 100000 || Widget.OffsetPx < 0 || Widget.OffsetPx > 100000 ||
             string.IsNullOrWhiteSpace(Widget.Monitor) ||
             Widget.Edge is not ("top" or "bottom" or "left" or "right"))
-            throw new InvalidDataException("Проверьте widget: displayMode icons/cards, иконки и карточки 64×32–4096×2160 (0 — авто только для карточек), marginPx от -4096 до 100000, offsetPx от 0 до 100000, edge: top/bottom/left/right.");
+            throw new InvalidDataException(UiText.T("Проверьте widget: displayMode icons/cards, иконки и карточки 64×32–4096×2160 (0 — авто только для карточек), marginPx от -4096 до 100000, offsetPx от 0 до 100000, edge: top/bottom/left/right.", "Check widget: displayMode icons/cards, icon and card sizes 64×32–4096×2160 (0 means auto for cards only), marginPx -4096 to 100000, offsetPx 0 to 100000, edge top/bottom/left/right."));
         if (RefreshSeconds < 30 || RefreshSeconds > 3600)
-            throw new InvalidDataException("refreshSeconds должен быть от 30 до 3600.");
-        if (CodexExecutable is null) throw new InvalidDataException("codexExecutable должен быть строкой.");
+            throw new InvalidDataException(UiText.T("refreshSeconds должен быть от 30 до 3600.", "refreshSeconds must be between 30 and 3600."));
+        if (CodexExecutable is null) throw new InvalidDataException(UiText.T("codexExecutable должен быть строкой.", "codexExecutable must be a string."));
         return this with { Accounts = accounts };
     }
 
@@ -116,7 +116,7 @@ public sealed record Settings
             hasRootProperties = true;
             if (!reader.ValueTextEquals("widget")) { reader.Read(); reader.Skip(); continue; }
             reader.Read();
-            if (reader.TokenType != JsonTokenType.StartObject) throw new InvalidDataException("widget должен быть объектом.");
+            if (reader.TokenType != JsonTokenType.StartObject) throw new InvalidDataException(UiText.T("widget должен быть объектом.", "widget must be an object."));
             widgetStart = (int)reader.BytesConsumed;
             while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
             {
@@ -132,7 +132,7 @@ public sealed record Settings
                 }
             }
         }
-        if (rootStart < 0) throw new InvalidDataException("Пустой конфигурационный файл.");
+        if (rootStart < 0) throw new InvalidDataException(UiText.T("Пустой конфигурационный файл.", "Empty configuration file."));
         if (missing.Count > 0)
         {
             string members = JsonSerializer.Serialize(missing)[1..^1];
@@ -156,7 +156,7 @@ public sealed record Settings
         byte[] json = original.AsSpan().StartsWith(Encoding.UTF8.Preamble) ? original[3..] : original;
         var current = Load(path);
         if (!current.Accounts.SequenceEqual(expected))
-            throw new IOException("Список аккаунтов изменился. Примените конфигурацию и повторите действие.");
+            throw new IOException(UiText.T("Список аккаунтов изменился. Примените конфигурацию и повторите действие.", "The account list changed. Apply the configuration and try again."));
         var reader = new Utf8JsonReader(json, new JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip });
         int rootStart = -1, start = -1, end = -1;
         bool hasRootProperties = false;
@@ -171,7 +171,7 @@ public sealed record Settings
             reader.Skip();
             if (isAccounts) { start = valueStart; end = (int)reader.BytesConsumed; }
         }
-        if (rootStart < 0) throw new InvalidDataException("Пустой конфигурационный файл.");
+        if (rootStart < 0) throw new InvalidDataException(UiText.T("Пустой конфигурационный файл.", "Empty configuration file."));
         var rawAccounts = start >= 0
             ? JsonSerializer.Deserialize<AccountSettings[]>(json.AsSpan(start, end - start), JsonOptions)!
             : new Settings().Accounts;
@@ -203,7 +203,7 @@ public sealed record Settings
             {
                 int removed = Enumerable.Range(0, rawAccounts.Length).FirstOrDefault(index =>
                     updatedAccounts.SequenceEqual(rawAccounts.Where((_, position) => position != index)), -1);
-                if (removed < 0) throw new InvalidOperationException("Изменяйте по одному аккаунту.");
+                if (removed < 0) throw new InvalidOperationException(UiText.T("Изменяйте по одному аккаунту.", "Change one account at a time."));
                 var entry = entries[removed];
                 if (entries.Count > 1)
                 {
@@ -216,7 +216,7 @@ public sealed record Settings
                 }
                 else updated.RemoveRange(entry.Start, entry.End - entry.Start);
             }
-            else throw new InvalidOperationException("Изменяйте по одному аккаунту.");
+            else throw new InvalidOperationException(UiText.T("Изменяйте по одному аккаунту.", "Change one account at a time."));
         }
         else
         {
@@ -240,7 +240,7 @@ public sealed record Settings
             if (value == '/' && i + 1 < end && json[i + 1] == '*') { block = true; i++; continue; }
             if (value == ',') return i;
         }
-        throw new InvalidDataException("Между аккаунтами нет разделителя.");
+        throw new InvalidDataException(UiText.T("Между аккаунтами нет разделителя.", "Missing separator between accounts."));
     }
 
     private static void SaveValidated(string path, byte[] original, byte[] updated)
@@ -251,7 +251,7 @@ public sealed record Settings
             File.WriteAllBytes(temporary, original.AsSpan().StartsWith(Encoding.UTF8.Preamble)
                 ? [.. Encoding.UTF8.Preamble, .. updated] : updated);
             Load(temporary);
-            if (!File.ReadAllBytes(path).SequenceEqual(original)) throw new IOException("Конфигурация изменена другим процессом. Повторите действие.");
+            if (!File.ReadAllBytes(path).SequenceEqual(original)) throw new IOException(UiText.T("Конфигурация изменена другим процессом. Повторите действие.", "Another process changed the configuration. Try again."));
             File.Move(temporary, path, overwrite: true);
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
@@ -261,7 +261,7 @@ public sealed record Settings
     {
         var expanded = Environment.ExpandEnvironmentVariables(value);
         if (!Path.IsPathFullyQualified(expanded) || expanded.Contains('%'))
-            throw new InvalidDataException("Нужен абсолютный путь или существующая переменная окружения: " + value);
+            throw new InvalidDataException(UiText.T("Нужен абсолютный путь или существующая переменная окружения: ", "Use an absolute path or an existing environment variable: ") + value);
         return Path.TrimEndingDirectorySeparator(Path.GetFullPath(expanded));
     }
 
@@ -271,7 +271,7 @@ public sealed record Settings
         {
             var path = ExpandPath(CodexExecutable);
             if (!File.Exists(path) || !path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                throw new FileNotFoundException("codexExecutable должен указывать на существующий codex.exe.");
+                throw new FileNotFoundException(UiText.T("codexExecutable должен указывать на существующий codex.exe.", "codexExecutable must point to an existing codex.exe."));
             return path;
         }
         var candidates = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
@@ -279,6 +279,6 @@ public sealed record Settings
             .Prepend(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Programs", "OpenAI", "Codex", "bin", "codex.exe"));
         return candidates.FirstOrDefault(File.Exists)
-            ?? throw new FileNotFoundException("Codex не найден. Укажите полный путь к codex.exe в codexExecutable.");
+            ?? throw new FileNotFoundException(UiText.T("Codex не найден. Укажите полный путь к codex.exe в codexExecutable.", "Codex was not found. Set codexExecutable to the full path of codex.exe."));
     }
 }

@@ -48,7 +48,7 @@ public sealed class WidgetWindow : Window
         public AccountSettings Config = config;
         public IUsageClient? Client = client;
         public AccountSnapshot? Snapshot;
-        public string Status = "Подключение…";
+        public string Status = UiText.T("Подключение…", "Connecting…");
         public bool Failed;
         public bool SigningIn;
         public int Failures;
@@ -118,7 +118,7 @@ public sealed class WidgetWindow : Window
             Mouse.Capture(null);
             dragging = true;
             try { DragMove(); SavePosition(); }
-            catch (Exception error) { MessageBox.Show("Позиция не сохранена.\n" + error.Message, "AI Usage Monitor"); }
+            catch (Exception error) { MessageBox.Show(UiText.T("Позиция не сохранена.\n", "Position was not saved.\n") + error.Message, "AI Usage Monitor"); }
             finally { dragging = false; lastPlacement = null; Place(); }
         };
         SourceInitialized += (_, _) =>
@@ -167,7 +167,7 @@ public sealed class WidgetWindow : Window
             IUsageClient? client = config.Provider == "claude" ? new ClaudeClient(config.ClaudeConfigDir!)
                 : executable == null ? null : new CodexClient(executable, config.CodexHome!);
             var view = new AccountView(config, client);
-            if (config.Provider == "codex" && problem != null) { view.Status = "Codex не найден"; view.Failed = true; }
+            if (config.Provider == "codex" && problem != null) { view.Status = UiText.T("Codex не найден", "Codex not found"); view.Failed = true; }
             accounts.Add(view);
         }
         if (demo)
@@ -183,7 +183,7 @@ public sealed class WidgetWindow : Window
                 {
                     Email = i < samples.Length ? samples[i].Email : $"account{i + 1}@example.com"
                 };
-                accounts[i].Status = "Демонстрация";
+                accounts[i].Status = UiText.T("Демонстрация", "Demo");
             }
         }
         BuildContent();
@@ -199,8 +199,8 @@ public sealed class WidgetWindow : Window
         if (accounts.Count == 0)
         {
             var add = new Button { Content = "+", FontSize = 22, Foreground = Ink, Background = Brushes.Transparent,
-                ToolTip = "Добавить аккаунт", Cursor = System.Windows.Input.Cursors.Hand };
-            AutomationProperties.SetName(add, "Добавить аккаунт");
+                ToolTip = UiText.T("Добавить аккаунт", "Add account"), Cursor = System.Windows.Input.Cursors.Hand };
+            AutomationProperties.SetName(add, UiText.T("Добавить аккаунт", "Add account"));
             add.Click += async (_, _) => await AddAccountAsync();
             Content = new Border { Background = Brush("#151B24"), BorderBrush = Brush("#364153"),
                 BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Child = add };
@@ -213,8 +213,8 @@ public sealed class WidgetWindow : Window
             foreach (var account in accounts)
             {
                 var cardContent = BuildDetailsContent(account);
-                account.Name = new Button { Content = account.Config.Provider == "claude" ? "Как войти в Claude Code" : "Войти через ChatGPT", Foreground = Ink, Margin = new Thickness(0, 8, 0, 0) };
-                AutomationProperties.SetName(account.Name, "Войти: " + account.Config.Name);
+                account.Name = new Button { Content = account.Config.Provider == "claude" ? UiText.T("Как войти в Claude Code", "How to sign in to Claude Code") : UiText.T("Войти через ChatGPT", "Sign in with ChatGPT"), Foreground = Ink, Margin = new Thickness(0, 8, 0, 0) };
+                AutomationProperties.SetName(account.Name, UiText.T("Войти: ", "Sign in: ") + account.Config.Name);
                 account.Name.Click += async (_, _) => await SignInAsync(account);
                 cardContent.Children.Add(account.Name);
                 cardsPanel.Children.Add(new Border
@@ -307,7 +307,7 @@ public sealed class WidgetWindow : Window
         for (int i = 0; i < 2; i++)
         {
             var line = new DockPanel { Margin = new Thickness(0, 10, 0, 4) };
-            line.Children.Add(new TextBlock { Text = i == 0 ? "5 часов" : "Неделя", Foreground = Muted, FontSize = 12, VerticalAlignment = VerticalAlignment.Center });
+            line.Children.Add(new TextBlock { Text = i == 0 ? UiText.T("5 часов", "5 hours") : UiText.T("Неделя", "Week"), Foreground = Muted, FontSize = 12, VerticalAlignment = VerticalAlignment.Center });
             account.Values[i] = new TextBlock { FontSize = 18, FontWeight = FontWeights.SemiBold, Foreground = i == 0 ? Mint : Purple, TextAlignment = TextAlignment.Right };
             line.Children.Add(account.Values[i]);
             panel.Children.Add(line);
@@ -366,14 +366,14 @@ public sealed class WidgetWindow : Window
             context.Items.Add(item);
             trayMenu.Items.Add(label, null, (_, _) => Dispatcher.Invoke(action));
         }
-        Item("Обновить сейчас", async () => await RefreshAsync(force: true));
+        Item(UiText.T("Обновить сейчас", "Refresh now"), async () => await RefreshAsync(force: true));
         foreach (var account in accounts)
-            Item("Войти: " + account.Config.Name, async () => await SignInAsync(account));
-        Item("Добавить аккаунт", async () => await AddAccountAsync());
+            Item(UiText.T("Войти: ", "Sign in: ") + account.Config.Name, async () => await SignInAsync(account));
+        Item(UiText.T("Добавить аккаунт", "Add account"), async () => await AddAccountAsync());
         if (accounts.Count > 0)
         {
-            var remove = new MenuItem { Header = "Убрать аккаунт" };
-            var trayRemove = new Forms.ToolStripMenuItem("Убрать аккаунт");
+            var remove = new MenuItem { Header = UiText.T("Убрать аккаунт", "Remove account") };
+            var trayRemove = new Forms.ToolStripMenuItem(UiText.T("Убрать аккаунт", "Remove account"));
             foreach (var account in accounts)
             {
                 string label = (account.Config.Provider == "claude" ? "Claude · " : "Codex · ") + account.Config.Name;
@@ -385,15 +385,15 @@ public sealed class WidgetWindow : Window
             context.Items.Add(remove);
             trayMenu.Items.Add(trayRemove);
         }
-        Item(settings.Widget.DisplayMode == "icons" ? "Показать карточки" : "Показать иконки",
+        Item(settings.Widget.DisplayMode == "icons" ? UiText.T("Показать карточки", "Show cards") : UiText.T("Показать иконки", "Show icons"),
             () => SetDisplayMode(settings.Widget.DisplayMode == "icons" ? "cards" : "icons"));
-        Item("Открыть конфигурацию", OpenConfig);
-        Item("Применить конфигурацию", Reload);
-        Item("Показать виджет", () => { Show(); Place(); });
-        var version = "Версия " + ProductInfo.Version;
+        Item(UiText.T("Открыть конфигурацию", "Open configuration"), OpenConfig);
+        Item(UiText.T("Применить конфигурацию", "Apply configuration"), Reload);
+        Item(UiText.T("Показать виджет", "Show widget"), () => { Show(); Place(); });
+        var version = UiText.T("Версия ", "Version ") + ProductInfo.Version;
         context.Items.Add(new MenuItem { Header = version, IsEnabled = false });
         trayMenu.Items.Add(new Forms.ToolStripMenuItem(version) { Enabled = false });
-        Item("Выход", Close);
+        Item(UiText.T("Выход", "Exit"), Close);
         ContextMenu = context;
         var old = tray.ContextMenuStrip;
         tray.ContextMenuStrip = trayMenu;
@@ -420,7 +420,7 @@ public sealed class WidgetWindow : Window
                     account.Snapshot = snapshot;
                     account.Failed = false;
                     account.Failures = 0;
-                    account.Status = "Подключён";
+                    account.Status = UiText.T("Подключён", "Connected");
                     account.NextRefresh = DateTimeOffset.Now.AddSeconds(account.Config.Provider == "claude" ? Math.Max(300, settings.RefreshSeconds) : settings.RefreshSeconds);
                 }
                 catch (Exception error)
@@ -431,9 +431,9 @@ public sealed class WidgetWindow : Window
                     account.Status = error switch
                     {
                         CodexException known => known.Message,
-                        TimeoutException => "Нет ответа от сервиса",
-                        UnauthorizedAccessException => "Нет доступа к профилю",
-                        _ => "Не удалось подключиться"
+                        TimeoutException => UiText.T("Нет ответа от сервиса", "No response from service"),
+                        UnauthorizedAccessException => UiText.T("Нет доступа к профилю", "Cannot access profile"),
+                        _ => UiText.T("Не удалось подключиться", "Could not connect")
                     };
                     var wait = Math.Min(900, Math.Max(account.Config.Provider == "claude" ? 300 : 60, settings.RefreshSeconds) * Math.Pow(2, Math.Min(account.Failures - 1, 4)));
                     account.NextRefresh = DateTimeOffset.Now.AddSeconds(wait);
@@ -452,23 +452,24 @@ public sealed class WidgetWindow : Window
             .Where(group => group.Count() > 1).Select(group => group.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var account in accounts)
         {
-            account.Caption.Text = account.SigningIn ? "Вход в браузере…" : account.Failed && account.Snapshot != null ? "Данные устарели · " + account.Status : account.Status;
+            account.Caption.Text = account.SigningIn ? UiText.T("Вход в браузере…", "Signing in via browser…") : account.Failed && account.Snapshot != null ? UiText.T("Данные устарели · ", "Data outdated · ") + account.Status : account.Status;
             if (account.Snapshot?.Plan is { } plan) account.Caption.Text = plan.ToUpperInvariant() + " · " + account.Caption.Text;
             account.Caption.Foreground = account.Failed ? Brush("#FFC38A") : Muted;
-            account.Email.Text = account.Snapshot?.Email ?? (account.Config.Provider == "claude" ? "Claude Code" : "Аккаунт ещё не подключён");
+            account.Email.Text = account.Snapshot?.Email ?? (account.Config.Provider == "claude" ? "Claude Code" : UiText.T("Аккаунт ещё не подключён", "Account not connected yet"));
             account.Name.Opacity = account.Failed ? 0.55 : 1;
             if (cardsPanel != null)
             {
                 account.Name.Visibility = account.Snapshot == null ? Visibility.Visible : Visibility.Collapsed;
                 account.Name.IsEnabled = !loggingIn;
             }
-            account.Footer.Text = (demo ? "Пример данных · " : "") + (account.Snapshot is { } snapshot
-                ? $"Остаток лимитов · обновлено {snapshot.UpdatedAt:HH:mm:ss}"
-                : account.Config.Provider == "claude" ? "Войдите в Claude Code в указанном профиле"
-                : cardsPanel == null ? "Нажмите иконку для входа через ChatGPT" : "Войдите через ChatGPT") + "\nПравый клик — меню";
+            account.Footer.Text = (demo ? UiText.T("Пример данных · ", "Sample data · ") : "") + (account.Snapshot is { } snapshot
+                ? (UiText.Russian ? $"Остаток лимитов · обновлено {snapshot.UpdatedAt:HH:mm:ss}"
+                    : $"Remaining limits · updated {snapshot.UpdatedAt:HH:mm:ss}")
+                : account.Config.Provider == "claude" ? UiText.T("Войдите в Claude Code в указанном профиле", "Sign in to Claude Code with the selected profile")
+                : cardsPanel == null ? UiText.T("Нажмите иконку для входа через ChatGPT", "Select the icon to sign in with ChatGPT") : UiText.T("Войдите через ChatGPT", "Sign in with ChatGPT")) + UiText.T("\nПравый клик — меню", "\nRight-click for menu");
             if (account.Snapshot?.Email is { } email && duplicateEmails.Contains(email))
-                account.Footer.Text += "\nПроверьте профили: одинаковый email";
-            if (monitorMissing) account.Footer.Text += "\nМонитор недоступен · показано на основном";
+                account.Footer.Text += UiText.T("\nПроверьте профили: одинаковый email", "\nCheck profiles: same email address");
+            if (monitorMissing) account.Footer.Text += UiText.T("\nМонитор недоступен · показано на основном", "\nMonitor unavailable · shown on primary display");
             if (connectionProblem != null && account.Config.Provider == "codex") account.Footer.Text += "\n" + connectionProblem;
             var windows = new[] { account.Snapshot?.Limits.FiveHour, account.Snapshot?.Limits.Weekly };
             for (int i = 0; i < 2; i++)
@@ -478,14 +479,14 @@ public sealed class WidgetWindow : Window
                 account.Bars[i].Value = limit?.Remaining ?? 0;
                 account.Rings[i].Data = RingGeometry(limit?.Remaining ?? 0, i == 0 ? 15 : 11.5);
                 account.Values[i].Opacity = account.Bars[i].Opacity = account.Failed ? 0.45 : 1;
-                string detail = limit is null ? "Нет данных об этом лимите" :
+                string detail = limit is null ? UiText.T("Нет данных об этом лимите", "No data for this limit") :
                     Limits.ResetText(limit, DateTimeOffset.Now) +
                     (limit.ResetsAt is { } reset ? $"\n{reset.ToLocalTime():dd.MM.yyyy HH:mm}" : "");
                 account.Resets[i].Text = detail;
-                AutomationProperties.SetName(account.Bars[i], account.Config.Name + (i == 0 ? ", 5 часов. " : ", неделя. ") + detail);
+                AutomationProperties.SetName(account.Bars[i], account.Config.Name + (i == 0 ? UiText.T(", 5 часов. ", ", 5 hours. ") : UiText.T(", неделя. ", ", week. ")) + detail);
             }
             if (cardsPanel == null)
-                AutomationProperties.SetName(account.Name, $"{(account.Config.Provider == "claude" ? "Claude" : "GPT Codex")}, {account.Config.Name}. {account.Caption.Text}. 5 часов: {account.Values[0].Text}. Неделя: {account.Values[1].Text}");
+                AutomationProperties.SetName(account.Name, $"{(account.Config.Provider == "claude" ? "Claude" : "GPT Codex")}, {account.Config.Name}. {account.Caption.Text}. {UiText.T("5 часов", "5 hours")}: {account.Values[0].Text}. {UiText.T("Неделя", "Week")}: {account.Values[1].Text}");
         }
         if (cardsPanel != null && IsLoaded) Place();
     }
@@ -495,8 +496,8 @@ public sealed class WidgetWindow : Window
         if (demo || loggingIn || closed) return;
         if (account.Config.Provider == "claude")
         {
-            MessageBox.Show("Войдите в Claude Code с CLAUDE_CONFIG_DIR=" + account.Config.ClaudeConfigDir +
-                " и затем нажмите «Обновить сейчас». Приложение читает сохранённый вход, но не изменяет его.", "Claude Code");
+            MessageBox.Show(UiText.T("Войдите в Claude Code с CLAUDE_CONFIG_DIR=", "Sign in to Claude Code with CLAUDE_CONFIG_DIR=") + account.Config.ClaudeConfigDir +
+                UiText.T(" и затем нажмите «Обновить сейчас». Приложение читает сохранённый вход, но не изменяет его.", " and then select Refresh now. The app reads saved credentials without changing them."), "Claude Code");
             return;
         }
         if (account.Client == null) { MessageBox.Show(connectionProblem, "AI Usage Monitor"); return; }
@@ -509,14 +510,14 @@ public sealed class WidgetWindow : Window
         {
             await ((CodexClient)account.Client).LoginAsync(url => Process.Start(new ProcessStartInfo(url.AbsoluteUri) { UseShellExecute = true }));
             account.Failed = false;
-            account.Status = "Вход выполнен";
+            account.Status = UiText.T("Вход выполнен", "Signed in");
             account.NextRefresh = account.RateLimitUntil = DateTimeOffset.MinValue;
         }
         catch (Exception error)
         {
             if (closed || version != generation) return;
             account.Failed = true;
-            account.Status = error is CodexException known ? known.Message : "Вход не завершён. Повторите попытку";
+            account.Status = error is CodexException known ? known.Message : UiText.T("Вход не завершён. Повторите попытку", "Sign-in was not completed. Try again");
             MessageBox.Show(account.Status, "AI Usage Monitor", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         finally
@@ -529,10 +530,10 @@ public sealed class WidgetWindow : Window
 
     private async Task AddAccountAsync()
     {
-        if (demo) { MessageBox.Show("В демонстрации аккаунты не меняются.", "AI Usage Monitor"); return; }
-        if (loggingIn) { MessageBox.Show("Завершите вход перед изменением аккаунтов.", "AI Usage Monitor"); return; }
+        if (demo) { MessageBox.Show(UiText.T("В демонстрации аккаунты не меняются.", "Accounts cannot be changed in demo mode."), "AI Usage Monitor"); return; }
+        if (loggingIn) { MessageBox.Show(UiText.T("Завершите вход перед изменением аккаунтов.", "Finish signing in before changing accounts."), "AI Usage Monitor"); return; }
         if (!IsVisible) Show();
-        var dialog = new Window { Title = "Добавить аккаунт", Owner = this, Width = 440,
+        var dialog = new Window { Title = UiText.T("Добавить аккаунт", "Add account"), Owner = this, Width = 440,
             SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, ShowInTaskbar = false };
         var fields = new StackPanel { Margin = new Thickness(20) };
@@ -540,21 +541,21 @@ public sealed class WidgetWindow : Window
         provider.Items.Add("Codex");
         provider.Items.Add("Claude");
         provider.SelectedIndex = 0;
-        AutomationProperties.SetName(provider, "Провайдер");
-        fields.Children.Add(new TextBlock { Text = "Провайдер" });
+        AutomationProperties.SetName(provider, UiText.T("Провайдер", "Provider"));
+        fields.Children.Add(new TextBlock { Text = UiText.T("Провайдер", "Provider") });
         fields.Children.Add(provider);
         var name = new TextBox { Margin = new Thickness(0, 4, 0, 12), MaxLength = 60, Height = 28 };
-        AutomationProperties.SetName(name, "Название аккаунта");
-        fields.Children.Add(new TextBlock { Text = "Название аккаунта" });
+        AutomationProperties.SetName(name, UiText.T("Название аккаунта", "Account name"));
+        fields.Children.Add(new TextBlock { Text = UiText.T("Название аккаунта", "Account name") });
         fields.Children.Add(name);
         var pathLabel = new TextBlock();
         fields.Children.Add(pathLabel);
         var folder = new TextBox { Height = 28 };
-        AutomationProperties.SetName(folder, "Папка профиля");
-        var browse = new Button { Content = "Обзор…", Width = 82, Margin = new Thickness(8, 0, 0, 0) };
+        AutomationProperties.SetName(folder, UiText.T("Папка профиля", "Profile folder"));
+        var browse = new Button { Content = UiText.T("Обзор…", "Browse…"), Width = 82, Margin = new Thickness(8, 0, 0, 0) };
         browse.Click += (_, _) =>
         {
-            using var picker = new Forms.FolderBrowserDialog { Description = "Выберите папку профиля", ShowNewFolderButton = true };
+            using var picker = new Forms.FolderBrowserDialog { Description = UiText.T("Выберите папку профиля", "Select profile folder"), ShowNewFolderButton = true };
             try
             {
                 var selected = Settings.ExpandPath(folder.Text.Trim());
@@ -574,16 +575,16 @@ public sealed class WidgetWindow : Window
         void UpdateHint()
         {
             bool claude = provider.SelectedIndex == 1;
-            pathLabel.Text = claude ? "Папка профиля Claude Code" : "Папка профиля Codex";
+            pathLabel.Text = claude ? UiText.T("Папка профиля Claude Code", "Claude Code profile folder") : UiText.T("Папка профиля Codex", "Codex profile folder");
             hint.Text = claude
-                ? "Например, %USERPROFILE%/.claude. Сначала войдите в Claude Code с этой папкой профиля."
-                : "Укажите отдельную папку профиля; после добавления откроется вход через ChatGPT.";
+                ? UiText.T("Например, %USERPROFILE%/.claude. Сначала войдите в Claude Code с этой папкой профиля.", "For example, %USERPROFILE%/.claude. First sign in to Claude Code using this profile folder.")
+                : UiText.T("Укажите отдельную папку профиля; после добавления откроется вход через ChatGPT.", "Select a separate profile folder; ChatGPT sign-in will open after adding the account.");
         }
         provider.SelectionChanged += (_, _) => UpdateHint();
         UpdateHint();
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var cancel = new Button { Content = "Отмена", Width = 84, Height = 30, IsCancel = true };
-        var add = new Button { Content = "Добавить", Width = 92, Height = 30,
+        var cancel = new Button { Content = UiText.T("Отмена", "Cancel"), Width = 84, Height = 30, IsCancel = true };
+        var add = new Button { Content = UiText.T("Добавить", "Add"), Width = 92, Height = 30,
             Margin = new Thickness(8, 0, 0, 0), IsDefault = true };
         buttons.Children.Add(cancel);
         buttons.Children.Add(add);
@@ -604,7 +605,7 @@ public sealed class WidgetWindow : Window
             }
             catch (Exception error)
             {
-                MessageBox.Show(dialog, "Аккаунт не добавлен.\n" + error.Message, "AI Usage Monitor",
+                MessageBox.Show(dialog, UiText.T("Аккаунт не добавлен.\n", "Account was not added.\n") + error.Message, "AI Usage Monitor",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
         };
@@ -615,19 +616,19 @@ public sealed class WidgetWindow : Window
             if (added.Provider == "codex") await SignInAsync(accounts[^1]);
             else await RefreshAsync(force: true);
         }
-        catch (Exception error) { MessageBox.Show("Настройки сохранены, но не применены.\n" + error.Message, "AI Usage Monitor"); }
+        catch (Exception error) { MessageBox.Show(UiText.T("Настройки сохранены, но не применены.\n", "Settings were saved but not applied.\n") + error.Message, "AI Usage Monitor"); }
     }
 
     private void RemoveAccount(AccountView account)
     {
-        if (demo) { MessageBox.Show("В демонстрации аккаунты не меняются.", "AI Usage Monitor"); return; }
-        if (loggingIn) { MessageBox.Show("Завершите вход перед изменением аккаунтов.", "AI Usage Monitor"); return; }
+        if (demo) { MessageBox.Show(UiText.T("В демонстрации аккаунты не меняются.", "Accounts cannot be changed in demo mode."), "AI Usage Monitor"); return; }
+        if (loggingIn) { MessageBox.Show(UiText.T("Завершите вход перед изменением аккаунтов.", "Finish signing in before changing accounts."), "AI Usage Monitor"); return; }
         int index = accounts.IndexOf(account);
         if (index < 0) return;
         string profile = account.Config.Provider == "claude" ? account.Config.ClaudeConfigDir! : account.Config.CodexHome!;
-        if (MessageBox.Show("Убрать аккаунт «" + account.Config.Name + "» из приложения?\n\n" +
-            "Папка профиля и данные входа останутся на диске:\n" + profile,
-            "Убрать аккаунт", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        if (MessageBox.Show(UiText.T("Убрать аккаунт «", "Remove account “") + account.Config.Name + UiText.T("» из приложения?\n\n", "” from the app?\n\n") +
+            UiText.T("Папка профиля и данные входа останутся на диске:\n", "The profile folder and sign-in data will remain on disk:\n") + profile,
+            UiText.T("Убрать аккаунт", "Remove account"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         try
         {
             Settings.EditAccounts(configPath, settings.Accounts,
@@ -635,7 +636,7 @@ public sealed class WidgetWindow : Window
             Apply(Settings.Load(configPath));
             _ = RefreshAsync();
         }
-        catch (Exception error) { MessageBox.Show("Аккаунт не убран.\n" + error.Message, "AI Usage Monitor"); }
+        catch (Exception error) { MessageBox.Show(UiText.T("Аккаунт не убран.\n", "Account was not removed.\n") + error.Message, "AI Usage Monitor"); }
     }
 
     private void OpenConfig()
@@ -644,42 +645,42 @@ public sealed class WidgetWindow : Window
         {
             if (!File.Exists(configPath))
             {
-                MessageBox.Show("В режиме демонстрации конфигурация не создаётся. Запустите приложение без --demo или укажите --config.", "AI Usage Monitor");
+                MessageBox.Show(UiText.T("В режиме демонстрации конфигурация не создаётся. Запустите приложение без --demo или укажите --config.", "Demo mode does not create a configuration. Start without --demo or specify --config."), "AI Usage Monitor");
                 return;
             }
             var start = new ProcessStartInfo("notepad.exe") { UseShellExecute = false };
             start.ArgumentList.Add(configPath);
             Process.Start(start);
         }
-        catch (Exception) { MessageBox.Show("Не удалось открыть файл: " + configPath, "AI Usage Monitor"); }
+        catch (Exception) { MessageBox.Show(UiText.T("Не удалось открыть файл: ", "Could not open file: ") + configPath, "AI Usage Monitor"); }
     }
 
     private void Reload()
     {
         try
         {
-            if (loggingIn) { MessageBox.Show("Завершите вход в аккаунт перед изменением настроек.", "AI Usage Monitor"); return; }
+            if (loggingIn) { MessageBox.Show(UiText.T("Завершите вход в аккаунт перед изменением настроек.", "Finish signing in before changing settings."), "AI Usage Monitor"); return; }
             Apply(Settings.Load(configPath));
             _ = RefreshAsync();
         }
-        catch (Exception error) { MessageBox.Show("Настройки не применены.\n" + error.Message, "AI Usage Monitor"); }
+        catch (Exception error) { MessageBox.Show(UiText.T("Настройки не применены.\n", "Settings were not applied.\n") + error.Message, "AI Usage Monitor"); }
     }
 
     private void SetDisplayMode(string displayMode)
     {
         try
         {
-            if (loggingIn) { MessageBox.Show("Завершите вход в аккаунт перед изменением настроек.", "AI Usage Monitor"); return; }
+            if (loggingIn) { MessageBox.Show(UiText.T("Завершите вход в аккаунт перед изменением настроек.", "Finish signing in before changing settings."), "AI Usage Monitor"); return; }
             Settings.SaveWidgetValues(configPath, new() { ["displayMode"] = displayMode });
             Reload();
         }
-        catch (Exception error) { MessageBox.Show("Режим отображения не изменён.\n" + error.Message, "AI Usage Monitor"); }
+        catch (Exception error) { MessageBox.Show(UiText.T("Режим отображения не изменён.\n", "Display mode was not changed.\n") + error.Message, "AI Usage Monitor"); }
     }
 
     private void SavePosition()
     {
         var handle = new WindowInteropHelper(this).Handle;
-        if (!GetWindowRect(handle, out var bounds)) throw new IOException("Не удалось прочитать позицию окна.");
+        if (!GetWindowRect(handle, out var bounds)) throw new IOException(UiText.T("Не удалось прочитать позицию окна.", "Could not read window position."));
         var monitor = Forms.Screen.FromHandle(handle);
         var screen = monitor.Bounds;
         var widget = Placement.FromPosition(new(screen.X, screen.Y, screen.Width, screen.Height),

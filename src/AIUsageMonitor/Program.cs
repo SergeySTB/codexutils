@@ -26,7 +26,7 @@ public static class Program
                     case "--demo": demo = true; break;
                     case "--config" when i + 1 < args.Length: config = Path.GetFullPath(args[++i]); break;
                     case "--smoke-test" when i + 1 < args.Length: screenshot = Path.GetFullPath(args[++i]); demo = true; break;
-                    default: throw new InvalidDataException("Аргументы: --demo, --config <путь>, --smoke-test <PNG>.");
+                    default: throw new InvalidDataException(UiText.T("Аргументы: --demo, --config <путь>, --smoke-test <PNG>.", "Arguments: --demo, --config <path>, --smoke-test <PNG>."));
                 }
             }
             config ??= ProductInfo.GetDefaultConfigPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
@@ -39,7 +39,12 @@ public static class Program
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(config)!);
                     var example = Path.Combine(AppContext.BaseDirectory, "config.example.json");
-                    if (File.Exists(example)) File.Copy(example, config);
+                    if (File.Exists(example))
+                    {
+                        if (UiText.Russian)
+                            File.WriteAllText(config, File.ReadAllText(example).Replace("\"name\": \"Personal\"", "\"name\": \"Личный\""));
+                        else File.Copy(example, config);
+                    }
                     else
                     {
                         using var file = new FileStream(config, FileMode.CreateNew, FileAccess.Write);
@@ -52,7 +57,7 @@ public static class Program
             using var legacyMutex = new Mutex(true, "Local\\CodexLimits-" + (demo ? "Demo" : "Live"), out var legacyFirst);
             if ((!first || !legacyFirst) && screenshot == null)
             {
-                MessageBox.Show("AI Usage Monitor уже работает. Меню доступно через значок в трее.", "AI Usage Monitor");
+                MessageBox.Show(UiText.T("AI Usage Monitor уже работает. Меню доступно через значок в трее.", "AI Usage Monitor is already running. Use its tray icon to open the menu."), "AI Usage Monitor");
                 return 0;
             }
             var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
@@ -89,7 +94,7 @@ public static class Program
         }
         catch (Exception error)
         {
-            MessageBox.Show("Не удалось запустить виджет.\n\n" + error.Message, "AI Usage Monitor", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(UiText.T("Не удалось запустить виджет.\n\n", "Could not start the widget.\n\n") + error.Message, "AI Usage Monitor", MessageBoxButton.OK, MessageBoxImage.Error);
             return 1;
         }
     }
