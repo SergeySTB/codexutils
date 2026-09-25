@@ -1,4 +1,9 @@
 <resources>
+    <string name="language">Language</string>
+    <string name="language_system">System language</string>
+    <string name="language_russian">Russian</string>
+    <string name="language_english">English</string>
+    <string name="language_save_failed">Could not save the language setting.</string>
     <string name="widget_icons_name">AI Usage Monitor · icons</string>
     <string name="widget_icons_description">Account limits in one row</string>
     <string name="widget_cards_name">AI Usage Monitor · cards</string>

@@ -52,6 +52,7 @@ public static class Program
                     }
                 }
             }
+            UiText.SetLanguage(settings.Widget.Language);
             using var mutex = new Mutex(true, "Local\\AIUsageMonitor-" + (demo ? "Demo" : "Live"), out var first);
             // Keep older installed versions from sharing a live profile with this process.
             using var legacyMutex = new Mutex(true, "Local\\CodexLimits-" + (demo ? "Demo" : "Live"), out var legacyFirst);

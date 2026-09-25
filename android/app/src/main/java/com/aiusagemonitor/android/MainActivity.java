@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
@@ -58,6 +59,10 @@ public final class MainActivity extends Activity {
             handler.postDelayed(this, 60_000);
         }
     };
+
+    @Override protected void attachBaseContext(Context base) {
+        super.attachBaseContext(UiLanguage.wrap(base));
+    }
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -153,12 +158,26 @@ public final class MainActivity extends Activity {
                     (account.email.isEmpty() ? getString(R.string.localized_009) : account.email));
             }
         }
+        SubMenu languages = menu.addSubMenu(0, 6, 5, getString(R.string.language));
+        String selectedLanguage = UiLanguage.selected(this);
+        languages.add(7, 60, 0, getString(R.string.language_system)).setCheckable(true).setChecked(selectedLanguage.equals("system"));
+        languages.add(7, 61, 1, getString(R.string.language_russian)).setCheckable(true).setChecked(selectedLanguage.equals("ru"));
+        languages.add(7, 62, 2, getString(R.string.language_english)).setCheckable(true).setChecked(selectedLanguage.equals("en"));
+        languages.setGroupCheckable(7, true, true);
+        languages.getItem().setEnabled(!signingIn && !refreshing);
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == 1) startLogin();
             else if (id == 5) startClaudeLogin();
             else if (id == 2) refreshAll();
             else if (id == 3) startActivity(new Intent(this, SettingsActivity.class));
+            else if (id >= 60 && id <= 62) {
+                String language = id == 60 ? "system" : id == 61 ? "ru" : "en";
+                if (!language.equals(UiLanguage.selected(this))) {
+                    if (!UiLanguage.save(this, language)) status.setText(R.string.language_save_failed);
+                    else { WidgetRenderer.showCached(getApplicationContext()); recreate(); }
+                }
+            }
             else if (id >= 100 && id < 100 + shown.size()) removeAccount(shown.get(id - 100));
             else return false;
             return true;

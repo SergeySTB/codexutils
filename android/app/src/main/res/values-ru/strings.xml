@@ -1,4 +1,9 @@
 <resources>
+    <string name="language">Язык</string>
+    <string name="language_system">Язык системы</string>
+    <string name="language_russian">Русский</string>
+    <string name="language_english">Английский</string>
+    <string name="language_save_failed">Не удалось сохранить язык приложения.</string>
     <string name="widget_icons_name">AI Usage Monitor · значки</string>
     <string name="widget_icons_description">Остаток лимитов аккаунтов в одной строке</string>
     <string name="widget_cards_name">AI Usage Monitor · карточки</string>

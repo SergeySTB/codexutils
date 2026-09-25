@@ -151,6 +151,7 @@ public sealed class WidgetWindow : Window
 
     private void Apply(Settings next)
     {
+        UiText.SetLanguage(next.Widget.Language);
         string? executable = null, problem = null;
         if (!demo && next.Accounts.Any(a => a.Provider == "codex"))
         {
@@ -387,6 +388,24 @@ public sealed class WidgetWindow : Window
         }
         Item(settings.Widget.DisplayMode == "icons" ? UiText.T("Показать карточки", "Show cards") : UiText.T("Показать иконки", "Show icons"),
             () => SetDisplayMode(settings.Widget.DisplayMode == "icons" ? "cards" : "icons"));
+        var languageMenu = new MenuItem { Header = UiText.T("Язык", "Language") };
+        var trayLanguageMenu = new Forms.ToolStripMenuItem(UiText.T("Язык", "Language"));
+        foreach (var (value, label) in new[]
+        {
+            ("system", UiText.T("Язык системы", "System language")),
+            ("ru", UiText.T("Русский", "Russian")),
+            ("en", "English")
+        })
+        {
+            var item = new MenuItem { Header = label, IsCheckable = true, IsChecked = settings.Widget.Language == value };
+            item.Click += (_, _) => SetLanguage(value);
+            languageMenu.Items.Add(item);
+            var trayItem = new Forms.ToolStripMenuItem(label) { Checked = settings.Widget.Language == value };
+            trayItem.Click += (_, _) => Dispatcher.Invoke(() => SetLanguage(value));
+            trayLanguageMenu.DropDownItems.Add(trayItem);
+        }
+        context.Items.Add(languageMenu);
+        trayMenu.Items.Add(trayLanguageMenu);
         Item(UiText.T("Открыть конфигурацию", "Open configuration"), OpenConfig);
         Item(UiText.T("Применить конфигурацию", "Apply configuration"), Reload);
         Item(UiText.T("Показать виджет", "Show widget"), () => { Show(); Place(); });
@@ -675,6 +694,29 @@ public sealed class WidgetWindow : Window
             Reload();
         }
         catch (Exception error) { MessageBox.Show(UiText.T("Режим отображения не изменён.\n", "Display mode was not changed.\n") + error.Message, "AI Usage Monitor"); }
+    }
+
+    private void SetLanguage(string language)
+    {
+        if (settings.Widget.Language == language) return;
+        try
+        {
+            if (loggingIn)
+            {
+                MessageBox.Show(UiText.T("Завершите вход в аккаунт перед сменой языка.", "Finish signing in before changing language."), "AI Usage Monitor");
+                return;
+            }
+            if (demo) Apply(settings with { Widget = settings.Widget with { Language = language } });
+            else
+            {
+                Settings.SaveWidgetValues(configPath, new() { ["language"] = language });
+                Reload();
+            }
+        }
+        catch (Exception error)
+        {
+            MessageBox.Show(UiText.T("Язык не изменён.\n", "Language was not changed.\n") + error.Message, "AI Usage Monitor");
+        }
     }
 
     private void SavePosition()

@@ -1,6 +1,7 @@
 package com.aiusagemonitor.android;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -21,6 +22,10 @@ public final class SettingsActivity extends Activity {
         R.string.localized_080, R.string.localized_081, R.string.localized_082, R.string.localized_083,
         R.string.localized_084, R.string.localized_085, R.string.localized_086
     };
+
+    @Override protected void attachBaseContext(Context base) {
+        super.attachBaseContext(UiLanguage.wrap(base));
+    }
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);

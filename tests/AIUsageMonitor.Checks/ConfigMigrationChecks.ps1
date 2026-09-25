@@ -32,6 +32,7 @@ try {
 $generated = [IO.File]::ReadAllText($config)
 $old = Read-Config $config
 Check ($old.notifyOnLimitReset -eq $false) 'fresh installation uses current defaults'
+Check ($old.widget.language -eq 'system') 'new installation follows the system language'
 Check ($old.codexExecutable -eq $fakeCodex) 'fresh installation records the detected Codex executable'
 Check (@($old.accounts).Count -eq 1) 'fresh installation configures one account by default'
 Check ($old.accounts[0].name -eq 'Personal') 'English installation names the default account in English'
@@ -53,6 +54,7 @@ $old.widget.PSObject.Properties.Remove('iconHeightPx')
 $old.widget | Add-Member -NotePropertyName widthPx -NotePropertyValue 120
 $old.widget | Add-Member -NotePropertyName heightPx -NotePropertyValue 60
 $old.widget.marginPx = -50
+$old.widget.language = 'ru'
 $old.widget.alwaysOnTop = $false
 $old.accounts[0].name = 'Personal custom'
 $old.accounts = @($old.accounts) + @(
@@ -73,6 +75,7 @@ Check ($updated.notifyOnLimitReset -eq $false) 'missing notification option is a
 Check ($updated.widget.displayMode -eq 'icons' -and $updated.widget.iconWidthPx -eq 120 -and $updated.widget.iconHeightPx -eq 60) 'legacy icon dimensions migrate with their custom values'
 Check ($null -eq $updated.widget.PSObject.Properties['widthPx'] -and $null -eq $updated.widget.PSObject.Properties['heightPx']) 'legacy dimension names are removed'
 Check ($updated.widget.marginPx -eq -50 -and $updated.widget.alwaysOnTop -eq $false) 'custom values including false survive'
+Check ($updated.widget.language -eq 'ru') 'language choice survives installation updates'
 Check (@($updated.accounts).Count -eq 3 -and $updated.accounts[0].name -eq 'Personal custom' -and
     $updated.accounts[1].codexHome -eq 'D:\Profiles\Work' -and $updated.accounts[2].name -eq 'Third custom') 'configured account count, order and paths survive'
 Check ($updated.codexExecutable -eq 'D:\Custom\codex.exe') 'explicit Codex executable survives migration'

@@ -13,6 +13,7 @@ public sealed record AccountSettings(string Name, string? CodexHome = null, stri
 
 public sealed record WidgetSettings
 {
+    public string Language { get; init; } = "system";
     public string DisplayMode { get; init; } = "icons";
     public int IconWidthPx { get; init; } = 88;
     public int IconHeightPx { get; init; } = 44;
@@ -83,7 +84,8 @@ public sealed record Settings
         if (accounts.Where(a => a.Provider == "codex").Select(a => a.CodexHome).Distinct(StringComparer.OrdinalIgnoreCase).Count() != accounts.Count(a => a.Provider == "codex") ||
             accounts.Where(a => a.Provider == "claude").Select(a => a.ClaudeConfigDir).Distinct(StringComparer.OrdinalIgnoreCase).Count() != accounts.Count(a => a.Provider == "claude"))
             throw new InvalidDataException(UiText.T("Для аккаунтов одного провайдера нужны разные папки профиля.", "Accounts of the same provider need separate profile folders."));
-        if (Widget is null || Widget.DisplayMode is not ("icons" or "cards") ||
+        if (Widget is null || Widget.Language is not ("system" or "ru" or "en") ||
+            Widget.DisplayMode is not ("icons" or "cards") ||
             (Widget.DisplayMode == "icons" && (Widget.IconWidthPx < 64 || Widget.IconWidthPx > 4096 ||
                 Widget.IconHeightPx < 32 || Widget.IconHeightPx > 2160)) ||
             (Widget.DisplayMode == "cards" &&

@@ -17,7 +17,7 @@ public final class WidgetCardsService extends RemoteViewsService {
     }
 
     private static final class CardsFactory implements RemoteViewsFactory {
-        private final Context context;
+        private Context context;
         private List<AccountStore.Account> accounts = new ArrayList<>();
         private boolean unavailable;
 
@@ -38,6 +38,7 @@ public final class WidgetCardsService extends RemoteViewsService {
         @Override public RemoteViews getLoadingView() { return null; }
 
         @Override public RemoteViews getViewAt(int position) {
+            context = UiLanguage.wrap(context.getApplicationContext());
             if (accounts.isEmpty()) {
                 RemoteViews empty = new RemoteViews(context.getPackageName(), R.layout.widget_empty_card);
                 empty.setTextViewText(R.id.widget_empty_text, unavailable ?
@@ -48,6 +49,8 @@ public final class WidgetCardsService extends RemoteViewsService {
             if (position < 0 || position >= accounts.size()) return null;
             AccountStore.Account account = accounts.get(position);
             RemoteViews card = new RemoteViews(context.getPackageName(), R.layout.widget_card);
+            card.setTextViewText(R.id.widget_card_five_label, context.getString(R.string.localized_013));
+            card.setTextViewText(R.id.widget_card_week_label, context.getString(R.string.localized_014));
             card.setTextViewText(R.id.widget_card_email,
                 (account.provider.equals("claude") ? "Claude · " : "GPT/Codex · ") +
                 (account.email.isEmpty() ? context.getString(R.string.localized_009) : account.email));

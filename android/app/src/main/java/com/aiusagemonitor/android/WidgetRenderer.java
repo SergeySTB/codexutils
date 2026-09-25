@@ -36,6 +36,7 @@ final class WidgetRenderer {
     }
 
     static void showCached(Context context) {
+        context = UiLanguage.wrap(context);
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         int[] icons = manager.getAppWidgetIds(new ComponentName(context, IconsWidget.class));
         int[] cards = manager.getAppWidgetIds(new ComponentName(context, CardsWidget.class));
@@ -66,6 +67,7 @@ final class WidgetRenderer {
         }
         for (int id : cards) {
             RemoteViews view = new RemoteViews(context.getPackageName(), R.layout.widget_cards);
+            view.setTextViewText(R.id.widget_cards_heading, context.getString(R.string.localized_093));
             Intent adapter = new Intent(context, WidgetCardsService.class);
             adapter.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
             adapter.setData(Uri.parse("aiusagemonitor://cards/" + id));

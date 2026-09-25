@@ -78,6 +78,13 @@ Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Waiting"), "E
 System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("de-DE");
 Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Waiting"), "other system languages fall back to English");
 System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("ru-RU");
+UiText.SetLanguage("en");
+Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Waiting"), "English override works on Russian system");
+System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
+UiText.SetLanguage("ru");
+Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Ожидается"), "Russian override works on English system");
+UiText.SetLanguage("system");
+System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("ru-RU");
 
 var area = new PixelRect(-1920, 0, 1920, 1040);
 var widget = new WidgetSettings { IconWidthPx = 360, IconHeightPx = 144, MarginPx = 8, OffsetPx = 400 };
@@ -117,6 +124,7 @@ Check((valid with { Accounts = [] }).Validate().Accounts.Length == 0, "empty acc
 Reject(() => (threeAccounts with { Accounts = [.. threeAccounts.Accounts, threeAccounts.Accounts[0] with { CodexHome = threeAccounts.Accounts[0].CodexHome!.ToUpperInvariant() + "/" }] }).Validate(), "duplicate profile paths rejected across all accounts");
 Reject(() => (valid with { RefreshSeconds = 0 }).Validate(), "polling interval validated");
 Reject(() => (valid with { Widget = widget with { Edge = "middle" } }).Validate(), "unknown edge rejected");
+Reject(() => (valid with { Widget = widget with { Language = "fr" } }).Validate(), "unsupported app language rejected");
 Reject(() => (valid with { Widget = widget with { IconWidthPx = 0 } }).Validate(), "zero width rejected");
 Check((valid with { Widget = compact with { MarginPx = -50 } }).Validate().Widget.MarginPx == -50, "negative user margin accepted");
 Reject(() => (valid with { Widget = compact with { MarginPx = -4097 } }).Validate(), "excessive negative margin rejected");
@@ -173,6 +181,9 @@ File.WriteAllText(configPath, $$"""
 Settings.SaveWidgetValues(configPath, new() { ["offsetPx"] = 170, ["marginPx"] = 320 });
 Check(Settings.Load(configPath).Widget is { OffsetPx: 170, MarginPx: 320 } &&
     File.ReadAllText(configPath).Contains("// Add another object"), "position saving adds widget without losing comments or accounts");
+Settings.SaveWidgetValues(configPath, new() { ["language"] = "en" });
+Check(Settings.Load(configPath).Widget.Language == "en" && File.ReadAllText(configPath).Contains("// Add another object"),
+    "language selection persists without removing configuration comments");
 File.WriteAllText(configPath, """
     { // "offsetPx": 999
       "widget": { "offsetPx": 4, /* retain me */ "edge": "left" }
