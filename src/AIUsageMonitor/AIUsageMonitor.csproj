@@ -10,11 +10,12 @@
     <ApplicationIcon>Assets\AIUsageMonitor.ico</ApplicationIcon>
     <AssemblyTitle>AI Usage Monitor</AssemblyTitle>
     <Product>AI Usage Monitor</Product>
-    <Version>6.1</Version>
+    <Version>6.2</Version>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../config/config.example.json" Link="config.example.json" CopyToOutputDirectory="PreserveNewest" />
     <Resource Include="Assets\provider_openai.png" />
     <Resource Include="Assets\provider_claude.png" />
+    <EmbeddedResource Include="Assets\reset_fanfare.wav" />
   </ItemGroup>
 </Project>

@@ -26,6 +26,8 @@ namespace AIUsageMonitor;
 public sealed class WidgetWindow : Window
 {
     private static readonly Brush Ink = Brush("#EEF4FC"), Muted = Brush("#9CAFC5"), Mint = Brush("#77E5CB"), Purple = Brush("#B6A3FF"), Claude = Brush("#FFBF8A");
+    private static readonly Lazy<SoundPlayer> ResetFanfare = new(() => new SoundPlayer(
+        typeof(WidgetWindow).Assembly.GetManifestResourceStream("AIUsageMonitor.Assets.reset_fanfare.wav")!));
     private readonly string configPath;
     private readonly bool demo;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -438,7 +440,7 @@ public sealed class WidgetWindow : Window
                     if (error is CodexException { Kind: FailureKind.RateLimited }) account.RateLimitUntil = account.NextRefresh;
                 }
             }));
-            if (resetDetected != 0) SystemSounds.Asterisk.Play();
+            if (resetDetected != 0) ResetFanfare.Value.Play();
         }
         finally { refreshing = false; if (!closed) UpdateDisplay(); }
     }

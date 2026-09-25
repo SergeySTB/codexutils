@@ -29,7 +29,7 @@
 
 ## Windows
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.1/AIUsageMonitor-Setup_v6.1.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.2/AIUsageMonitor-Setup_v6.2.exe)
 
 Установщик запросит права администратора, установит приложение в
 `C:\Program Files\AI Usage Monitor` и добавит ярлык в меню «Пуск».
@@ -38,7 +38,7 @@
 
 ## Android
 
-[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.1/AIUsageMonitor-Android_v6.1-debug.apk)
+[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.2/AIUsageMonitor-Android_v6.2-debug.apk)
 
 Приложение работает на Android 8 и новее без компьютера после настройки аккаунтов.
 Для Codex войдите через ChatGPT по коду устройства. Для Claude выполните
@@ -158,7 +158,7 @@ APK в `dist/AIUsageMonitor-Android_v<major>.<minor>-debug.apk`.
 | `widget.alwaysOnTop` | Поверх обычных окон; не гарантируется поверх эксклюзивного полноэкранного режима |
 | `widget.respectTaskbar` | `true` — отсчёт от рабочей области без панели задач; `false` — от физических границ экрана |
 | `refreshSeconds` | Интервал обновления, от 30 до 3600 секунд, по умолчанию 60; для Claude минимум 300 секунд |
-| `notifyOnLimitReset` | `true` — подать системный звук, когда при успешном обновлении лимит меняется с менее 100% на 100%; по умолчанию `false` |
+| `notifyOnLimitReset` | `true` — воспроизвести короткие фанфары, когда при успешном обновлении лимит меняется с менее 100% на 100%; по умолчанию `false` |
 
 Положение ограничивается границами выбранного экрана. Если монитор отключён,
 приложение временно использует основной. При смене DPI и конфигурации экранов

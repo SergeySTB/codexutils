@@ -63,6 +63,12 @@ using (var badClaude = JsonDocument.Parse("""{"five_hour":{"utilization":-1},"se
     Check(ClaudeClient.Parse(badClaude.RootElement) is { FiveHour: null, Weekly: null }, "invalid Claude windows stay unavailable");
 Check(Limits.WasReset(new(new(99, null), new(100, null)), new(new(100, null), new(100, null))), "reset notification detects a limit reaching 100%");
 Check(!Limits.WasReset(new(new(100, null), null), new(new(100, null), new(80, null))), "reset notification ignores unchanged and reduced limits");
+using (var fanfare = typeof(WidgetWindow).Assembly.GetManifestResourceStream("AIUsageMonitor.Assets.reset_fanfare.wav"))
+{
+    Check(fanfare != null, "reset fanfare is embedded");
+    using var player = new System.Media.SoundPlayer(fanfare);
+    player.Load();
+}
 var now = DateTimeOffset.UtcNow;
 Check(Limits.ResetText(new(10, now.AddSeconds(-1)), now).Contains("Ожидается"), "elapsed reset does not invent a replenished quota");
 
