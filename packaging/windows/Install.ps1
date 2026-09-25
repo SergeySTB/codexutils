@@ -1,36 +1,5 @@
 ﻿$ErrorActionPreference = 'Stop'
 
-function Show-InstallationResult([bool]$Succeeded) {
-    Add-Type -AssemblyName System.Windows.Forms
-    $form = New-Object Windows.Forms.Form
-    $version = ([Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $PSScriptRoot 'AIUsageMonitor.exe')).ProductVersion -split '\+')[0]
-    $form.Text = "Установка AI Usage Monitor $version"
-    $form.ClientSize = New-Object Drawing.Size(520, 145)
-    $form.StartPosition = 'CenterScreen'
-    $form.FormBorderStyle = 'FixedDialog'
-    $form.MaximizeBox = $false
-    $form.MinimizeBox = $false
-    $form.AutoScaleMode = 'Dpi'
-    $status = New-Object Windows.Forms.Label
-    $status.SetBounds(20, 20, 480, 30)
-    $status.Text = if ($Succeeded) { 'Установка успешно завершена.' } else { 'Не удалось завершить установку.' }
-    $launch = New-Object Windows.Forms.CheckBox
-    $launch.SetBounds(20, 55, 480, 25)
-    $launch.Text = 'Запустить AI Usage Monitor после установки'
-    $launch.Enabled = $Succeeded
-    $launch.Checked = $Succeeded
-    $finish = New-Object Windows.Forms.Button
-    $finish.SetBounds(390, 95, 110, 30)
-    $finish.Text = 'Закрыть'
-    $finish.DialogResult = 'OK'
-    $form.AcceptButton = $finish
-    $form.Controls.AddRange(@($status, $launch, $finish))
-    try {
-        $result = $form.ShowDialog()
-        return ($Succeeded -and $result -eq 'OK' -and $launch.Checked)
-    } finally { $form.Dispose() }
-}
-
 function Test-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     return [Security.Principal.WindowsPrincipal]::new($identity).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -60,7 +29,6 @@ if (-not (Test-Administrator)) {
     $process.WaitForExit()
     exit $process.ExitCode
     } catch {
-        [void](Show-InstallationResult $false)
         exit 1
     }
 }
@@ -115,15 +83,7 @@ foreach ($file in @('CodexLimits.exe', 'CodexLimits.dll', 'CodexLimits.deps.json
 }
 
 } catch {
-    [void](Show-InstallationResult $false)
     exit 1
 }
 
-if (Show-InstallationResult $true) {
-    try { Start-Process -FilePath $app -WorkingDirectory $destination }
-    catch {
-        [void](Show-InstallationResult $false)
-        exit 1
-    }
-}
 exit 0

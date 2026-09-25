@@ -33,7 +33,7 @@ try {
     New-Item -ItemType Directory -Force -Path $payloadRoot, (Split-Path $setupPath) | Out-Null
     $payloadFiles = @('AIUsageMonitor.exe', 'AIUsageMonitor.dll', 'AIUsageMonitor.deps.json', 'AIUsageMonitor.runtimeconfig.json', 'config.example.json', 'README.md')
     foreach ($file in $payloadFiles) { Copy-Item -LiteralPath (Join-Path $publishRoot $file) -Destination $payloadRoot }
-    & "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /reference:System.Windows.Forms.dll "/out:$payloadRoot\SetupLauncher.exe" (Join-Path $PSScriptRoot 'packaging/windows/SetupLauncher.cs')
+    & "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll "/out:$payloadRoot\SetupLauncher.exe" (Join-Path $PSScriptRoot 'packaging/windows/SetupLauncher.cs')
     if ($LASTEXITCODE -ne 0) { throw 'Installer launcher build failed' }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/Install.ps1') -Destination $payloadRoot
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'packaging/windows/Uninstall.ps1') -Destination $payloadRoot

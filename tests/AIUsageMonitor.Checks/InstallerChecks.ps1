@@ -60,33 +60,47 @@ foreach ($mode in @('graceful', 'hidden', 'stalled', 'denied', 'exited')) {
 Stop-RunningWidget @()
 Check ($install -notmatch '-Verb RunAs -Wait') 'elevated installer does not wait for launched widget descendants'
 
-# Inspect real controls and simulate the dialog result without displaying a window.
-$dialogFunction = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Show-InstallationResult' }, $true)
-$dialogSource = $dialogFunction.Extent.Text -replace '(?m)^\s*\$version = .+$', "    `$version = '2.0'"
-. ([scriptblock]::Create($dialogSource.Replace('$form.ShowDialog()', '(& $script:dialogProbe $form $launch)')))
-foreach ($scenario in @('launch', 'unchecked', 'failed', 'dismissed')) {
-    $script:dialogProbe = {
-        param($form, $launch)
-        $success = $scenario -ne 'failed'
-        if ($launch.Enabled -ne $success -or $launch.Checked -ne $success) { throw 'Incorrect launch checkbox state' }
-        if ($form.Text -notmatch 'AI Usage Monitor \d+\.\d+$') { throw 'Missing installer version in title' }
-        if ($form.Controls | Where-Object { $_ -is [Windows.Forms.TextBox] }) { throw 'Unrequested details field is present' }
-        if ($scenario -eq 'unchecked') { $launch.Checked = $false }
-        if ($scenario -eq 'dismissed') { return [Windows.Forms.DialogResult]::Cancel }
-        return [Windows.Forms.DialogResult]::OK
-    }
-    $shouldLaunch = Show-InstallationResult ($scenario -ne 'failed')
-    Check ($shouldLaunch -eq ($scenario -eq 'launch')) "completion dialog handles $scenario"
-}
-Remove-Variable dialogProbe -Scope Script
+Check ($launcher.Contains('CreateWelcomeDialog') -and $launcher.Contains('CreateResultDialog')) 'launcher owns both installer screens'
+Check ($launcher.Contains('Application.ExecutablePath, "--install"') -and $launcher.Contains('welcome.ShowDialog()')) 'consent precedes elevation'
+Check (-not $install.Contains('Show-InstallationResult')) 'install script leaves dialogs to launcher'
 
 # Run the production child-launch path against a harmless script, without UAC or installation.
 $probeRoot = Join-Path $repoRoot '.build/installer-launch-check'
 New-Item -ItemType Directory -Force -Path $probeRoot | Out-Null
 @'
+using System;
+using System.Windows.Forms;
 internal static class LauncherProbe {
     [System.STAThread]
-    private static int Main() { return SetupLauncher.RunScript(System.AppDomain.CurrentDomain.BaseDirectory); }
+    private static int Main() {
+        using (Form welcome = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory)) {
+            if (welcome.AcceptButton == null) return 43;
+            if (welcome.CancelButton == null) return 46;
+            if (((Button)welcome.AcceptButton).DialogResult != DialogResult.OK) return 47;
+            if (((Button)welcome.CancelButton).DialogResult != DialogResult.Cancel) return 48;
+            using (var timer = new Timer()) {
+                timer.Interval = 30;
+                timer.Tick += delegate { timer.Stop(); ((Button)welcome.CancelButton).PerformClick(); };
+                timer.Start();
+                if (welcome.ShowDialog() != DialogResult.Cancel) return 49;
+            }
+        }
+        using (Form welcome = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory))
+        using (var timer = new Timer()) {
+            timer.Interval = 30;
+            timer.Tick += delegate { timer.Stop(); ((Button)welcome.AcceptButton).PerformClick(); };
+            timer.Start();
+            if (welcome.ShowDialog() != DialogResult.OK) return 50;
+        }
+        CheckBox launch;
+        using (Form success = SetupLauncher.CreateResultDialog(AppDomain.CurrentDomain.BaseDirectory, true, out launch)) {
+            if (!launch.Enabled || !launch.Checked || success.AcceptButton == null) return 44;
+        }
+        using (Form failure = SetupLauncher.CreateResultDialog(AppDomain.CurrentDomain.BaseDirectory, false, out launch)) {
+            if (launch.Enabled || launch.Checked || failure.AcceptButton == null) return 45;
+        }
+        return SetupLauncher.RunScript(AppDomain.CurrentDomain.BaseDirectory);
+    }
 }
 '@ | Set-Content -LiteralPath (Join-Path $probeRoot 'Probe.cs') -Encoding UTF8
 @'
@@ -110,7 +124,7 @@ if (-not $script:visible) { exit 42 }
 exit 17
 '@ | Set-Content -LiteralPath (Join-Path $probeRoot 'Install.ps1') -Encoding UTF8
 $probeExe = Join-Path $probeRoot 'LauncherProbe.exe'
-& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /main:LauncherProbe /reference:System.Windows.Forms.dll "/out:$probeExe" (Join-Path $repoRoot 'packaging/windows/SetupLauncher.cs') (Join-Path $probeRoot 'Probe.cs')
+& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /main:LauncherProbe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll "/out:$probeExe" (Join-Path $repoRoot 'packaging/windows/SetupLauncher.cs') (Join-Path $probeRoot 'Probe.cs')
 Check ($LASTEXITCODE -eq 0) 'GUI launcher compiles with built-in .NET Framework'
 $process = Start-Process -FilePath $probeExe -WindowStyle Hidden -PassThru
 if (-not $process.WaitForExit(15000)) { $process.Kill(); throw 'Launcher dialog check timed out' }
