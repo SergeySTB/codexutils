@@ -14,8 +14,8 @@ public final class UsageCheck {
             throw new AssertionError("Claude token validation must reject header controls");
         if (!ClaudeApi.validToken("sk-ant-oat01-example") || ClaudeApi.validToken("sk-ant-oat01-\nBearer"))
             throw new AssertionError("Claude token validation must reject header controls");
-        if (WidgetIconSlots.diameter(264, 102) != 96 || WidgetIconSlots.diameter(56, 48) != 42 ||
-            WidgetIconSlots.capacity(264, 96) != 2 || WidgetIconSlots.capacity(120, 42) != 2 ||
+        if (WidgetIconSlots.diameter(264, 102) != 44 || WidgetIconSlots.diameter(56, 48) != 42 ||
+            WidgetIconSlots.capacity(109, 44) != 2 || WidgetIconSlots.capacity(120, 42) != 2 ||
             WidgetIconSlots.capacity(56, 42) != 1 || WidgetIconSlots.visible(1, 3) != 1 ||
             WidgetIconSlots.visible(2, 3) != 1 || WidgetIconSlots.visible(3, 3) != 3 ||
             WidgetIconSlots.visible(3, 4) != 2)

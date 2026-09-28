@@ -50,6 +50,7 @@ public sealed class WidgetWindow : Window
         public AccountSnapshot? Snapshot;
         public string Status = UiText.T("Подключение…", "Connecting…");
         public bool Failed;
+        public bool ReauthRequired;
         public bool SigningIn;
         public int Failures;
         public DateTimeOffset NextRefresh, RateLimitUntil;
@@ -57,6 +58,7 @@ public sealed class WidgetWindow : Window
         public TextBlock Email = new();
         public TextBlock Footer = new();
         public Button Name = new();
+        public Button Reauth = new();
         public ToolTip Details = new();
         public TextBlock[] Values = [new(), new()];
         public TextBlock[] Resets = [new(), new()];
@@ -305,6 +307,13 @@ public sealed class WidgetWindow : Window
         account.Caption = new TextBlock { FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };
         panel.Children.Add(account.Email);
         panel.Children.Add(account.Caption);
+        account.Reauth = new Button { Content = account.Config.Provider == "claude" ? UiText.T("Обновить вход", "Renew sign-in") : UiText.T("Войти снова", "Sign in again"),
+            Foreground = Ink, Background = Brush("#263446"), Padding = new Thickness(10, 6, 10, 6),
+            Margin = new Thickness(0, 4, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, Cursor = System.Windows.Input.Cursors.Hand,
+            Visibility = Visibility.Collapsed };
+        AutomationProperties.SetName(account.Reauth, (string)account.Reauth.Content + ": " + account.Config.Name);
+        account.Reauth.Click += async (_, _) => await SignInAsync(account);
+        panel.Children.Add(account.Reauth);
         for (int i = 0; i < 2; i++)
         {
             var line = new DockPanel { Margin = new Thickness(0, 10, 0, 4) };
@@ -438,6 +447,7 @@ public sealed class WidgetWindow : Window
                         Interlocked.Exchange(ref resetDetected, 1);
                     account.Snapshot = snapshot;
                     account.Failed = false;
+                    account.ReauthRequired = false;
                     account.Failures = 0;
                     account.Status = UiText.T("Подключён", "Connected");
                     account.NextRefresh = DateTimeOffset.Now.AddSeconds(account.Config.Provider == "claude" ? Math.Max(300, settings.RefreshSeconds) : settings.RefreshSeconds);
@@ -446,6 +456,7 @@ public sealed class WidgetWindow : Window
                 {
                     if (version != generation || closed) return;
                     account.Failed = true;
+                    account.ReauthRequired = error is CodexException { Kind: FailureKind.SignIn };
                     account.Failures++;
                     account.Status = error switch
                     {
@@ -476,9 +487,11 @@ public sealed class WidgetWindow : Window
             account.Caption.Foreground = account.Failed ? Brush("#FFC38A") : Muted;
             account.Email.Text = account.Snapshot?.Email ?? (account.Config.Provider == "claude" ? "Claude Code" : UiText.T("Аккаунт ещё не подключён", "Account not connected yet"));
             account.Name.Opacity = account.Failed ? 0.55 : 1;
+            account.Reauth.Visibility = !demo && account.ReauthRequired ? Visibility.Visible : Visibility.Collapsed;
+            account.Reauth.IsEnabled = !loggingIn;
             if (cardsPanel != null)
             {
-                account.Name.Visibility = account.Snapshot == null ? Visibility.Visible : Visibility.Collapsed;
+                account.Name.Visibility = account.Snapshot == null && !account.ReauthRequired ? Visibility.Visible : Visibility.Collapsed;
                 account.Name.IsEnabled = !loggingIn;
             }
             account.Footer.Text = (demo ? UiText.T("Пример данных · ", "Sample data · ") : "") + (account.Snapshot is { } snapshot
@@ -515,20 +528,33 @@ public sealed class WidgetWindow : Window
         if (demo || loggingIn || closed) return;
         if (account.Config.Provider == "claude")
         {
-            MessageBox.Show(UiText.T("Войдите в Claude Code с CLAUDE_CONFIG_DIR=", "Sign in to Claude Code with CLAUDE_CONFIG_DIR=") + account.Config.ClaudeConfigDir +
-                UiText.T(" и затем нажмите «Обновить сейчас». Приложение читает сохранённый вход, но не изменяет его.", " and then select Refresh now. The app reads saved credentials without changing them."), "Claude Code");
+            try
+            {
+                var start = new ProcessStartInfo("powershell.exe") { UseShellExecute = false,
+                    WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) };
+                start.ArgumentList.Add("-NoExit");
+                start.ArgumentList.Add("-Command");
+                start.ArgumentList.Add("claude auth login");
+                start.Environment["CLAUDE_CONFIG_DIR"] = account.Config.ClaudeConfigDir!;
+                Process.Start(start);
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(UiText.T("Не удалось открыть Claude Code: ", "Could not open Claude Code: ") + error.Message,
+                    "Claude Code");
+            }
             return;
         }
         if (account.Client == null) { MessageBox.Show(connectionProblem, "AI Usage Monitor"); return; }
         loggingIn = true;
         account.SigningIn = true;
-        account.Snapshot = null;
         var version = generation;
         UpdateDisplay();
         try
         {
             await ((CodexClient)account.Client).LoginAsync(url => Process.Start(new ProcessStartInfo(url.AbsoluteUri) { UseShellExecute = true }));
             account.Failed = false;
+            account.ReauthRequired = false;
             account.Status = UiText.T("Вход выполнен", "Signed in");
             account.NextRefresh = account.RateLimitUntil = DateTimeOffset.MinValue;
         }
@@ -536,6 +562,7 @@ public sealed class WidgetWindow : Window
         {
             if (closed || version != generation) return;
             account.Failed = true;
+            account.ReauthRequired = error is CodexException { Kind: FailureKind.SignIn };
             account.Status = error is CodexException known ? known.Message : UiText.T("Вход не завершён. Повторите попытку", "Sign-in was not completed. Try again");
             MessageBox.Show(account.Status, "AI Usage Monitor", MessageBoxButton.OK, MessageBoxImage.Information);
         }

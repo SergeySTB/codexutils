@@ -8,8 +8,8 @@ android {
         applicationId 'com.aiusagemonitor.android'
         minSdk 26
         targetSdk 35
-        versionCode 605
-        versionName '6.5'
+        versionCode 606
+        versionName '6.6'
     }
 
     compileOptions {

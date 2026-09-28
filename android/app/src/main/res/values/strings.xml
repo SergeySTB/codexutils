@@ -103,4 +103,7 @@
     <string name="localized_093" formatted="false">CODEX · REMAINING LIMITS</string>
     <string name="localized_094" formatted="false">Updated recently</string>
     <string name="localized_095" formatted="false">P</string>
+    <string name="localized_096">Sign in again</string>
+    <string name="localized_097">Renew sign-in</string>
+    <string name="localized_098">You signed in to a different account. Use the account shown on this card.</string>
 </resources>

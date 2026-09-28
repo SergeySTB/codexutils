@@ -103,4 +103,7 @@
     <string name="localized_093" formatted="false">CODEX · ОСТАТОК ЛИМИТОВ</string>
     <string name="localized_094" formatted="false">Обновлено недавно</string>
     <string name="localized_095" formatted="false">Л</string>
+    <string name="localized_096">Войти снова</string>
+    <string name="localized_097">Обновить вход</string>
+    <string name="localized_098">Выполнен вход в другой аккаунт. Используйте аккаунт с этой карточки.</string>
 </resources>

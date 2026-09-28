@@ -218,6 +218,13 @@ public final class MainActivity extends Activity {
             if (account.error != null)
                 card.addView(text((account.usage == null ? "" : getString(R.string.localized_016)) + AccountStore.errorText(this, account.error),
                     13, Color.rgb(255, 190, 138)));
+            if (account.error != null && (account.error.equals("codex_sign_in") || account.error.equals("claude_sign_in") ||
+                account.error.equals("Нужен повторный вход в ChatGPT.") || account.error.equals("Нужен новый токен Claude."))) {
+                Button reauth = button(getString(account.provider.equals("claude") ? R.string.localized_097 : R.string.localized_096),
+                    () -> { if (account.provider.equals("claude")) startClaudeLogin(account); else startLogin(account); });
+                reauth.setEnabled(!signingIn && !storageUnavailable);
+                card.addView(reauth);
+            }
         }
     }
 
@@ -240,8 +247,13 @@ public final class MainActivity extends Activity {
     }
 
     private void startLogin() {
+        startLogin(null);
+    }
+
+    private void startLogin(AccountStore.Account target) {
         if (signingIn || storageUnavailable) return;
         signingIn = true;
+        render();
         status.setText(getString(R.string.localized_020));
         loginTask = worker.submit(() -> {
             String stage = getString(R.string.localized_021);
@@ -254,6 +266,10 @@ public final class MainActivity extends Activity {
                 JSONObject approved = CodexApi.awaitApproval(device);
                 stage = getString(R.string.localized_023);
                 AccountStore.Account account = CodexApi.exchangeCode(approved);
+                if (target != null && !target.accountId.equals(account.accountId)) {
+                    runOnUiThread(() -> { if (!closed) status.setText(R.string.localized_098); });
+                    return;
+                }
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
                 stage = getString(R.string.localized_024);
                 List<AccountStore.Account> copy = store.upsert(account);
@@ -280,18 +296,24 @@ public final class MainActivity extends Activity {
                 String message = getString(R.string.localized_030) + stage + " (" + detail + ")";
                 runOnUiThread(() -> { if (!closed) status.setText(message); });
             } finally {
-                runOnUiThread(() -> { if (!closed) signingIn = false; });
+                runOnUiThread(() -> { if (!closed) { signingIn = false; render(); } });
             }
         });
     }
 
     private void startClaudeLogin() {
+        startClaudeLogin(null);
+    }
+
+    private void startClaudeLogin(AccountStore.Account target) {
+        if (signingIn || storageUnavailable) return;
         LinearLayout fields = new LinearLayout(this);
         fields.setOrientation(LinearLayout.VERTICAL);
         fields.setPadding(dp(20), dp(8), dp(20), 0);
         EditText name = new EditText(this);
         name.setHint(getString(R.string.localized_031));
         name.setSingleLine(true);
+        if (target != null) name.setText(target.email);
         fields.addView(name);
         EditText token = new EditText(this);
         token.setHint(getString(R.string.localized_032));
@@ -308,11 +330,13 @@ public final class MainActivity extends Activity {
                     status.setText(getString(R.string.localized_036));
                     return;
                 }
+                signingIn = true;
+                render();
                 worker.execute(() -> {
                     try {
                         AccountStore.Account account = new AccountStore.Account(new JSONObject());
                         account.provider = "claude";
-                        account.accountId = java.util.UUID.randomUUID().toString();
+                        account.accountId = target == null ? java.util.UUID.randomUUID().toString() : target.accountId;
                         account.email = label;
                         account.accessToken = secret;
                         List<AccountStore.Account> copy = store.upsert(account);
@@ -320,12 +344,13 @@ public final class MainActivity extends Activity {
                             if (closed) return;
                             accounts.clear();
                             accounts.addAll(copy);
+                            signingIn = false;
                             render();
                             WidgetRenderer.showCached(this);
                             refreshAll();
                         });
                     } catch (Exception ignored) {
-                        runOnUiThread(() -> { if (!closed) status.setText(getString(R.string.localized_037)); });
+                        runOnUiThread(() -> { if (!closed) { signingIn = false; render(); status.setText(getString(R.string.localized_037)); } });
                     }
                 });
             }).show();

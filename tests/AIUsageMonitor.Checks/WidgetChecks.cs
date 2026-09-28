@@ -275,12 +275,35 @@ internal static class WidgetChecks
             signedOut.UpdateLayout();
             var strip = (StackPanel)((ScrollViewer)signedOut.Content).Content;
             var panel = (StackPanel)((ScrollViewer)((Border)strip.Children[0]).Child).Content;
-            var login = panel.Children.OfType<Button>().Single();
+            var login = panel.Children.OfType<Button>().Single(button => button.Visibility == Visibility.Visible);
             Require(login.Visibility == Visibility.Visible && login.IsEnabled &&
                 new ButtonAutomationPeer(login).GetName().Contains("Войти"), "signed-out card provides accessible login button");
             Require(Texts(panel).Any(text => text.Contains("Codex не найден")), "connection error remains visible in card");
         }
         finally { signedOut.Close(); }
+        var authProfile = Path.Combine(outputDirectory, "unauth");
+        Directory.CreateDirectory(authProfile);
+        var expired = new WidgetWindow(Path.Combine(outputDirectory, "unused.json"), new Settings
+        {
+            CodexExecutable = Environment.ProcessPath!,
+            Accounts = [new AccountSettings("Account", authProfile)],
+            Widget = new() { DisplayMode = "cards" }
+        }.Validate(), demo: false);
+        try
+        {
+            expired.Show();
+            var strip = (StackPanel)((ScrollViewer)expired.Content).Content;
+            var panel = (StackPanel)((ScrollViewer)((Border)strip.Children[0]).Child).Content;
+            await Until(() => panel.Children.OfType<Button>().Any(button => button.Visibility == Visibility.Visible &&
+                new ButtonAutomationPeer(button).GetName().Contains("Войти снова")), "expired account shows its retry button");
+            Require(panel.Children.OfType<Button>().Count(button => button.Visibility == Visibility.Visible) == 1,
+                "expired account has one visible sign-in action");
+            var retry = panel.Children.OfType<Button>().Single(button => button.Visibility == Visibility.Visible);
+            var bounds = retry.TransformToAncestor(expired).TransformBounds(new Rect(new Point(), retry.RenderSize));
+            Require(bounds.Top >= 0 && bounds.Bottom <= expired.ActualHeight, "retry button fits without scrolling");
+            Save(expired, Path.Combine(outputDirectory, "reauth-card.png"));
+        }
+        finally { expired.Close(); }
         Console.WriteLine($"PASS: {checks} card layout, size, overflow and mode-switch scenarios. PNGs: {outputDirectory}");
     }
 
