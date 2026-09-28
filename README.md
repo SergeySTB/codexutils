@@ -36,7 +36,7 @@ Windows всегда следует языку системы.
 
 ## Windows
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.6/AIUsageMonitor-Setup_v6.6.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.7/AIUsageMonitor-Setup_v6.7.exe)
 
 Сначала установщик предложит начать установку или отменить её. После нажатия
 «Установить» он запросит права администратора, установит приложение в
@@ -47,7 +47,7 @@ Windows всегда следует языку системы.
 
 ## Android
 
-[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.6/AIUsageMonitor-Android_v6.6-debug.apk)
+[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.7/AIUsageMonitor-Android_v6.7-debug.apk)
 
 Приложение работает на Android 8 и новее без компьютера после настройки аккаунтов.
 Для Codex войдите через ChatGPT по коду устройства. Для Claude выполните
@@ -63,9 +63,11 @@ Claude — не чаще раза в пять минут.
 запускает вход по коду для этого аккаунта; вход в другой аккаунт не заменит его.
 
 Через меню виджетов Android на главный экран можно добавить **значки** с кольцами
-лимитов или **карточки** со списком аккаунтов. Кольца значков не превышают 44 dp:
-два аккаунта помещаются в виджете шириной две ячейки. Если места не хватает,
-появляется `+N`. Фон вокруг кругов полупрозрачный.
+лимитов или **карточки** со списком аккаунтов. Виджет значков занимает по
+умолчанию две ячейки. Диаметр колец использует доступную ширину и высоту: два
+значка помещаются в двух ячейках; при расширении виджета три помещаются в трёх,
+четыре — в четырёх. Если места не хватает, появляется `+N`. Фон вокруг кругов
+полупрозрачный.
 Нажатие на любой виджет открывает приложение.
 
 В меню приложения доступны **Добавить Codex**, **Добавить Claude**, **Обновить**, **Настройки** и

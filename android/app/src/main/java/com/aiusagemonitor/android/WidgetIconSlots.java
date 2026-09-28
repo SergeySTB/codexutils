@@ -1,8 +1,10 @@
 package com.aiusagemonitor.android;
 
 final class WidgetIconSlots {
-    static int diameter(int widthDp, int heightDp) {
-        return Math.max(1, Math.min(44, Math.min(widthDp - 6, heightDp - 6)));
+    static int diameter(int widthDp, int heightDp, int accounts) {
+        int perAccount = widthDp / Math.max(1, accounts) - 6;
+        return Math.max(1, Math.min(Math.min(widthDp - 6, heightDp - 6),
+            Math.max(48, perAccount)));
     }
 
     static int capacity(int widthDp, int diameterDp) {

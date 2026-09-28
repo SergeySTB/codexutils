@@ -84,7 +84,7 @@ final class WidgetRenderer {
         view.removeAllViews(R.id.widget_icons_list);
         view.setViewVisibility(R.id.widget_icons_empty, accounts.isEmpty() ? View.VISIBLE : View.GONE);
         int availableWidth = widthDp > 0 ? widthDp : 120;
-        int diameter = WidgetIconSlots.diameter(availableWidth, heightDp > 0 ? heightDp : 48);
+        int diameter = WidgetIconSlots.diameter(availableWidth, heightDp > 0 ? heightDp : 48, accounts.size());
         int slots = WidgetIconSlots.capacity(availableWidth, diameter);
         view.setTextViewText(R.id.widget_icons_empty, unavailable
             ? (slots == 1 ? "!" : context.getString(R.string.localized_060)) : (slots == 1 ? context.getString(R.string.localized_061) : context.getString(R.string.localized_062)));
