@@ -1,5 +1,9 @@
 {
   "codexExecutable": "",
+  "proxy": {
+    "enabled": false,
+    "url": ""
+  },
   // Add another object to accounts for a second account, for example:
   // { "name": "Work", "codexHome": "%LOCALAPPDATA%/AIUsageMonitor/profiles/work" }
   // Claude Code: { "name": "Claude work", "provider": "claude", "claudeConfigDir": "%USERPROFILE%/.claude-work" }

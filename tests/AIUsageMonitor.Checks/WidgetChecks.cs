@@ -10,20 +10,41 @@ using AIUsageMonitor;
 
 internal static class WidgetChecks
 {
-    public static void Run(string outputDirectory, bool layoutOnly = false, bool dragOnly = false)
+    public static void Run(string outputDirectory, bool layoutOnly = false, bool dragOnly = false, bool proxyOnly = false)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
         {
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             var originalCursor = new ScreenPoint();
-            if (!layoutOnly) GetCursorPos(out originalCursor);
+            if (!layoutOnly && !proxyOnly) GetCursorPos(out originalCursor);
             app.Startup += async (_, _) =>
             {
                 WidgetWindow? window = null;
                 try
                 {
                     Directory.CreateDirectory(outputDirectory);
+                    if (proxyOnly)
+                    {
+                        string config = Path.GetFullPath(Path.Combine(outputDirectory, "proxy-menu.json"));
+                        var configured = new Settings { Accounts = [], Proxy = new() { Url = "http://proxy.example:8080" } }.Validate();
+                        File.WriteAllText(config, System.Text.Json.JsonSerializer.Serialize(configured, Settings.JsonOptions));
+                        window = new WidgetWindow(config, configured, demo: false);
+                        window.Show();
+                        await Until(() => window.IsLoaded, "proxy menu widget loaded");
+                        MenuItem ProxyItem() => window.ContextMenu!.Items.OfType<MenuItem>().Single(item => (string?)item.Header == "Использовать proxy");
+                        Require(ProxyItem().IsCheckable && !ProxyItem().IsChecked, "proxy menu defaults unchecked");
+                        var trayField = typeof(WidgetWindow).GetField("tray", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                        var tray = (System.Windows.Forms.NotifyIcon)trayField.GetValue(window)!;
+                        System.Windows.Forms.ToolStripMenuItem TrayItem() => tray.ContextMenuStrip!.Items.OfType<System.Windows.Forms.ToolStripMenuItem>().Single(item => item.Text == "Использовать proxy");
+                        ProxyItem().RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                        Require(ProxyItem().IsChecked && TrayItem().Checked && Settings.Load(config).Proxy.Enabled, "widget proxy toggle saves state and updates both menus");
+                        TrayItem().PerformClick();
+                        Require(!ProxyItem().IsChecked && !TrayItem().Checked && !Settings.Load(config).Proxy.Enabled, "tray proxy toggle saves state and updates both menus");
+                        Require(File.ReadAllText(config).Contains("proxy.example"), "menu preserves configured address");
+                        Console.WriteLine("PASS: proxy checkbox toggles in widget and tray menus.");
+                        return;
+                    }
                     if (dragOnly)
                     {
                         await CheckDrag(Path.GetFullPath(outputDirectory));
@@ -115,7 +136,7 @@ internal static class WidgetChecks
                 finally
                 {
                     window?.Close();
-                    if (!layoutOnly) SetCursorPos(originalCursor.X, originalCursor.Y);
+                    if (!layoutOnly && !proxyOnly) SetCursorPos(originalCursor.X, originalCursor.Y);
                     app.Shutdown();
                 }
             };

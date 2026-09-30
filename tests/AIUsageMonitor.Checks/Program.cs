@@ -6,9 +6,9 @@ using AIUsageMonitor;
 System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("ru-RU");
 
 if (args.Contains("app-server")) { await FakeServer(); return; }
-if (args.Length == 2 && args[0] is "--widget" or "--layout" or "--drag")
+if (args.Length == 2 && args[0] is "--widget" or "--layout" or "--drag" or "--proxy")
 {
-    try { WidgetChecks.Run(args[1], layoutOnly: args[0] == "--layout", dragOnly: args[0] == "--drag"); }
+    try { WidgetChecks.Run(args[1], layoutOnly: args[0] == "--layout", dragOnly: args[0] == "--drag", proxyOnly: args[0] == "--proxy"); }
     catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; }
     return;
 }
@@ -199,6 +199,7 @@ Check(File.ReadAllText(configPath) == beforeInvalidSave, "failed save preserves 
 var shippedExample = Path.Combine(AppContext.BaseDirectory, "config.example.json");
 Check(Settings.Load(shippedExample).Accounts.Length == 1 && File.ReadAllText(shippedExample).Contains("// Add another object"),
     "shipped configuration has one account and an English second-account example");
+Check(Settings.Load(shippedExample).Proxy is { Enabled: false, Url: "" }, "shipped proxy address is empty and disabled");
 File.WriteAllText(configPath, JsonSerializer.Serialize(valid with { Widget = widget }, Settings.JsonOptions)
     .Replace("iconWidthPx", "widthPx").Replace("iconHeightPx", "heightPx"));
 Check(Settings.Load(configPath).Widget is { IconWidthPx: 88, IconHeightPx: 44 }, "old default panel becomes compact without rewriting config");
@@ -219,6 +220,76 @@ Check((valid with { Widget = new() { DisplayMode = "cards", CardWidthPx = 200, C
 Check(Placement.Calculate(area, compact, screen, 700, 320).Width == 700, "placement uses measured card dimensions");
 
 string exe = Environment.ProcessPath!;
+File.WriteAllText(configPath, """
+    { // Keep this comment and the widget position.
+      "widget": { "offsetPx": 321 }
+    }
+    """);
+Settings.EnsureProxySettings(configPath);
+Check(Settings.Load(configPath).Proxy is { Enabled: false, Url: "" } &&
+    File.ReadAllText(configPath).Contains("// Keep this comment"), "old configuration gets empty disabled proxy without losing comments");
+string emptyProxyConfig = File.ReadAllText(configPath);
+Settings.EnsureProxySettings(configPath);
+Check(File.ReadAllText(configPath) == emptyProxyConfig, "proxy migration is idempotent");
+Reject(() => Settings.SaveProxyEnabled(configPath, true), "empty proxy cannot be enabled");
+Check(File.ReadAllText(configPath) == emptyProxyConfig, "failed proxy toggle preserves configuration");
+var configuredProxy = new ProxySettings { Enabled = true, Url = "http://proxy.example:8080" };
+File.WriteAllText(configPath, emptyProxyConfig.Replace("\"url\":\"\"", "\"url\":\"http://proxy.example:8080\""));
+Settings.SaveProxyEnabled(configPath, true);
+Check(Settings.Load(configPath).Proxy == configuredProxy && Settings.Load(configPath).Widget.OffsetPx == 321 &&
+    File.ReadAllText(configPath).Contains("// Keep this comment"), "proxy toggle reads file address and preserves unrelated settings");
+Settings.SaveProxyEnabled(configPath, false);
+Check(Settings.Load(configPath).Proxy is { Enabled: false, Url: "http://proxy.example:8080" }, "disabling proxy retains its address");
+foreach (string url in new[] { "", "ftp://proxy.example", "http://user:secret@proxy.example:8080", "http://proxy.example:8080/path", "http://proxy.example:0", "http://proxy.example:8080?query=1", " http://proxy.example:8080" })
+    Reject(() => (valid with { Proxy = configuredProxy with { Url = url } }).Validate(), "invalid proxy rejected: " + url.Replace("secret", "***"));
+Reject(() => (valid with { Proxy = null! }).Validate(), "null proxy rejected");
+using (var handler = new ProxySettings().CreateHandler())
+    Check(!handler.UseProxy && !handler.AllowAutoRedirect, "disabled proxy uses direct Claude connection without redirects");
+using (var handler = configuredProxy.CreateHandler())
+    Check(handler.UseProxy && handler.Proxy!.GetProxy(new Uri("https://api.anthropic.com")) == new Uri(configuredProxy.Url), "Claude handler routes HTTPS through configured proxy");
+using (var handler = (configuredProxy with { Url = "https://proxy.example:8443" }).CreateHandler())
+    Check(handler.Proxy!.GetProxy(new Uri("https://api.anthropic.com"))!.Scheme == "https", "HTTPS proxy address accepted");
+var childStart = new ProcessStartInfo(exe);
+childStart.Environment["HTTPS_PROXY"] = "http://inherited.example:9999";
+childStart.Environment["ALL_PROXY"] = "http://inherited.example:9999";
+new ProxySettings().ConfigureProcess(childStart);
+Check(!childStart.Environment.ContainsKey("HTTPS_PROXY") && !childStart.Environment.ContainsKey("ALL_PROXY") &&
+    childStart.Environment["NO_PROXY"] == "*", "disabled proxy clears inherited child proxy and bypasses system proxy");
+configuredProxy.ConfigureProcess(childStart);
+Check(childStart.Environment["HTTPS_PROXY"] == configuredProxy.Url && childStart.Environment["NO_PROXY"] == "localhost,127.0.0.1,::1",
+    "enabled child proxy replaces inherited values and bypasses loopback");
+foreach (bool enabled in new[] { true, false })
+{
+    string profile = Path.Combine(checkRoot, enabled ? "proxy-on" : "proxy-off");
+    using var client = new CodexClient(exe, profile, proxy: configuredProxy with { Enabled = enabled });
+    await client.ReadAsync();
+    using var childEnvironment = JsonDocument.Parse(File.ReadAllText(Path.Combine(profile, "proxy.json")));
+    Check(childEnvironment.RootElement.GetProperty("https").GetString() == (enabled ? configuredProxy.Url : null) &&
+        childEnvironment.RootElement.GetProperty("bypass").GetString() == (enabled ? "localhost,127.0.0.1,::1" : "*"),
+        "Codex child receives proxy state: " + enabled);
+}
+var proxyListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+proxyListener.Start();
+try
+{
+    var endpoint = (System.Net.IPEndPoint)proxyListener.LocalEndpoint;
+    string claudeDir = Path.Combine(checkRoot, "claude-proxy");
+    Directory.CreateDirectory(claudeDir);
+    File.WriteAllText(Path.Combine(claudeDir, ".credentials.json"), JsonSerializer.Serialize(new
+        { claudeAiOauth = new { accessToken = "dummy-check-token", expiresAt = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeMilliseconds() } }));
+    using var claudeClient = new ClaudeClient(claudeDir, configuredProxy with { Url = $"http://127.0.0.1:{endpoint.Port}" });
+    var request = claudeClient.ReadAsync();
+    using var peer = await proxyListener.AcceptTcpClientAsync().WaitAsync(TimeSpan.FromSeconds(5));
+    using var stream = peer.GetStream();
+    using var reader = new StreamReader(stream, leaveOpen: true);
+    string? connect = await reader.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(5));
+    await stream.WriteAsync(System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"));
+    try { await request.WaitAsync(TimeSpan.FromSeconds(5)); throw new Exception("Expected proxy connection failure"); }
+    catch (System.Net.Http.HttpRequestException) { }
+    Check(connect == "CONNECT api.anthropic.com:443 HTTP/1.1", "Claude actually uses HTTPS CONNECT through local test proxy");
+}
+finally { proxyListener.Stop(); }
+
 using (var one = new CodexClient(exe, valid.Accounts[0].CodexHome!))
 using (var two = new CodexClient(exe, valid.Accounts[1].CodexHome!))
 {
@@ -266,6 +337,9 @@ static async Task FakeServer()
     string profile = Environment.GetEnvironmentVariable("CODEX_HOME")!;
     File.WriteAllText(Path.Combine(profile, "pid.txt"), Environment.ProcessId.ToString());
     string scenario = Path.GetFileName(profile);
+    if (scenario is "proxy-on" or "proxy-off")
+        File.WriteAllText(Path.Combine(profile, "proxy.json"), JsonSerializer.Serialize(new
+            { https = Environment.GetEnvironmentVariable("HTTPS_PROXY"), bypass = Environment.GetEnvironmentVariable("NO_PROXY") }));
     bool initialized = false, greeted = false;
     while (await Console.In.ReadLineAsync() is { } line)
     {

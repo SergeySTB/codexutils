@@ -167,8 +167,8 @@ public sealed class WidgetWindow : Window
         Topmost = settings.Widget.AlwaysOnTop;
         foreach (var config in settings.Accounts)
         {
-            IUsageClient? client = config.Provider == "claude" ? new ClaudeClient(config.ClaudeConfigDir!)
-                : executable == null ? null : new CodexClient(executable, config.CodexHome!);
+            IUsageClient? client = config.Provider == "claude" ? new ClaudeClient(config.ClaudeConfigDir!, settings.Proxy)
+                : executable == null ? null : new CodexClient(executable, config.CodexHome!, proxy: settings.Proxy);
             var view = new AccountView(config, client);
             if (config.Provider == "codex" && problem != null) { view.Status = UiText.T("Codex не найден", "Codex not found"); view.Failed = true; }
             accounts.Add(view);
@@ -415,6 +415,14 @@ public sealed class WidgetWindow : Window
         }
         context.Items.Add(languageMenu);
         trayMenu.Items.Add(trayLanguageMenu);
+        var proxyItem = new MenuItem { Header = UiText.T("Использовать proxy", "Use proxy"),
+            IsCheckable = true, IsChecked = settings.Proxy.Enabled };
+        proxyItem.Click += (_, _) => SetProxyEnabled(!settings.Proxy.Enabled);
+        context.Items.Add(proxyItem);
+        var trayProxyItem = new Forms.ToolStripMenuItem(UiText.T("Использовать proxy", "Use proxy"))
+            { Checked = settings.Proxy.Enabled };
+        trayProxyItem.Click += (_, _) => Dispatcher.Invoke(() => SetProxyEnabled(!settings.Proxy.Enabled));
+        trayMenu.Items.Add(trayProxyItem);
         Item(UiText.T("Открыть конфигурацию", "Open configuration"), OpenConfig);
         Item(UiText.T("Применить конфигурацию", "Apply configuration"), Reload);
         Item(UiText.T("Показать виджет", "Show widget"), () => { Show(); Place(); });
@@ -536,6 +544,7 @@ public sealed class WidgetWindow : Window
                 start.ArgumentList.Add("-Command");
                 start.ArgumentList.Add("claude auth login");
                 start.Environment["CLAUDE_CONFIG_DIR"] = account.Config.ClaudeConfigDir!;
+                settings.Proxy.ConfigureProcess(start);
                 Process.Start(start);
             }
             catch (Exception error)
@@ -721,6 +730,25 @@ public sealed class WidgetWindow : Window
             Reload();
         }
         catch (Exception error) { MessageBox.Show(UiText.T("Режим отображения не изменён.\n", "Display mode was not changed.\n") + error.Message, "AI Usage Monitor"); }
+    }
+
+    private void SetProxyEnabled(bool enabled)
+    {
+        try
+        {
+            if (loggingIn) throw new InvalidOperationException(UiText.T("Завершите вход перед изменением proxy.", "Finish signing in before changing proxy."));
+            if (demo) Apply((settings with { Proxy = settings.Proxy with { Enabled = enabled } }).Validate());
+            else
+            {
+                Settings.SaveProxyEnabled(configPath, enabled);
+                Reload();
+            }
+        }
+        catch (Exception error)
+        {
+            BuildMenus();
+            MessageBox.Show(UiText.T("Proxy не изменён.\n", "Proxy was not changed.\n") + error.Message, "AI Usage Monitor");
+        }
     }
 
     private void SetLanguage(string language)

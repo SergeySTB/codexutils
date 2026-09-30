@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace AIUsageMonitor;
 
-public sealed class ClaudeClient(string configDir) : IUsageClient
+public sealed class ClaudeClient(string configDir, ProxySettings? proxy = null) : IUsageClient
 {
-    private readonly HttpClient http = new(new HttpClientHandler { AllowAutoRedirect = false })
+    private readonly HttpClient http = new((proxy ?? new ProxySettings()).CreateHandler())
         { Timeout = TimeSpan.FromSeconds(20) };
 
     public async Task<AccountSnapshot> ReadAsync()

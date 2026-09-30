@@ -52,6 +52,7 @@ public static class Program
                     }
                 }
             }
+            if (!demo) Settings.EnsureProxySettings(config);
             UiText.SetLanguage(settings.Widget.Language);
             using var mutex = new Mutex(true, "Local\\AIUsageMonitor-" + (demo ? "Demo" : "Live"), out var first);
             // Keep older installed versions from sharing a live profile with this process.

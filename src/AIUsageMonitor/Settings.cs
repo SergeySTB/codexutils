@@ -6,10 +6,48 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Http;
 
 namespace AIUsageMonitor;
 
 public sealed record AccountSettings(string Name, string? CodexHome = null, string Provider = "codex", string? ClaudeConfigDir = null);
+
+public sealed record ProxySettings
+{
+    public bool Enabled { get; init; }
+    public string Url { get; init; } = "";
+
+    public void Validate()
+    {
+        if (Url is null || (Enabled && (Url != Url.Trim() || Url.Any(char.IsControl) ||
+            !Uri.TryCreate(Url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https") ||
+            string.IsNullOrEmpty(uri.Host) || uri.Port is < 1 or > 65535 ||
+            uri.UserInfo.Length != 0 || uri.AbsolutePath != "/" || uri.Query.Length != 0 || uri.Fragment.Length != 0)))
+            throw new InvalidDataException(UiText.T("Укажите proxy.url: http://сервер:порт или https://сервер:порт без логина и пароля.",
+                "Set proxy.url to http://host:port or https://host:port without a username or password."));
+    }
+
+    public HttpClientHandler CreateHandler()
+    {
+        Validate();
+        return new() { AllowAutoRedirect = false, UseProxy = Enabled,
+            Proxy = Enabled ? new WebProxy(Url, false, [@"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?/?$"]) : null };
+    }
+
+    public void ConfigureProcess(ProcessStartInfo start)
+    {
+        Validate();
+        foreach (var key in start.Environment.Keys.Where(key => key.ToUpperInvariant() is
+            "HTTP_PROXY" or "HTTPS_PROXY" or "ALL_PROXY" or "WS_PROXY" or "WSS_PROXY" or "NO_PROXY").ToArray())
+            start.Environment.Remove(key);
+        if (Enabled)
+            foreach (var key in new[] { "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "WS_PROXY", "WSS_PROXY" })
+                start.Environment[key] = Url;
+        start.Environment["NO_PROXY"] = Enabled ? "localhost,127.0.0.1,::1" : "*";
+    }
+}
 
 public sealed record WidgetSettings
 {
@@ -35,6 +73,7 @@ public sealed record Settings
         new(UiText.T("Личный", "Personal"), "%LOCALAPPDATA%/AIUsageMonitor/profiles/personal")
     ];
     public WidgetSettings Widget { get; init; } = new();
+    public ProxySettings Proxy { get; init; } = new();
     public int RefreshSeconds { get; init; } = 60;
     public bool NotifyOnLimitReset { get; init; }
 
@@ -72,6 +111,8 @@ public sealed record Settings
 
     public Settings Validate()
     {
+        if (Proxy is null) throw new InvalidDataException(UiText.T("proxy должен быть объектом.", "proxy must be an object."));
+        Proxy.Validate();
         if (Accounts is null || Accounts.Any(a => a is null ||
             string.IsNullOrWhiteSpace(a.Name) || a.Name.Length > 60 ||
             a.Provider is not ("codex" or "claude") ||
@@ -102,6 +143,19 @@ public sealed record Settings
     }
 
     public static void SaveWidgetValues(string path, Dictionary<string, object> values)
+        => SaveObjectValues(path, "widget", values);
+
+    public static void SaveProxyEnabled(string path, bool enabled)
+        => SaveObjectValues(path, "proxy", new() { ["enabled"] = enabled });
+
+    public static void EnsureProxySettings(string path)
+    {
+        var root = JsonNode.Parse(File.ReadAllText(path), documentOptions: new() { CommentHandling = JsonCommentHandling.Skip });
+        if (root is JsonObject obj && !obj.ContainsKey("proxy"))
+            SaveObjectValues(path, "proxy", new() { ["enabled"] = false, ["url"] = "" });
+    }
+
+    private static void SaveObjectValues(string path, string section, Dictionary<string, object> values)
     {
         // Edit JSON tokens, preserving comments, formatting and unrelated settings.
         byte[] original = File.ReadAllBytes(path);
@@ -116,9 +170,9 @@ public sealed record Settings
             if (reader.TokenType == JsonTokenType.StartObject && reader.CurrentDepth == 0) rootStart = (int)reader.BytesConsumed;
             if (reader.TokenType != JsonTokenType.PropertyName || reader.CurrentDepth != 1) continue;
             hasRootProperties = true;
-            if (!reader.ValueTextEquals("widget")) { reader.Read(); reader.Skip(); continue; }
+            if (reader.GetString() != section) { reader.Read(); reader.Skip(); continue; }
             reader.Read();
-            if (reader.TokenType != JsonTokenType.StartObject) throw new InvalidDataException(UiText.T("widget должен быть объектом.", "widget must be an object."));
+            if (reader.TokenType != JsonTokenType.StartObject) throw new InvalidDataException(section + UiText.T(" должен быть объектом.", " must be an object."));
             widgetStart = (int)reader.BytesConsumed;
             while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
             {
@@ -139,7 +193,7 @@ public sealed record Settings
         {
             string members = JsonSerializer.Serialize(missing)[1..^1];
             string insert = widgetStart >= 0 ? members + (hasWidgetProperties ? "," : "")
-                : "\"widget\":{" + members + "}" + (hasRootProperties ? "," : "");
+                : JsonSerializer.Serialize(section) + ":{" + members + "}" + (hasRootProperties ? "," : "");
             edits.Add((widgetStart >= 0 ? widgetStart : rootStart, 0, Encoding.UTF8.GetBytes(insert)));
         }
         var updated = json.ToList();

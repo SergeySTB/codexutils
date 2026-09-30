@@ -20,7 +20,7 @@ public interface IUsageClient : IDisposable
     Task<AccountSnapshot> ReadAsync();
 }
 
-public sealed class CodexClient(string executable, string profile, TimeSpan? requestTimeout = null) : IUsageClient
+public sealed class CodexClient(string executable, string profile, TimeSpan? requestTimeout = null, ProxySettings? proxy = null) : IUsageClient
 {
     private readonly SemaphoreSlim operation = new(1, 1);
     private readonly SemaphoreSlim writer = new(1, 1);
@@ -107,6 +107,7 @@ public sealed class CodexClient(string executable, string profile, TimeSpan? req
         start.Environment["CODEX_HOME"] = profile;
         start.Environment.Remove("OPENAI_API_KEY");
         start.Environment.Remove("CODEX_API_KEY");
+        (proxy ?? new ProxySettings()).ConfigureProcess(start);
         process = Process.Start(start) ?? throw new IOException(UiText.T("Не удалось запустить Codex", "Could not start Codex"));
         var current = process;
         // Drain diagnostics without persisting tokens, authorization URLs or raw responses.
