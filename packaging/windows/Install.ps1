@@ -1,4 +1,6 @@
-﻿$ErrorActionPreference = 'Stop'
+﻿param([switch]$AutoStart)
+
+$ErrorActionPreference = 'Stop'
 
 function Test-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -22,9 +24,11 @@ function Stop-RunningWidget($Processes) {
 
 if (-not (Test-Administrator)) {
     try {
-    $process = Start-Process -FilePath powershell.exe -Verb RunAs -WindowStyle Hidden -PassThru -ArgumentList @(
+    $arguments = @(
         '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`""
     )
+    if ($AutoStart) { $arguments += '-AutoStart' }
+    $process = Start-Process -FilePath powershell.exe -Verb RunAs -WindowStyle Hidden -PassThru -ArgumentList $arguments
     # Wait only for the installer, not for the widget it launches afterwards.
     $process.WaitForExit()
     exit $process.ExitCode
@@ -62,6 +66,13 @@ $shortcut.TargetPath = $app
 $shortcut.WorkingDirectory = $destination
 $shortcut.IconLocation = "$app,0"
 $shortcut.Save()
+
+$runKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run'
+if ($AutoStart) {
+    New-ItemProperty -Path $runKey -Name 'AI Usage Monitor' -Value "`"$app`"" -PropertyType String -Force | Out-Null
+} else {
+    Remove-ItemProperty -Path $runKey -Name 'AI Usage Monitor' -ErrorAction SilentlyContinue
+}
 
 $version = ([Diagnostics.FileVersionInfo]::GetVersionInfo($app).ProductVersion -split '\+')[0]
 $uninstallKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AIUsageMonitor'

@@ -19,9 +19,12 @@ Check ($install.Contains("Join-Path `$env:ProgramFiles 'AI Usage Monitor'")) 'in
 Check ($install.Contains("Join-Path `$env:ProgramFiles 'Codex Limits'")) 'installer removes the previous named Program Files folder during upgrade'
 Check ($install.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AIUsageMonitor')) 'installer creates an uninstall registry entry'
 Check ($install.Contains("'CommonPrograms'")) 'installer creates an all-users Start menu shortcut'
+Check ($install.Contains('if ($AutoStart)') -and $install.Contains("'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run'") -and $install.Contains('-Value "`"$app`""')) 'installer registers startup only when selected'
+Check ($install.Contains("Remove-ItemProperty -Path `$runKey -Name 'AI Usage Monitor'")) 'installer clears startup when deselected on upgrade'
 Check ($install.Contains("'Update-Config.ps1'")) 'installer migrates the existing user configuration'
 Check ($install.Contains('-Verb RunAs -WindowStyle Hidden')) 'elevated installer stays hidden'
 Check ($uninstall.Contains('HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AIUsageMonitor')) 'uninstaller removes its registry entry'
+Check ($uninstall.Contains("'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run'") -and $uninstall.Contains("-Name 'AI Usage Monitor'")) 'uninstaller removes startup entry'
 Check ($uninstall.Contains("Join-Path `$env:ProgramFiles 'AI Usage Monitor'")) 'uninstaller validates its installation directory'
 Check ($uninstall.Contains('Remove-Item -LiteralPath $destination -Recurse -Force')) 'uninstaller removes the Program Files directory'
 Check ($uninstall.Contains('-Verb RunAs -WindowStyle Hidden')) 'elevated uninstaller stays hidden'
@@ -61,7 +64,8 @@ Stop-RunningWidget @()
 Check ($install -notmatch '-Verb RunAs -Wait') 'elevated installer does not wait for launched widget descendants'
 
 Check ($launcher.Contains('CreateWelcomeDialog') -and $launcher.Contains('CreateResultDialog')) 'launcher owns both installer screens'
-Check ($launcher.Contains('Application.ExecutablePath, "--install"') -and $launcher.Contains('welcome.ShowDialog()')) 'consent precedes elevation'
+Check ($launcher.Contains('autoStart ? "--install --autostart" : "--install"') -and $launcher.Contains('welcome.ShowDialog()')) 'startup choice survives elevation'
+Check ($launcher.Contains('(autoStart ? " -AutoStart" : "")')) 'startup choice reaches installer script'
 Check (-not $install.Contains('Show-InstallationResult')) 'install script leaves dialogs to launcher'
 
 # Run the production child-launch path against a harmless script, without UAC or installation.
@@ -75,19 +79,24 @@ internal static class LauncherProbe {
     [System.STAThread]
     private static int Main() {
         CultureInfo.CurrentUICulture = new CultureInfo("en-US");
-        using (Form english = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory)) {
+        CheckBox startup;
+        using (Form english = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory, out startup)) {
             if (!english.Text.StartsWith("AI Usage Monitor Setup")) return 51;
             if (((Button)english.AcceptButton).Text != "Install") return 52;
+            if (!startup.Checked || startup.Text != "Start at Windows sign-in") return 55;
+            startup.Checked = false;
+            if (startup.Checked) return 56;
         }
         CultureInfo.CurrentUICulture = new CultureInfo("ru-RU");
-        using (Form russian = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory)) {
+        using (Form russian = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory, out startup)) {
             if (!russian.Text.StartsWith("\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430")) return 53;
+            if (!startup.Text.StartsWith("\u0417\u0430\u043f\u0443\u0441\u043a\u0430\u0442\u044c")) return 58;
         }
         CultureInfo.CurrentUICulture = new CultureInfo("de-DE");
-        using (Form fallback = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory)) {
+        using (Form fallback = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory, out startup)) {
             if (((Button)fallback.AcceptButton).Text != "Install") return 54;
         }
-        using (Form welcome = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory)) {
+        using (Form welcome = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory, out startup)) {
             if (welcome.AcceptButton == null) return 43;
             if (welcome.CancelButton == null) return 46;
             if (((Button)welcome.AcceptButton).DialogResult != DialogResult.OK) return 47;
@@ -99,7 +108,7 @@ internal static class LauncherProbe {
                 if (welcome.ShowDialog() != DialogResult.Cancel) return 49;
             }
         }
-        using (Form welcome = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory))
+        using (Form welcome = SetupLauncher.CreateWelcomeDialog(AppDomain.CurrentDomain.BaseDirectory, out startup))
         using (var timer = new Timer()) {
             timer.Interval = 30;
             timer.Tick += delegate { timer.Stop(); ((Button)welcome.AcceptButton).PerformClick(); };
@@ -113,11 +122,13 @@ internal static class LauncherProbe {
         using (Form failure = SetupLauncher.CreateResultDialog(AppDomain.CurrentDomain.BaseDirectory, false, out launch)) {
             if (launch.Enabled || launch.Checked || failure.AcceptButton == null) return 45;
         }
-        return SetupLauncher.RunScript(AppDomain.CurrentDomain.BaseDirectory);
+        if (SetupLauncher.RunScript(AppDomain.CurrentDomain.BaseDirectory, false) != 17) return 57;
+        return SetupLauncher.RunScript(AppDomain.CurrentDomain.BaseDirectory, true);
     }
 }
 '@ | Set-Content -LiteralPath (Join-Path $probeRoot 'Probe.cs') -Encoding UTF8
 @'
+param([switch]$AutoStart)
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type 'public static class ConsoleProbe { [System.Runtime.InteropServices.DllImport("kernel32.dll")] public static extern System.IntPtr GetConsoleWindow(); [System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool IsWindowVisible(System.IntPtr handle); }'
 if ([ConsoleProbe]::GetConsoleWindow() -ne [IntPtr]::Zero) { exit 41 }
@@ -135,6 +146,7 @@ $timer.Start()
 $timer.Dispose()
 $form.Dispose()
 if (-not $script:visible) { exit 42 }
+if ($AutoStart) { exit 18 }
 exit 17
 '@ | Set-Content -LiteralPath (Join-Path $probeRoot 'Install.ps1') -Encoding UTF8
 $probeExe = Join-Path $probeRoot 'LauncherProbe.exe'
@@ -142,5 +154,5 @@ $probeExe = Join-Path $probeRoot 'LauncherProbe.exe'
 Check ($LASTEXITCODE -eq 0) 'GUI launcher compiles with built-in .NET Framework'
 $process = Start-Process -FilePath $probeExe -WindowStyle Hidden -PassThru
 if (-not $process.WaitForExit(15000)) { $process.Kill(); throw 'Launcher dialog check timed out' }
-Check ($process.ExitCode -eq 17) 'launcher creates no console, shows the dialog and returns its exit code'
+Check ($process.ExitCode -eq 18) 'launcher passes both startup choices without a console'
 Write-Output 'All installer checks passed.'

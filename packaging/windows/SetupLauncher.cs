@@ -27,17 +27,23 @@ internal static class SetupLauncher
         string directory = AppDomain.CurrentDomain.BaseDirectory;
         try
         {
-            if (args.Length != 1 || args[0] != "--install")
+            bool autoStart = args.Length == 2 && args[0] == "--install" && args[1] == "--autostart";
+            if (args.Length == 0 || args[0] != "--install")
             {
-                using (Form welcome = CreateWelcomeDialog(directory))
+                CheckBox startup;
+                using (Form welcome = CreateWelcomeDialog(directory, out startup))
+                {
                     if (welcome.ShowDialog() != DialogResult.OK) return 0;
+                    autoStart = startup.Checked;
+                }
             }
 
             using (var identity = WindowsIdentity.GetCurrent())
             {
                 if (!new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator))
                 {
-                    using (var elevated = Process.Start(new ProcessStartInfo(Application.ExecutablePath, "--install")
+                    using (var elevated = Process.Start(new ProcessStartInfo(Application.ExecutablePath,
+                        autoStart ? "--install --autostart" : "--install")
                     {
                         UseShellExecute = true, Verb = "runas"
                     }))
@@ -48,7 +54,7 @@ internal static class SetupLauncher
                 }
             }
 
-            int result = RunScript(directory);
+            int result = RunScript(directory, autoStart);
             CheckBox launch;
             using (Form completion = CreateResultDialog(directory, result == 0, out launch))
             {
@@ -81,20 +87,29 @@ internal static class SetupLauncher
         }
     }
 
-    internal static Form CreateWelcomeDialog(string directory)
+    internal static Form CreateWelcomeDialog(string directory, out CheckBox startup)
     {
         Form form = CreateDialog(directory, Tr("Установите за пару секунд", "Install in a few seconds"),
             Tr("Лимиты Codex и Claude всегда перед глазами.", "Keep Codex and Claude limits in view."),
             Tr("Готово к установке", "Ready to install"),
             Tr("Для всех пользователей · C:\\Program Files\\AI Usage Monitor\nНастройки сохранятся при обновлении.",
                 "For all users · C:\\Program Files\\AI Usage Monitor\nYour settings are kept during updates."), false);
+        startup = new CheckBox
+        {
+            Text = Tr("Запускать при входе в Windows", "Start at Windows sign-in"),
+            AccessibleName = Tr("Автозапуск для всех пользователей", "Start at sign-in for all users"),
+            Checked = true,
+            ForeColor = SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(226, 235, 242),
+            BackColor = form.BackColor,
+            Location = new Point(37, 331), Size = new Size(270, 32), TabIndex = 0
+        };
         Button cancel = Action(Tr("Отмена", "Cancel"), 310, false);
         cancel.DialogResult = DialogResult.Cancel;
         cancel.AccessibleName = Tr("Отмена установки", "Cancel installation");
         Button install = Action(Tr("Установить", "Install"), 474, true);
         install.DialogResult = DialogResult.OK;
         install.AccessibleName = Tr("Начать установку", "Start installation");
-        form.Controls.AddRange(new Control[] { cancel, install });
+        form.Controls.AddRange(new Control[] { startup, cancel, install });
         form.AcceptButton = install;
         form.CancelButton = cancel;
         return form;
@@ -236,14 +251,15 @@ internal static class SetupLauncher
         return File.Exists(app) ? FileVersionInfo.GetVersionInfo(app).ProductVersion.Split('+')[0] : "";
     }
 
-    internal static int RunScript(string directory)
+    internal static int RunScript(string directory, bool autoStart)
     {
         // No console allocation; unlike SW_HIDE, this does not hide dialogs.
         using (var process = Process.Start(new ProcessStartInfo
         {
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
                 @"WindowsPowerShell\v1.0\powershell.exe"),
-            Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + Path.Combine(directory, "Install.ps1") + "\"",
+            Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + Path.Combine(directory, "Install.ps1") + "\"" +
+                (autoStart ? " -AutoStart" : ""),
             WorkingDirectory = directory,
             UseShellExecute = false,
             CreateNoWindow = true

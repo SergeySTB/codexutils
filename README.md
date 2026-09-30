@@ -36,18 +36,21 @@ Windows всегда следует языку системы.
 
 ## Windows
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.7/AIUsageMonitor-Setup_v6.7.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.8/AIUsageMonitor-Setup_v6.8.exe)
 
 Сначала установщик предложит начать установку или отменить её. После нажатия
 «Установить» он запросит права администратора, установит приложение в
 `C:\Program Files\AI Usage Monitor` и добавит ярлык в меню «Пуск».
+На первом экране можно оставить включённым флажок **Запускать при входе в Windows**
+(для всех пользователей) или снять его. При обновлении снятый флажок отключает
+ранее включённый автозапуск; при удалении приложения запись тоже удаляется.
 На экране завершения можно сразу запустить приложение.
 Настройки сохраняются при обновлении и удалении приложения. Другие версии
 доступны на [странице релизов](https://github.com/SergeySTB/codexutils/releases).
 
 ## Android
 
-[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.7/AIUsageMonitor-Android_v6.7-debug.apk)
+[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.8/AIUsageMonitor-Android_v6.8-debug.apk)
 
 Приложение работает на Android 8 и новее без компьютера после настройки аккаунтов.
 Для Codex войдите через ChatGPT по коду устройства. Для Claude выполните

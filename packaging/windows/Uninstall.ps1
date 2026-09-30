@@ -21,6 +21,7 @@ if (-not $destination.Equals($expectedDestination, [StringComparison]::OrdinalIg
 }
 
 Get-Process -Name AIUsageMonitor -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'AI Usage Monitor' -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'AI Usage Monitor.lnk') -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $destination -Recurse -Force
 Remove-Item -LiteralPath 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AIUsageMonitor' -Recurse -Force -ErrorAction SilentlyContinue
