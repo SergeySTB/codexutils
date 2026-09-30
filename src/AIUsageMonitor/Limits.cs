@@ -25,21 +25,32 @@ public sealed record Limits(LimitWindow? FiveHour, LimitWindow? Weekly)
         if (bucket.TryGetProperty("limitId", out var id) && id.ValueKind == JsonValueKind.String && id.GetString() != "codex")
             return new(null, null);
 
+        return ParseWindows(bucket, "primary", "secondary", "windowDurationMins", "usedPercent", "resetsAt", 1);
+    }
+
+    public static Limits ParseUsage(JsonElement response) => response.ValueKind == JsonValueKind.Object &&
+        response.TryGetProperty("rate_limit", out var bucket) && bucket.ValueKind == JsonValueKind.Object
+        ? ParseWindows(bucket, "primary_window", "secondary_window", "limit_window_seconds", "used_percent", "reset_at", 60)
+        : new(null, null);
+
+    private static Limits ParseWindows(JsonElement bucket, string primary, string secondary,
+        string durationKey, string usedKey, string resetKey, int secondsPerMinute)
+    {
         LimitWindow? fiveHour = null, weekly = null;
-        foreach (var key in new[] { "primary", "secondary" })
+        foreach (var key in new[] { primary, secondary })
         {
             if (!bucket.TryGetProperty(key, out var window) || window.ValueKind != JsonValueKind.Object ||
-                !window.TryGetProperty("windowDurationMins", out var duration) || duration.ValueKind != JsonValueKind.Number || !duration.TryGetInt32(out var minutes) ||
-                !window.TryGetProperty("usedPercent", out var used) || used.ValueKind != JsonValueKind.Number ||
+                !window.TryGetProperty(durationKey, out var duration) || duration.ValueKind != JsonValueKind.Number || !duration.TryGetInt32(out var minutes) ||
+                !window.TryGetProperty(usedKey, out var used) || used.ValueKind != JsonValueKind.Number ||
                 !used.TryGetDouble(out var percent) || !double.IsFinite(percent) || percent < 0)
                 continue;
             DateTimeOffset? reset = null;
-            if (window.TryGetProperty("resetsAt", out var time) && time.ValueKind == JsonValueKind.Number &&
+            if (window.TryGetProperty(resetKey, out var time) && time.ValueKind == JsonValueKind.Number &&
                 time.TryGetInt64(out var seconds) && seconds >= 0 && seconds <= 253402300799)
                 reset = DateTimeOffset.FromUnixTimeSeconds(seconds);
             var parsed = new LimitWindow(Math.Clamp(100 - percent, 0, 100), reset);
-            if (minutes == 300) fiveHour = parsed;
-            if (minutes == 10080) weekly = parsed;
+            if (minutes == 300 * secondsPerMinute) fiveHour = parsed;
+            if (minutes == 10080 * secondsPerMinute) weekly = parsed;
         }
         return new(fiveHour, weekly);
     }

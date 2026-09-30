@@ -13,9 +13,6 @@ function Read-Config($Path) {
     ([regex]::Replace([IO.File]::ReadAllText($Path), '(?m)^[ \t]*//.*(?:\r?\n|$)', '')) | ConvertFrom-Json
 }
 $fakeLocalAppData = Join-Path $root 'local-app-data'
-$fakeCodex = Join-Path $fakeLocalAppData 'Programs/OpenAI/Codex/bin/codex.exe'
-[IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($fakeCodex)) | Out-Null
-[IO.File]::WriteAllText($fakeCodex, '')
 $previousLocalAppData = $env:LOCALAPPDATA
 $previousPath = $env:PATH
 $originalCulture = [Threading.Thread]::CurrentThread.CurrentUICulture
@@ -33,7 +30,7 @@ $generated = [IO.File]::ReadAllText($config)
 $old = Read-Config $config
 Check ($old.notifyOnLimitReset -eq $false) 'fresh installation uses current defaults'
 Check ($old.widget.language -eq 'system') 'new installation follows the system language'
-Check ($old.codexExecutable -eq $fakeCodex) 'fresh installation records the detected Codex executable'
+Check ($null -eq $old.PSObject.Properties['codexExecutable']) 'fresh installation does not require Codex CLI'
 Check (@($old.accounts).Count -eq 1) 'fresh installation configures one account by default'
 Check ($old.accounts[0].name -eq 'Personal') 'English installation names the default account in English'
 $previousCulture = [Threading.Thread]::CurrentThread.CurrentUICulture
@@ -61,7 +58,7 @@ $old.accounts = @($old.accounts) + @(
     [pscustomobject]@{ name = 'Work custom'; codexHome = 'D:\Profiles\Work' },
     [pscustomobject]@{ name = 'Third custom'; codexHome = 'D:\Profiles\Third' }
 )
-$old.codexExecutable = 'D:\Custom\codex.exe'
+$old | Add-Member -NotePropertyName codexExecutable -NotePropertyValue 'D:\Custom\codex.exe'
 $old | Add-Member -NotePropertyName retired -NotePropertyValue 123
 $old.widget | Add-Member -NotePropertyName retired -NotePropertyValue 456
 $old.accounts[0] | Add-Member -NotePropertyName retired -NotePropertyValue 789
@@ -78,7 +75,7 @@ Check ($updated.widget.marginPx -eq -50 -and $updated.widget.alwaysOnTop -eq $fa
 Check ($updated.widget.language -eq 'ru') 'language choice survives installation updates'
 Check (@($updated.accounts).Count -eq 3 -and $updated.accounts[0].name -eq 'Personal custom' -and
     $updated.accounts[1].codexHome -eq 'D:\Profiles\Work' -and $updated.accounts[2].name -eq 'Third custom') 'configured account count, order and paths survive'
-Check ($updated.codexExecutable -eq 'D:\Custom\codex.exe') 'explicit Codex executable survives migration'
+Check ($null -eq $updated.PSObject.Properties['codexExecutable']) 'obsolete Codex CLI path is removed'
 Check (-not ([IO.File]::ReadAllText($config).Contains('retired'))) 'obsolete root, widget and account keys are removed'
 $claudeConfig = Join-Path $root 'claude-config.json'
 $withClaude = Read-Config $template

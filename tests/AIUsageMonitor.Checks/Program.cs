@@ -5,7 +5,6 @@ using AIUsageMonitor;
 
 System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("ru-RU");
 
-if (args.Contains("app-server")) { await FakeServer(); return; }
 if (args.Length == 2 && args[0] is "--widget" or "--layout" or "--drag" or "--proxy")
 {
     try { WidgetChecks.Run(args[1], layoutOnly: args[0] == "--layout", dragOnly: args[0] == "--drag", proxyOnly: args[0] == "--proxy"); }
@@ -258,16 +257,6 @@ Check(!childStart.Environment.ContainsKey("HTTPS_PROXY") && !childStart.Environm
 configuredProxy.ConfigureProcess(childStart);
 Check(childStart.Environment["HTTPS_PROXY"] == configuredProxy.Url && childStart.Environment["NO_PROXY"] == "localhost,127.0.0.1,::1",
     "enabled child proxy replaces inherited values and bypasses loopback");
-foreach (bool enabled in new[] { true, false })
-{
-    string profile = Path.Combine(checkRoot, enabled ? "proxy-on" : "proxy-off");
-    using var client = new CodexClient(exe, profile, proxy: configuredProxy with { Enabled = enabled });
-    await client.ReadAsync();
-    using var childEnvironment = JsonDocument.Parse(File.ReadAllText(Path.Combine(profile, "proxy.json")));
-    Check(childEnvironment.RootElement.GetProperty("https").GetString() == (enabled ? configuredProxy.Url : null) &&
-        childEnvironment.RootElement.GetProperty("bypass").GetString() == (enabled ? "localhost,127.0.0.1,::1" : "*"),
-        "Codex child receives proxy state: " + enabled);
-}
 var proxyListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
 proxyListener.Start();
 try
@@ -290,87 +279,5 @@ try
 }
 finally { proxyListener.Stop(); }
 
-using (var one = new CodexClient(exe, valid.Accounts[0].CodexHome!))
-using (var two = new CodexClient(exe, valid.Accounts[1].CodexHome!))
-{
-    var readings = await Task.WhenAll(one.ReadAsync(), two.ReadAsync());
-    Check(readings[0].Email == "one@example.com" && readings[1].Email == "two@example.com", "parallel processes isolate account identity");
-    Check(readings[0].Limits.Weekly?.Remaining == 38 && readings[1].Limits.FiveHour?.Remaining == 75, "parallel quotas stay with their profiles");
-    Check((await one.ReadAsync()).Email == "one@example.com", "connection reused after initialization");
-    Uri? loginUri = null;
-    await one.LoginAsync(url => loginUri = url);
-    Check(loginUri?.Host == "auth.openai.com", "browser login handles completion notification");
-}
-foreach (var profile in valid.Accounts)
-{
-    int pid = int.Parse(File.ReadAllText(Path.Combine(profile.CodexHome!, "pid.txt")));
-    try { using var child = Process.GetProcessById(pid); await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)); }
-    catch (ArgumentException) { }
-}
-Check(true, "owned child processes stop on disposal");
-foreach (var (scenario, expected) in new[] { ("unauth", FailureKind.SignIn), ("throttle", FailureKind.RateLimited), ("exit", FailureKind.Connection) })
-{
-    using var client = new CodexClient(exe, Path.Combine(checkRoot, scenario));
-    try { await client.ReadAsync(); throw new Exception("Expected failure: " + scenario); }
-    catch (CodexException error) { Check(error.Kind == expected, "failure classified: " + scenario); }
-}
-using (var client = new CodexClient(exe, Path.Combine(checkRoot, "timeout"), TimeSpan.FromSeconds(2)))
-{
-    try { await client.ReadAsync(); throw new Exception("Expected timeout"); }
-    catch (TimeoutException) { Check(true, "stalled server has bounded timeout"); }
-}
-using (var client = new CodexClient(exe, Path.Combine(checkRoot, "badlogin")))
-{
-    try { await client.LoginAsync(_ => throw new Exception("Unsafe URL opened")); throw new Exception("Expected blocked URL"); }
-    catch (CodexException error) { Check(error.Kind == FailureKind.Protocol, "untrusted login URL rejected"); }
-}
-if (args.Length == 2 && args[0] == "--real-codex")
-{
-    using var client = new CodexClient(args[1], Path.Combine(checkRoot, "real-empty-profile"));
-    try { await client.ReadAsync(); throw new Exception("Empty profile unexpectedly authenticated"); }
-    catch (CodexException error) { Check(error.Kind == FailureKind.SignIn, "installed Codex handshake and account/read with isolated empty profile"); }
-}
+await CodexChecks.RunAsync(Check, checkRoot);
 Console.WriteLine($"All {passed} checks passed.");
-
-static async Task FakeServer()
-{
-    string profile = Environment.GetEnvironmentVariable("CODEX_HOME")!;
-    File.WriteAllText(Path.Combine(profile, "pid.txt"), Environment.ProcessId.ToString());
-    string scenario = Path.GetFileName(profile);
-    if (scenario is "proxy-on" or "proxy-off")
-        File.WriteAllText(Path.Combine(profile, "proxy.json"), JsonSerializer.Serialize(new
-            { https = Environment.GetEnvironmentVariable("HTTPS_PROXY"), bypass = Environment.GetEnvironmentVariable("NO_PROXY") }));
-    bool initialized = false, greeted = false;
-    while (await Console.In.ReadLineAsync() is { } line)
-    {
-        using var doc = JsonDocument.Parse(line);
-        var root = doc.RootElement;
-        string method = root.GetProperty("method").GetString()!;
-        if (method == "initialized") { initialized = greeted; continue; }
-        int id = root.GetProperty("id").GetInt32();
-        object result;
-        if (method == "initialize") { greeted = true; result = new { userAgent = "checks" }; }
-        else if (!initialized) throw new Exception("Client failed handshake");
-        else if (method == "account/read") result = scenario == "unauth" ? new { account = (object?)null } :
-            new { account = (object?)new { type = "chatgpt", email = scenario + "@example.com", planType = "pro" } };
-        else if (method == "account/rateLimits/read")
-        {
-            if (scenario == "exit") return;
-            if (scenario == "timeout") { await Task.Delay(30000); continue; }
-            if (scenario == "throttle")
-            {
-                Console.WriteLine(JsonSerializer.Serialize(new { id, error = new { code = -32000, message = "HTTP 429 Too many requests" } }));
-                continue;
-            }
-            result = new { rateLimits = new { limitId = "codex", primary = new { usedPercent = scenario == "one" ? 62 : 25, windowDurationMins = scenario == "one" ? 10080 : 300 } } };
-        }
-        else if (method == "account/login/start")
-        {
-            result = new { type = "chatgpt", loginId = "test-login", authUrl = scenario == "badlogin" ? "https://example.com/steal" : "https://auth.openai.com/authorize" };
-            Console.WriteLine(JsonSerializer.Serialize(new { method = "account/login/completed", @params = new { loginId = "test-login", success = true } }));
-        }
-        else if (method == "account/login/cancel") result = new { };
-        else throw new Exception("Unexpected request: " + method);
-        Console.WriteLine(JsonSerializer.Serialize(new { id, result }));
-    }
-}

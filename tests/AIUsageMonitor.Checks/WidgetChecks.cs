@@ -42,6 +42,25 @@ internal static class WidgetChecks
                         TrayItem().PerformClick();
                         Require(!ProxyItem().IsChecked && !TrayItem().Checked && !Settings.Load(config).Proxy.Enabled, "tray proxy toggle saves state and updates both menus");
                         Require(File.ReadAllText(config).Contains("proxy.example"), "menu preserves configured address");
+                        bool cancelled = false;
+                        Uri? opened = null;
+                        var dialog = WidgetWindow.CreateLoginDialog(window, "Account", new Uri("https://auth.openai.com/codex/device"),
+                            "ABCD-EFGH", () => cancelled = true, uri => opened = uri);
+                        dialog.Show();
+                        dialog.UpdateLayout();
+                        var loginPanel = (StackPanel)dialog.Content;
+                        Require(loginPanel.Children.OfType<TextBox>().Single().Text == "ABCD-EFGH", "login dialog displays selectable device code");
+                        var buttons = loginPanel.Children.OfType<StackPanel>().Single().Children.OfType<Button>().ToArray();
+                        buttons.Single(button => (string?)button.Content == "Открыть браузер").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        Require(opened?.AbsoluteUri == "https://auth.openai.com/codex/device", "login button opens expected device page");
+                        foreach (var button in buttons)
+                        {
+                            var bounds = button.TransformToAncestor(dialog).TransformBounds(new Rect(new Point(), button.RenderSize));
+                            Require(bounds.Left >= 0 && bounds.Right <= dialog.ActualWidth, "login buttons fit dialog");
+                        }
+                        Save(dialog, Path.Combine(outputDirectory, "device-login.png"));
+                        buttons.Single(button => (string?)button.Content == "Отмена").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        Require(cancelled && !dialog.IsVisible, "closing login dialog cancels pending login");
                         Console.WriteLine("PASS: proxy checkbox toggles in widget and tray menus.");
                         return;
                     }
@@ -155,7 +174,7 @@ internal static class WidgetChecks
             var config = Path.Combine(outputDirectory, "drag-" + mode + ".json");
             var settings = new Settings
             {
-                CodexExecutable = Path.Combine(outputDirectory, "missing.exe"),
+                Accounts = [new("Account", Path.Combine(outputDirectory, "drag-profile"))],
                 Widget = new() { DisplayMode = mode, OffsetPx = 100, MarginPx = 100, RespectTaskbar = false }
             };
             File.WriteAllText(config, System.Text.Json.JsonSerializer.Serialize(settings, Settings.JsonOptions));
@@ -285,7 +304,7 @@ internal static class WidgetChecks
         finally { empty.Close(); }
         var signedOutSettings = new Settings
         {
-            CodexExecutable = Path.Combine(outputDirectory, "missing-codex.exe"),
+            Accounts = [new("Account", Path.Combine(outputDirectory, "signed-out"))],
             Widget = new() { DisplayMode = "cards", CardWidthPx = 340 }
         }.Validate();
         var signedOut = new WidgetWindow(Path.Combine(outputDirectory, "unused.json"), signedOutSettings, demo: false);
@@ -299,14 +318,13 @@ internal static class WidgetChecks
             var login = panel.Children.OfType<Button>().Single(button => button.Visibility == Visibility.Visible);
             Require(login.Visibility == Visibility.Visible && login.IsEnabled &&
                 new ButtonAutomationPeer(login).GetName().Contains("Войти"), "signed-out card provides accessible login button");
-            Require(Texts(panel).Any(text => text.Contains("Codex не найден")), "connection error remains visible in card");
+            Require(Texts(panel).Any(text => text.Contains("Нужен вход через ChatGPT")), "connection error remains visible in card");
         }
         finally { signedOut.Close(); }
         var authProfile = Path.Combine(outputDirectory, "unauth");
         Directory.CreateDirectory(authProfile);
         var expired = new WidgetWindow(Path.Combine(outputDirectory, "unused.json"), new Settings
         {
-            CodexExecutable = Environment.ProcessPath!,
             Accounts = [new AccountSettings("Account", authProfile)],
             Widget = new() { DisplayMode = "cards" }
         }.Validate(), demo: false);

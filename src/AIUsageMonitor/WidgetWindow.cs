@@ -37,7 +37,6 @@ public sealed class WidgetWindow : Window
     private Settings settings;
     private StackPanel? cardsPanel;
     private PixelRect? lastPlacement;
-    private string? connectionProblem;
     private bool refreshing, closed, loggingIn, monitorMissing, placing, overlapsTaskbar;
     private int generation;
     private Point? dragStart;
@@ -154,12 +153,6 @@ public sealed class WidgetWindow : Window
     private void Apply(Settings next)
     {
         UiText.SetLanguage(next.Widget.Language);
-        string? executable = null, problem = null;
-        if (!demo && next.Accounts.Any(a => a.Provider == "codex"))
-        {
-            try { executable = next.FindCodex(); }
-            catch (Exception error) when (error is IOException or ArgumentException) { problem = error.Message; }
-        }
         generation++;
         foreach (var account in accounts) { account.Details.IsOpen = false; account.Client?.Dispose(); }
         accounts.Clear();
@@ -168,9 +161,8 @@ public sealed class WidgetWindow : Window
         foreach (var config in settings.Accounts)
         {
             IUsageClient? client = config.Provider == "claude" ? new ClaudeClient(config.ClaudeConfigDir!, settings.Proxy)
-                : executable == null ? null : new CodexClient(executable, config.CodexHome!, proxy: settings.Proxy);
+                : new CodexClient(config.CodexHome!, settings.Proxy);
             var view = new AccountView(config, client);
-            if (config.Provider == "codex" && problem != null) { view.Status = UiText.T("Codex не найден", "Codex not found"); view.Failed = true; }
             accounts.Add(view);
         }
         if (demo)
@@ -191,7 +183,6 @@ public sealed class WidgetWindow : Window
         }
         BuildContent();
         BuildMenus();
-        connectionProblem = problem;
         UpdateDisplay();
         if (IsLoaded) Place();
     }
@@ -510,7 +501,6 @@ public sealed class WidgetWindow : Window
             if (account.Snapshot?.Email is { } email && duplicateEmails.Contains(email))
                 account.Footer.Text += UiText.T("\nПроверьте профили: одинаковый email", "\nCheck profiles: same email address");
             if (monitorMissing) account.Footer.Text += UiText.T("\nМонитор недоступен · показано на основном", "\nMonitor unavailable · shown on primary display");
-            if (connectionProblem != null && account.Config.Provider == "codex") account.Footer.Text += "\n" + connectionProblem;
             var windows = new[] { account.Snapshot?.Limits.FiveHour, account.Snapshot?.Limits.Weekly };
             for (int i = 0; i < 2; i++)
             {
@@ -554,18 +544,30 @@ public sealed class WidgetWindow : Window
             }
             return;
         }
-        if (account.Client == null) { MessageBox.Show(connectionProblem, "AI Usage Monitor"); return; }
+        if (account.Client is not CodexClient codex) return;
         loggingIn = true;
         account.SigningIn = true;
         var version = generation;
+        using var cancellation = new CancellationTokenSource();
+        Window? loginDialog = null;
         UpdateDisplay();
         try
         {
-            await ((CodexClient)account.Client).LoginAsync(url => Process.Start(new ProcessStartInfo(url.AbsoluteUri) { UseShellExecute = true }));
+            await codex.LoginAsync((url, code) =>
+            {
+                loginDialog = CreateLoginDialog(this, account.Config.Name, url, code, cancellation.Cancel,
+                    address => Process.Start(new ProcessStartInfo(address.AbsoluteUri) { UseShellExecute = true }));
+                loginDialog.Show();
+            }, cancellation.Token);
             account.Failed = false;
             account.ReauthRequired = false;
             account.Status = UiText.T("Вход выполнен", "Signed in");
             account.NextRefresh = account.RateLimitUntil = DateTimeOffset.MinValue;
+        }
+        catch (OperationCanceledException)
+        {
+            if (!closed && version == generation)
+                account.Status = UiText.T("Вход отменён или время ожидания истекло", "Sign-in cancelled or timed out");
         }
         catch (Exception error)
         {
@@ -577,10 +579,46 @@ public sealed class WidgetWindow : Window
         }
         finally
         {
+            loginDialog?.Close();
             loggingIn = false;
             account.SigningIn = false;
             if (!closed) { UpdateDisplay(); await RefreshAsync(force: true); }
         }
+    }
+
+    internal static Window CreateLoginDialog(Window owner, string name, Uri url, string code, Action cancel, Action<Uri> openBrowser)
+    {
+        var dialog = new Window { Title = UiText.T("Вход через ChatGPT: ", "Sign in with ChatGPT: ") + name,
+            Owner = owner, Width = 440, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, ShowInTaskbar = false };
+        var panel = new StackPanel { Margin = new Thickness(20) };
+        panel.Children.Add(new TextBlock { Text = UiText.T("Откройте страницу входа и введите этот код. Код действует 15 минут.",
+            "Open the sign-in page and enter this code. The code expires in 15 minutes."), TextWrapping = TextWrapping.Wrap });
+        var codeBox = new TextBox { Text = code, IsReadOnly = true, FontSize = 24, Margin = new Thickness(0, 12, 0, 12) };
+        AutomationProperties.SetName(codeBox, UiText.T("Код входа", "Sign-in code"));
+        panel.Children.Add(codeBox);
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+        var copy = new Button { Content = UiText.T("Копировать код", "Copy code"), Padding = new Thickness(10, 6, 10, 6) };
+        copy.Click += (_, _) =>
+        {
+            try { Clipboard.SetText(code); }
+            catch (Exception) { codeBox.Focus(); codeBox.SelectAll(); }
+        };
+        var open = new Button { Content = UiText.T("Открыть браузер", "Open browser"), Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(8, 0, 0, 0) };
+        open.Click += (_, _) =>
+        {
+            try { openBrowser(url); }
+            catch (Exception) { MessageBox.Show(dialog, url.AbsoluteUri, UiText.T("Откройте страницу вручную", "Open the page manually")); }
+        };
+        var stop = new Button { Content = UiText.T("Отмена", "Cancel"), Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(8, 0, 0, 0), IsCancel = true };
+        stop.Click += (_, _) => dialog.Close();
+        buttons.Children.Add(copy);
+        buttons.Children.Add(open);
+        buttons.Children.Add(stop);
+        panel.Children.Add(buttons);
+        dialog.Content = panel;
+        dialog.Closed += (_, _) => cancel();
+        return dialog;
     }
 
     private async Task AddAccountAsync()

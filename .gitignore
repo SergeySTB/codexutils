@@ -10,6 +10,8 @@ releases/
 .tmp/
 config.json
 auth.json
+codex-auth.dat
+codex-auth.dat.*.tmp
 *.user
 *.suo
 *.userosscache

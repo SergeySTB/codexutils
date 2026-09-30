@@ -67,7 +67,6 @@ public sealed record WidgetSettings
 
 public sealed record Settings
 {
-    public string CodexExecutable { get; init; } = "";
     public AccountSettings[] Accounts { get; init; } =
     [
         new(UiText.T("Личный", "Personal"), "%LOCALAPPDATA%/AIUsageMonitor/profiles/personal")
@@ -88,6 +87,8 @@ public sealed record Settings
     public static Settings Load(string path)
     {
         var document = JsonNode.Parse(File.ReadAllText(path), documentOptions: new() { CommentHandling = JsonCommentHandling.Skip });
+        // Accept old configurations without retaining a dependency on Codex CLI.
+        if (document is JsonObject legacy) legacy.Remove("codexExecutable");
         if (document is JsonObject root && root["widget"] is JsonObject widget)
         {
             // Rename legacy dimensions in memory; explicit new names take precedence.
@@ -138,7 +139,6 @@ public sealed record Settings
             throw new InvalidDataException(UiText.T("Проверьте widget: displayMode icons/cards, иконки и карточки 64×32–4096×2160 (0 — авто только для карточек), marginPx от -4096 до 100000, offsetPx от 0 до 100000, edge: top/bottom/left/right.", "Check widget: displayMode icons/cards, icon and card sizes 64×32–4096×2160 (0 means auto for cards only), marginPx -4096 to 100000, offsetPx 0 to 100000, edge top/bottom/left/right."));
         if (RefreshSeconds < 30 || RefreshSeconds > 3600)
             throw new InvalidDataException(UiText.T("refreshSeconds должен быть от 30 до 3600.", "refreshSeconds must be between 30 and 3600."));
-        if (CodexExecutable is null) throw new InvalidDataException(UiText.T("codexExecutable должен быть строкой.", "codexExecutable must be a string."));
         return this with { Accounts = accounts };
     }
 
@@ -321,20 +321,4 @@ public sealed record Settings
         return Path.TrimEndingDirectorySeparator(Path.GetFullPath(expanded));
     }
 
-    public string FindCodex()
-    {
-        if (!string.IsNullOrWhiteSpace(CodexExecutable))
-        {
-            var path = ExpandPath(CodexExecutable);
-            if (!File.Exists(path) || !path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                throw new FileNotFoundException(UiText.T("codexExecutable должен указывать на существующий codex.exe.", "codexExecutable must point to an existing codex.exe."));
-            return path;
-        }
-        var candidates = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
-            .Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => Path.Combine(p.Trim('"'), "codex.exe"))
-            .Prepend(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Programs", "OpenAI", "Codex", "bin", "codex.exe"));
-        return candidates.FirstOrDefault(File.Exists)
-            ?? throw new FileNotFoundException(UiText.T("Codex не найден. Укажите полный путь к codex.exe в codexExecutable.", "Codex was not found. Set codexExecutable to the full path of codex.exe."));
-    }
 }
