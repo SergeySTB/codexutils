@@ -163,7 +163,7 @@ final class WidgetRenderer {
         paint.setColor(TEXT);
         paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         Drawable logo = context.getDrawable(account.provider.equals("claude")
-            ? R.drawable.provider_claude : R.drawable.provider_openai);
+            ? R.drawable.provider_claude : R.drawable.provider_codex);
         int logoSize = Math.round(12 * density * scale);
         int logoLeft = Math.round(center - logoSize / 2f);
         int logoTop = Math.round(center - 15 * density * scale);

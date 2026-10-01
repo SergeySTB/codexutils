@@ -246,7 +246,7 @@ public sealed class WidgetWindow : Window
             label.Children.Add(new Image
             {
                 Source = new BitmapImage(new Uri("pack://application:,,,/AIUsageMonitor;component/Assets/provider_" +
-                    (account.Config.Provider == "claude" ? "claude" : "openai") + ".png")),
+                    (account.Config.Provider == "claude" ? "claude" : "codex") + ".png")),
                 Width = 12, Height = 12, HorizontalAlignment = HorizontalAlignment.Center
             });
             label.Children.Add(new TextBlock { Text = StringInfo.GetNextTextElement(account.Config.Name.Trim()).ToUpperInvariant(),

@@ -10,20 +10,57 @@ using AIUsageMonitor;
 
 internal static class WidgetChecks
 {
-    public static void Run(string outputDirectory, bool layoutOnly = false, bool dragOnly = false, bool proxyOnly = false)
+    public static void Run(string outputDirectory, bool layoutOnly = false, bool dragOnly = false, bool proxyOnly = false, bool iconsOnly = false)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
         {
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             var originalCursor = new ScreenPoint();
-            if (!layoutOnly && !proxyOnly) GetCursorPos(out originalCursor);
+            if (!layoutOnly && !proxyOnly && !iconsOnly) GetCursorPos(out originalCursor);
             app.Startup += async (_, _) =>
             {
                 WidgetWindow? window = null;
                 try
                 {
                     Directory.CreateDirectory(outputDirectory);
+                    if (iconsOnly)
+                    {
+                        foreach (int width in new[] { 88, 264 })
+                        {
+                            var iconSettings = new Settings
+                            {
+                                Accounts = [new("Личный", Path.GetFullPath(Path.Combine(outputDirectory, "codex"))),
+                                    new("Рабочий", Provider: "claude", ClaudeConfigDir: Path.GetFullPath(Path.Combine(outputDirectory, "claude")))],
+                                Widget = new() { IconWidthPx = width, IconHeightPx = width / 2 }
+                            }.Validate();
+                            window = new WidgetWindow(Path.Combine(outputDirectory, "unused.json"), iconSettings, demo: true);
+                            window.Show();
+                            await Until(() => window.IsLoaded, "provider icon preview loaded");
+                            window.UpdateLayout();
+                            var strip = (StackPanel)((Viewbox)((Border)window.Content).Child).Child;
+                            int index = 0;
+                            foreach (Button account in strip.Children)
+                            {
+                                var grid = (Grid)account.Content;
+                                var image = grid.Children.OfType<StackPanel>().Single().Children.OfType<Image>().Single();
+                                string expected = index++ == 0 ? "provider_codex.png" : "provider_claude.png";
+                                var source = (BitmapImage)image.Source;
+                                Require(source.UriSource.ToString().EndsWith(expected), "selected graphic stays with its provider");
+                                var pixels = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
+                                byte[] corner = new byte[4];
+                                pixels.CopyPixels(new Int32Rect(0, 0, 1, 1), corner, 4, 0);
+                                Require(corner[3] == 0, "provider icon background is transparent");
+                                Require(grid.Children.OfType<System.Windows.Shapes.Path>().Count() == 4,
+                                    "both limit rings remain visible");
+                            }
+                            Save(window, Path.Combine(outputDirectory, width == 88 ? "widget-icons.png" : "provider-icons.png"));
+                            window.Close();
+                            window = null;
+                        }
+                        Console.WriteLine("PASS: Codex and Claude graphics, transparency and both rings at normal and enlarged sizes.");
+                        return;
+                    }
                     if (proxyOnly)
                     {
                         string config = Path.GetFullPath(Path.Combine(outputDirectory, "proxy-menu.json"));
@@ -155,7 +192,7 @@ internal static class WidgetChecks
                 finally
                 {
                     window?.Close();
-                    if (!layoutOnly && !proxyOnly) SetCursorPos(originalCursor.X, originalCursor.Y);
+                    if (!layoutOnly && !proxyOnly && !iconsOnly) SetCursorPos(originalCursor.X, originalCursor.Y);
                     app.Shutdown();
                 }
             };

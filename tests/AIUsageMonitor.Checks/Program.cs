@@ -5,9 +5,9 @@ using AIUsageMonitor;
 
 System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("ru-RU");
 
-if (args.Length == 2 && args[0] is "--widget" or "--layout" or "--drag" or "--proxy")
+if (args.Length == 2 && args[0] is "--widget" or "--layout" or "--drag" or "--proxy" or "--icons")
 {
-    try { WidgetChecks.Run(args[1], layoutOnly: args[0] == "--layout", dragOnly: args[0] == "--drag", proxyOnly: args[0] == "--proxy"); }
+    try { WidgetChecks.Run(args[1], layoutOnly: args[0] == "--layout", dragOnly: args[0] == "--drag", proxyOnly: args[0] == "--proxy", iconsOnly: args[0] == "--icons"); }
     catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; }
     return;
 }
