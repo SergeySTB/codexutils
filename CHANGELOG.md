@@ -1,207 +1,206 @@
-# История релизов
+# Changelog
 
-В этом файле перечислены заметные для пользователей изменения AI Usage Monitor.
-Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
+This file lists notable user-facing changes to AI Usage Monitor.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
 ## [6.8] — 2026-09-30
 
-### Добавлено
+### Added
 
-- Windows: на первом экране установщика добавлен флажок автозапуска при входе
-  для всех пользователей. Снятый флажок отключает автозапуск при обновлении,
-  а удаление приложения убирает запись автозапуска.
+- Windows: the installer's first screen now includes a startup checkbox for all
+  users. Clearing it disables startup during an update; uninstalling the app
+  removes the startup entry.
 
 ## [6.7] — 2026-09-28
 
-### Исправлено
+### Fixed
 
-- Android: кольца значков занимают максимум доступной ширины и высоты. Два
-  аккаунта помещаются в двух ячейках; при расширении виджета три помещаются
-  в трёх ячейках, четыре — в четырёх.
+- Android: icon rings use the maximum available width and height. Two accounts
+  fit in two cells; expanding the widget allows three accounts in three cells
+  or four in four cells.
 
 ## [6.6] — 2026-09-28
 
-### Добавлено
+### Added
 
-- Карточки аккаунтов показывают кнопку повторной авторизации при ошибке входа.
-  Windows запускает повторный вход в браузере для Codex и Claude Code для
-  выбранной папки профиля; Android повторно авторизует выбранный аккаунт Codex
-  или обновляет токен Claude в его карточке.
+- Account cards show a sign-in recovery button after an authentication error.
+  Windows starts browser sign-in for Codex or Claude Code for the selected
+  profile folder; Android signs the selected Codex account in again or updates
+  the Claude token on its card.
 
-### Исправлено
+### Fixed
 
-- Android: уменьшены кольца виджета значков, чтобы два аккаунта помещались
-  в ширину двух ячеек главного экрана.
+- Android: reduced icon widget ring sizes so two accounts fit within two home
+  screen cells.
 
 ## [6.1] — 2026-09-23
 
-### Добавлено
+### Added
 
-- В Windows меню панели и трея позволяет добавить аккаунт Codex или Claude,
-  указать его название и папку профиля, а также убрать аккаунт из приложения.
-  После удаления данные входа в папке профиля остаются на диске.
-- Пустая панель Windows показывает кнопку добавления аккаунта.
+- The Windows panel and tray menus allow adding a Codex or Claude account with
+  a name and profile folder, and removing an account from the app. Removing an
+  account leaves its sign-in data in the profile folder on disk.
+- An empty Windows panel shows an add-account button.
 
-### Исправлено
+### Fixed
 
-- Установщик Windows сохраняет пустой список аккаунтов при обновлении.
+- The Windows installer preserves an empty account list during updates.
 
 ## [6.0] — 2026-09-23
 
-### Добавлено
+### Added
 
-- Общая версия Windows и Android: `6.0`. Оба приложения отслеживают 5-часовой и
-  недельный лимиты Claude Code наряду с Codex.
-- Значки показывают логотип OpenAI или Claude и букву аккаунта внутри прежних колец лимитов;
-  карточки явно называют провайдера.
-- Windows читает вход из профиля Claude Code. Android принимает OAuth-токен Claude
-  и хранит его в зашифрованном хранилище телефона.
+- Shared Windows and Android version: `6.0`. Both apps track Claude Code's
+  5-hour and weekly limits alongside Codex.
+- Icons show the OpenAI or Claude logo and account initial inside the existing
+  usage limit rings; cards explicitly name the provider.
+- Windows reads sign-in data from a Claude Code profile. Android accepts a
+  Claude OAuth token and stores it in encrypted phone storage.
 
 ## [5.3] — 2026-09-22
 
-### Добавлено
+### Added
 
-- Android 5.2: действия с главного экрана перенесены в меню справа вверху;
-  удаление аккаунта выбирается там же и по-прежнему требует подтверждения.
-  Увеличены значки виджета, добавлен счётчик скрытых аккаунтов и предпросмотр
-  обоих виджетов в меню добавления; пустой экран подсказывает, где добавить аккаунт.
-- Android 5.1: экран настроек с выбором частоты фонового обновления виджетов
-  от 15 минут до 24 часов; по умолчанию — 30 минут.
-- Android 5.0: два виджета главного экрана — строка значков с дугами лимитов и
-  прокручиваемые карточки аккаунтов. Лимиты сохраняются для виджетов и обновляются
-  в фоне примерно раз в 30 минут, с учётом ограничений Android.
+- Android 5.2: main screen actions moved to the top-right menu; account removal
+  is also selected there and still requires confirmation. Enlarged widget icons,
+  added a hidden-account counter and previews of both widgets in the add-widget
+  menu; the empty screen indicates where to add an account.
+- Android 5.1: a settings screen for choosing the background widget refresh
+  interval from 15 minutes to 24 hours, with a default of 30 minutes.
+- Android 5.0: two home screen widgets — a row of icons with usage limit arcs
+  and scrollable account cards. Limits are saved for widgets and refreshed in
+  the background approximately every 30 minutes, subject to Android restrictions.
 
-### Исправлено
+### Fixed
 
-- Android 5.3: индикаторы в виджете значков подстраиваются под его высоту;
-  фон вокруг кругов полупрозрачный, а внутри кругов — непрозрачный.
+- Android 5.3: indicators in the icon widget adapt to its height; the background
+  around the circles is translucent, while the inside of the circles is opaque.
 
 ## [4.4] — 2026-09-22
 
-### Добавлено
+### Added
 
-- Исходный проект самостоятельного Android-приложения с входом по коду устройства,
-  несколькими аккаунтами и просмотром 5-часового и недельного лимитов Codex.
+- Initial standalone Android app project with device code sign-in, multiple
+  accounts and a view of Codex's 5-hour and weekly limits.
 
-### Исправлено
+### Fixed
 
-- Android-вход может получить идентификатор аккаунта из access-токена, если его
-  нет в ID-токене; при неудаче показывает этап ошибки вместо общего сообщения.
-- Android-вход различает сбой ожидания подтверждения и обмена кода на токены;
-  короткие запросы ожидания не используют потоковый режим отправки.
-- Android-вход не прерывается при временной ошибке DNS во время ожидания
-  подтверждения кода: опрос продолжается до истечения срока кода.
-- Android-приложение показывает лимиты из основного ответа Codex, в том числе
-  если сервис вернул только недельное окно.
+- Android sign-in can obtain the account identifier from the access token if
+  it is missing from the ID token; failures show the stage instead of a generic message.
+- Android sign-in distinguishes failures while waiting for confirmation from
+  failures during token exchange; short polling requests do not use streaming upload mode.
+- Android sign-in continues after a temporary DNS error while waiting for code
+  confirmation: polling continues until the code expires.
+- The Android app displays limits from the main Codex response, including when
+  the service returns only the weekly window.
 
 ## [3.2] — 2026-09-21
 
-### Добавлено
+### Added
 
-- Перетаскивание панели иконок и карточек мышью с сохранением монитора и позиции
-  в конфигурации для следующего запуска.
+- Dragging the icon panel and cards with the mouse saves the monitor and position
+  in the configuration for the next launch.
 
-### Исправлено
+### Fixed
 
-- Изменение режима через меню сохраняет комментарии и корректно добавляет
-  отсутствующий параметр `displayMode` в конфигурацию.
+- Changing display mode through the menu preserves comments and correctly adds
+  a missing `displayMode` setting to the configuration.
 
 ## [3.1] — 2026-09-18
 
-### Добавлено
+### Added
 
-- Переключение между иконками и карточками в меню виджета и значка в трее.
+- Switching between icons and cards in the widget and tray icon menus.
 
-### Исправлено
+### Fixed
 
-- Карточки принимают компактные размеры, включая 200×200 пикселей.
+- Cards accept compact sizes, including 200×200 pixels.
 
 ## [3.0] — 2026-09-18
 
-### Изменено
+### Changed
 
-- Пользовательское название приложения, установщика, меню «Пуск» и списка
-  установленных программ изменено на AI Usage Monitor.
-- Каталоги исходников и тестов, solution, namespace, EXE и внутренние
-  идентификаторы переименованы в AIUsageMonitor. Существующая конфигурация и
-  пути профилей продолжают использоваться при обновлении.
+- The user-facing name of the app, installer, Start menu entry and installed
+  programs entry changed to AI Usage Monitor.
+- Source and test directories, solution, namespace, EXE and internal identifiers
+  renamed to AIUsageMonitor. Existing configuration and profile paths continue
+  to be used during updates.
 
-### Исправлено
+### Fixed
 
-- В итоговом окне установки убраны технические детали; заголовок содержит
-  название приложения и версию.
+- Removed technical details from the installation completion window; its title
+  contains the app name and version.
 
 ## [2.0] — 2026-09-18
 
-### Добавлено
+### Added
 
-- Режим постоянно открытых карточек всех аккаунтов: строка сверху/снизу,
-  столбец слева/справа; переключается через `widget.displayMode`.
-- Отдельные размеры каждой карточки `cardWidthPx` и `cardHeightPx`, автоматический
-  размер при значении `0` и прокрутка при нехватке места.
+- Always-visible cards for all accounts: a row along the top/bottom edge or a
+  column along the left/right edge, selected with `widget.displayMode`.
+- Independent card dimensions through `cardWidthPx` and `cardHeightPx`, automatic
+  sizing when set to `0`, and scrolling when space is insufficient.
 
-### Изменено
+### Changed
 
-- Размеры компактной панели переименованы в `iconWidthPx` и `iconHeightPx` и
-  применяются только в режиме иконок. Старые настройки переносятся автоматически.
+- Compact panel dimensions renamed to `iconWidthPx` and `iconHeightPx` and apply
+  only in icon mode. Old settings are migrated automatically.
 
-### Исправлено
+### Fixed
 
-- Установщик запускается без CMD и консоли PowerShell. Итоговое окно больше не
-  скрывается вместе с консолью, оставляя установку в ожидании невидимой кнопки.
+- The installer starts without CMD or a PowerShell console. The completion
+  window no longer hides with the console, leaving installation waiting for
+  an invisible button.
 
 ## [1.3] — 2026-09-18
 
-### Добавлено
+### Added
 
-- Количество аккаунтов определяется массивом `accounts`; по умолчанию создаётся
-  один аккаунт, а английский комментарий в конфигурации содержит пример второго.
-- Итоговое окно установки со статусом, подробностями ошибки и флажком запуска
-  приложения после успешной установки.
+- Account count is determined by the `accounts` array; one account is created
+  by default, and an English configuration comment contains a second-account example.
+- Installation completion window with status, error details and a checkbox to
+  launch the app after successful installation.
 
-### Исправлено
+### Fixed
 
-- Установка, обновление конфигурации и удаление выполняются без видимых
-  терминалов.
-- Установщик закрывает работающий виджет и дожидается его завершения перед
-  обновлением файлов; при неудаче установка прекращается с ошибкой.
-- Ожидание завершения установки больше не включает время работы запущенного
-  после установки виджета.
+- Installation, configuration updates and uninstallation run without visible terminals.
+- The installer closes the running widget and waits for it to exit before
+  updating files; installation stops with an error if this fails.
+- Waiting for installation to finish no longer includes the running time of
+  the widget launched after installation.
 
 ## [1.2] — 2026-09-18
 
-### Исправлено
+### Fixed
 
-- Установщик устанавливает приложение в `Program Files`, регистрирует его в
-  списке установленных программ и создаёт удаление через стандартные средства Windows.
-- Обновление конфигурации надёжнее сохраняет прежние настройки и резервную копию.
-- Установщик находит `codex.exe` в установке Codex Desktop, PATH или глобальном
-  npm-пакете и записывает путь в пустое поле `codexExecutable`.
+- The installer installs the app in `Program Files`, registers it in the
+  installed programs list and provides uninstallation through standard Windows tools.
+- Configuration updates preserve previous settings and a backup more reliably.
+- The installer finds `codex.exe` in the Codex Desktop installation, PATH or
+  global npm package and writes its path to an empty `codexExecutable` field.
 
 ## [1.1] — 2026-09-17
 
-### Добавлено
+### Added
 
-- Иконка приложения и установщика.
-- Автоматическая сборка установщика и публикация артефакта в GitHub Releases.
+- App and installer icon.
+- Automatic installer builds and artifact publication in GitHub Releases.
 
-### Изменено
+### Changed
 
-- Исходный код, тесты, конфигурация и сценарии упаковки разложены по стандартным
-  каталогам `src`, `tests`, `config` и `packaging`.
+- Source code, tests, configuration and packaging scripts organized into the
+  standard `src`, `tests`, `config` and `packaging` directories.
 
 ## [1.0] — 2026-09-17
 
-### Добавлено
+### Added
 
-- Виджет Windows 11 для двух аккаунтов Codex с индикаторами 5-часового и
-  недельного лимитов.
-- Настройка размера, положения и отступа виджета через JSON-конфигурацию.
-- Всплывающая информация по каждому аккаунту и ручное обновление данных.
-- Необязательное звуковое уведомление о сбросе лимита.
-- Миграция существующей конфигурации при установке с резервной копией исходного файла.
+- Windows 11 widget for two Codex accounts with 5-hour and weekly limit indicators.
+- Widget size, position and margin settings through JSON configuration.
+- Account detail popups and manual refresh.
+- Optional sound notification when a limit resets.
+- Existing configuration migration during installation with a backup of the original file.
 
 [Unreleased]: https://github.com/SergeySTB/codexutils/compare/v6.1...HEAD
 [6.1]: https://github.com/SergeySTB/codexutils/releases/tag/v6.1

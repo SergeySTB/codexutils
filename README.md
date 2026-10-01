@@ -1,291 +1,294 @@
+<p align="right"><strong>English</strong> | <a href="README.ru.md">Русский</a></p>
+
 # AI Usage Monitor
 
-Приложение для Windows 11 и Android показывает остаток лимитов Codex и Claude
-для нескольких аккаунтов. Внешнее бирюзовое кольцо показывает остаток за 5 часов,
-внутреннее фиолетовое — за неделю. В центре значка показаны графическое обозначение продукта
-и первая буква аккаунта.
+A Windows 11 and Android app that shows the remaining Codex and Claude usage limits
+for multiple accounts. The outer turquoise ring shows the remaining 5-hour limit;
+the inner purple ring shows the remaining weekly limit. Each icon contains a
+product symbol and the first letter of the account name.
 
-Интерфейс установщика Windows и приложений Windows/Android автоматически использует
-язык системы: русский или английский. Для других языков используется английский.
-В меню приложения на Windows и Android можно выбрать **Язык системы**, **Русский**
-или **English**. Выбор сохраняется и применяется без переустановки; язык установщика
-Windows всегда следует языку системы.
-Названия уже добавленных аккаунтов сохраняются как пользовательские данные.
+The Windows installer and Windows/Android apps automatically use the system
+language: Russian or English. Other system languages fall back to English.
+In the Windows and Android app menus, you can choose **System language**, **Русский**
+or **English**. Your choice is saved and applied without reinstalling; the Windows
+installer always follows the system language.
+Existing account names are preserved as user data.
 
-В Windows компактная панель показывает по одной круглой иконке на аккаунт.
-При наведении открывается карточка с тарифом, процентами, временем сброса и
-последнего обновления.
-Панель можно закрепить у любого края монитора с размером и смещением в физических
-пикселях.
+On Windows, the compact panel shows one circular icon per account. Hover over an
+icon to see a card with the plan, percentages, reset times and last update time.
+You can position the panel along any monitor edge, with its size and offset set
+in physical pixels.
 
-Режим `cards` показывает подробности всех аккаунтов постоянно, без иконок:
-у верхнего и нижнего края — в строку, у левого и правого — в столбец.
-Размер каждой карточки можно задать отдельно от размера компактной панели.
+The `cards` mode keeps all account details visible, without icons: a row along
+the top or bottom edge, or a column along the left or right edge. Each card's
+size can be set independently of the compact panel size.
 
-![Значки Codex и Claude: собственный графический символ, буква аккаунта и два кольца лимитов](docs/images/provider-icons.png)
+![Codex and Claude icons: custom product symbol, account initial and two usage limit rings](docs/images/provider-icons.png)
 
-На увеличенном примере квадратное переплетение с `Л` обозначает личный Codex, лучистый символ
-с `Р` — рабочий Claude.
-Бирюзовое кольцо — остаток за 5 часов, фиолетовое — за неделю. Пример содержит
-демонстрационные данные; реальные проценты зависят от аккаунта.
-Это созданные для приложения графические обозначения, а не официальные логотипы.
-Приложение не связано с OpenAI или Anthropic и не одобрено ими.
-Происхождение графики описано в [заметке](docs/brand-icons.md).
+In this enlarged example, the square interwoven symbol with `Л` represents a
+personal Codex account, and the ray symbol with `Р` represents a work Claude account.
+The turquoise ring shows the remaining 5-hour limit; the purple ring shows the
+remaining weekly limit. The example uses demo data; actual percentages depend on
+the account. These graphics were created for this app and are not official logos.
+The app is not affiliated with or endorsed by OpenAI or Anthropic.
+The origin of the graphics is described in [this note](docs/brand-icons.md).
 
-![Карточка одного аккаунта при наведении](docs/images/account-details.png)
+![Account details on hover](docs/images/account-details.png)
 
-![Постоянно открытые карточки аккаунтов](docs/images/account-cards.png)
+![Always-visible account cards](docs/images/account-cards.png)
 
 ## Windows
 
 [![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.11/AIUsageMonitor-Setup_v6.11.exe)
 
-Сначала установщик предложит начать установку или отменить её. После нажатия
-«Установить» он запросит права администратора, установит приложение в
-`C:\Program Files\AI Usage Monitor` и добавит ярлык в меню «Пуск».
-На первом экране можно оставить включённым флажок **Запускать при входе в Windows**
-(для всех пользователей) или снять его. При обновлении снятый флажок отключает
-ранее включённый автозапуск; при удалении приложения запись тоже удаляется.
-На экране завершения можно сразу запустить приложение.
-Настройки сохраняются при обновлении и удалении приложения. Другие версии
-доступны на [странице релизов](https://github.com/SergeySTB/codexutils/releases).
+The installer first lets you start or cancel installation. After you click
+**Install**, it requests administrator privileges, installs the app in
+`C:\Program Files\AI Usage Monitor` and adds a Start menu shortcut.
+On the first screen, you can keep **Start when signing in to Windows** enabled
+(for all users) or clear it. Clearing this option during an update disables
+previously enabled startup; uninstalling also removes the startup entry.
+You can launch the app from the completion screen.
+Settings are preserved during updates and uninstallation. Other versions are
+available on the [releases page](https://github.com/SergeySTB/codexutils/releases).
 
 ## Android
 
 [![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.11/AIUsageMonitor-Android_v6.11-debug.apk)
 
-Приложение работает на Android 8 и новее без компьютера после настройки аккаунтов.
-Для Codex войдите через ChatGPT по коду устройства. Для Claude выполните
-`claude setup-token` на компьютере, затем выберите **Добавить Claude** в меню
-телефона и введите название аккаунта и полученный OAuth-токен. Токен хранится
-в зашифрованном хранилище Android. Приложение не продлевает его; при истечении
-получите новый токен и нажмите **Обновить вход** на карточке аккаунта. Можно добавить
-несколько аккаунтов. Для каждого показаны оставшиеся проценты и время сброса
-5-часового и недельного лимитов. Если сервис не вернул лимит, вместо процента
-отображается `—`. Пока приложение открыто, Codex обновляется каждую минуту,
-Claude — не чаще раза в пять минут.
-Если срок входа Codex истёк, карточка показывает **Войти снова**. Кнопка
-запускает вход по коду для этого аккаунта; вход в другой аккаунт не заменит его.
+The app runs on Android 8 and later without a computer once accounts are set up.
+For Codex, sign in through ChatGPT using a device code. For Claude, run
+`claude setup-token` on a computer, then choose **Add Claude** in the phone app menu
+and enter an account name and the resulting OAuth token. The token is stored in
+encrypted Android storage. The app does not renew it; when it expires, obtain a
+new token and tap **Update sign-in** on the account card. You can add multiple
+accounts. Each shows the remaining percentages and reset times for its 5-hour
+and weekly limits. If the service does not return a limit, `—` appears instead
+of a percentage. While the app is open, Codex refreshes every minute, and Claude
+refreshes no more than once every five minutes.
+If a Codex sign-in expires, the card shows **Sign in again**. This starts device
+code sign-in for that account; signing in to another account does not replace it.
 
-Через меню виджетов Android на главный экран можно добавить **значки** с кольцами
-лимитов или **карточки** со списком аккаунтов. Виджет значков занимает по
-умолчанию две ячейки. Диаметр колец использует доступную ширину и высоту: два
-значка помещаются в двух ячейках; при расширении виджета три помещаются в трёх,
-четыре — в четырёх. Если места не хватает, появляется `+N`. Фон вокруг кругов
-полупрозрачный.
-Нажатие на любой виджет открывает приложение.
+From the Android widget menu, you can add **icons** with usage limit rings or
+**cards** with an account list to your home screen. The icon widget occupies two
+cells by default. Ring diameter adapts to the available width and height: two
+icons fit in two cells; expanding the widget allows three icons in three cells
+or four in four cells. If space is insufficient, `+N` appears. The background
+around the circles is translucent.
+Tapping either widget opens the app.
 
-В меню приложения доступны **Добавить Codex**, **Добавить Claude**, **Обновить**, **Настройки** и
-**Убрать аккаунт**. Перед удалением приложение попросит выбрать аккаунт и
-подтвердить действие. Частота обновления виджетов задаётся в разделе
-**Настройки → Частота обновления виджетов**: от 15 минут до 24 часов, по умолчанию
-30 минут. Android может задерживать фоновое обновление для экономии батареи.
-Отдельные квоты моделей не подставляются вместо основного лимита Codex или Claude.
-Для Claude запросы ограничены интервалом не менее пяти минут; после ответа 429
-приложение ждёт 15 минут. Endpoint лимитов Claude не является опубликованным API
-для сторонних приложений и может изменить поведение.
+The app menu offers **Add Codex**, **Add Claude**, **Refresh**, **Settings** and
+**Remove account**. Before removing an account, the app asks you to select it
+and confirm. Set the widget refresh interval under **Settings → Widget refresh
+interval**: from 15 minutes to 24 hours, with a default of 30 minutes. Android may
+delay background updates to save battery.
+Individual model quotas are not used as a replacement for the main Codex or
+Claude limit. Claude requests are spaced at least five minutes apart; after a
+429 response, the app waits 15 minutes. The Claude usage endpoint is not a
+published API for third-party apps and its behavior may change.
 
-При входе нужно разрешить [вход по коду устройства](https://developers.openai.com/codex/auth)
-в настройках безопасности ChatGPT, если он отключён. Данные входа хранятся только
-в зашифрованном хранилище приложения Android; профили Windows не копируются.
-Удаление аккаунта также удаляет его данные входа с телефона.
-Если вход не завершился, приложение показывает этап и тип ошибки без вывода кодов и токенов.
+If disabled, enable [device code sign-in](https://developers.openai.com/codex/auth)
+in ChatGPT security settings. Sign-in data is stored only in the Android app's
+encrypted storage; Windows profiles are not copied.
+Removing an account also removes its sign-in data from the phone.
+If sign-in fails, the app shows the stage and error type without exposing codes
+or tokens.
 
-Android APK — предварительная сборка с отладочной подписью. Получение лимитов
-зависит от сервиса Codex, интерфейс которого может измениться.
+The Android APK is a preview build with a debug signature. Usage retrieval depends
+on the Codex service, whose interface may change.
 
-Для локальной сборки откройте каталог `android` в Android Studio и соберите
-`app` как debug APK либо задайте `ANDROID_HOME` и запустите
+To build locally, open the `android` directory in Android Studio and build `app`
+as a debug APK, or set `ANDROID_HOME` and run
 `powershell -NoProfile -ExecutionPolicy Bypass -File android/build.ps1`.
-Нужны Android SDK Platform 35, Build Tools 35 и JDK 17 или новее. Скрипт создаёт
-APK в `dist/AIUsageMonitor-Android_v<major>.<minor>-debug.apk`.
+You need Android SDK Platform 35, Build Tools 35 and JDK 17 or later. The script
+creates `dist/AIUsageMonitor-Android_v<major>.<minor>-debug.apk`.
 
-## Использование Windows
+## Using the Windows app
 
-Требуются Windows 11 и .NET Desktop Runtime 8 (x64 для приложенной x64-сборки).
-Для Codex CLI не требуется: приложение входит через ChatGPT и получает лимиты напрямую, как Android. Для Claude нужен вход через Claude Code.
+Requires Windows 11 and .NET Desktop Runtime 8 (x64 for the provided x64 build).
+Codex CLI is not required: the app signs in through ChatGPT and fetches limits
+directly, as on Android. Claude requires signing in through Claude Code.
 
-1. Запустите скачанный файл установщика и подтвердите права администратора.
-2. В итоговом окне оставьте включённым флажок запуска, если хотите открыть виджет
-   сразу, затем нажмите **Закрыть**.
-3. По умолчанию в конфигурации один аккаунт Codex. Нажмите его иконку (**квадратное переплетение / Л**) и
-   завершите вход в браузере через ChatGPT.
-4. В меню панели или трея выберите **Добавить аккаунт**, затем провайдера, название
-   и отдельную папку профиля. Для Codex после добавления откроется вход через ChatGPT.
-   Одновременно запускается только одна процедура входа; лимиты аккаунтов
-   обновляются независимо. Чтобы убрать аккаунт из приложения, выберите его в
-   подменю **Убрать аккаунт** и подтвердите действие. Папка профиля и данные входа
-   на диске сохраняются.
-5. Наведите указатель на иконку для подробностей. Карточка раскрывается внутрь
-   экрана и скрывается, когда указатель покидает иконку. Её также можно открыть
-   клавиатурным фокусом и закрыть Escape. Правый клик по панели или
-   значку в трее открывает настройки, обновление и выход.
+1. Run the downloaded installer and approve administrator privileges.
+2. On the final screen, leave the launch option enabled if you want to open the
+   widget immediately, then click **Close**.
+3. The default configuration contains one Codex account. Click its icon
+   (**square interwoven symbol / Л**) and complete ChatGPT sign-in in your browser.
+4. In the panel or tray menu, choose **Add account**, then select the provider,
+   name and a separate profile folder. Adding a Codex account opens ChatGPT
+   sign-in. Only one sign-in process can run at a time; account limits refresh
+   independently. To remove an account from the app, select it under
+   **Remove account** and confirm. Its profile folder and sign-in data remain on disk.
+5. Hover over an icon for details. The card opens toward the inside of the screen
+   and hides when the pointer leaves the icon. You can also open it with keyboard
+   focus and close it with Escape. Right-click the panel or tray icon to access
+   settings, refresh and exit.
 
-Для Claude Code в окне добавления укажите папку профиля, например
-`%USERPROFILE%/.claude`. Войдите в Claude Code с `CLAUDE_CONFIG_DIR`, указывающим
-на эту папку, и обновите данные в приложении.
-Приложение читает `.credentials.json` только для получения токена и не меняет
-файл. Если токен истёк, откройте Claude Code для обновления входа. Для второго
-аккаунта используйте отдельную папку профиля Claude Code.
+For Claude Code, specify a profile folder in the add-account dialog, for example
+`%USERPROFILE%/.claude`. Sign in to Claude Code with `CLAUDE_CONFIG_DIR` pointing
+to that folder, then refresh the app.
+The app reads `.credentials.json` only to obtain the token and does not modify
+the file. If the token expires, open Claude Code to renew your sign-in. Use a
+separate Claude Code profile folder for a second account.
 
-Нажатие подключённого аккаунта показывает карточку, не запускает повторный вход.
-Для повторной авторизации используйте **Войти: ...** в контекстном меню.
-В режиме `cards` для первого входа есть кнопка **Войти через ChatGPT** в каждой
-неподключённой карточке; контекстное меню доступно правым кликом по карточкам.
-Если чтение лимитов сообщает об ошибке авторизации, карточка показывает
-**Войти снова** для Codex или **Обновить вход** для Claude. Для Codex кнопка
-открывает вход в браузере для выбранного профиля. Для Claude она запускает
-`claude auth login` с `CLAUDE_CONFIG_DIR` выбранного профиля; после завершения
-входа обновите лимиты через **Обновить сейчас** или дождитесь автообновления.
+Clicking a connected account shows its card without starting sign-in again.
+To sign in again, use **Sign in: ...** in the context menu.
+In `cards` mode, each disconnected card has a **Sign in with ChatGPT** button
+for initial sign-in; right-click the cards to access the context menu.
+If fetching limits reports an authentication error, the card shows
+**Sign in again** for Codex or **Update sign-in** for Claude. For Codex, the button
+opens browser sign-in for the selected profile. For Claude, it runs
+`claude auth login` with the selected profile's `CLAUDE_CONFIG_DIR`; after signing
+in, use **Refresh now** or wait for an automatic refresh.
 
-Если несколько профилей используют одинаковый email, их карточки показывают
-предупреждение. При первом запуске, пока вход не выполнен, `—`
-означает отсутствие данных, а не отсутствие расхода.
+If multiple profiles use the same email, their cards show a warning. On first
+launch, before signing in, `—` means no data is available, not zero usage.
 
-При входе в Codex приложение показывает код: скопируйте его, нажмите **Открыть браузер**
-и подтвердите вход на странице ChatGPT. Если сервис требует разрешить вход по коду,
-включите device code authentication в настройках безопасности ChatGPT. Окно входа
-можно отменить; время ожидания — 15 минут.
+When signing in to Codex, the app shows a code: copy it, click **Open browser**
+and confirm sign-in on the ChatGPT page. If the service requires device code
+sign-in to be enabled, turn on device code authentication in ChatGPT security
+settings. You can cancel the sign-in window; the timeout is 15 minutes.
 
-## Настройки Windows
+## Windows settings
 
-Настройки Windows хранятся в `%LOCALAPPDATA%\AIUsageMonitor\config.json`.
+Windows settings are stored in `%LOCALAPPDATA%\AIUsageMonitor\config.json`.
 
-Для подключения через proxy заполните `proxy.url` полным адресом вида
-`http://сервер:порт` или `https://сервер:порт`. По умолчанию адрес пустой,
-а `proxy.enabled` равен `false`. В существующую конфигурацию эти пустые настройки
-добавляются при запуске приложения.
-Пункт **Использовать proxy** в меню виджета и трея сохраняет переключатель в файле
-и сразу пересоздаёт подключения Codex и Claude. Сначала заполните адрес через
-**Открыть конфигурацию**, сохраните файл, затем включите proxy в меню.
-При выключенном proxy запросы приложения идут напрямую; системные proxy и
-переменные окружения proxy для этих подключений не используются.
-При включённом proxy запрос кода входа Codex, получение лимитов и обновление токенов
-идут через этот proxy. Настройки также передаются Claude Code для входа.
-Локальные адреса обходят proxy. Страница входа
-внешнего браузера использует настройки самого браузера.
-Адреса с логином и паролем и SOCKS в этой настройке не поддерживаются.
-Меню **Открыть конфигурацию** открывает файл в Блокноте; **Применить конфигурацию**
-перечитывает его без перезапуска. При ошибке JSON или некорректных параметрах
-приложение продолжает использовать предыдущие настройки. Применяйте изменения
-после завершения процедуры входа.
+To connect through a proxy, set `proxy.url` to a full address such as
+`http://server:port` or `https://server:port`. By default, the address is empty
+and `proxy.enabled` is `false`. These empty settings are added to existing
+configurations when the app starts.
+The **Use proxy** option in the widget and tray menus saves the toggle to the file
+and immediately recreates Codex and Claude connections. First enter the address
+using **Open configuration**, save the file, then enable the proxy in the menu.
+When the proxy is disabled, app requests connect directly; system proxies and
+proxy environment variables are not used for these connections.
+When enabled, Codex sign-in code requests, usage retrieval and token refreshes
+use this proxy. The settings are also passed to Claude Code for sign-in.
+Local addresses bypass the proxy. The sign-in page in your external browser
+uses the browser's own settings.
+Addresses containing a username and password, and SOCKS proxies, are not supported.
+**Open configuration** opens the file in Notepad; **Apply configuration** reloads
+it without restarting. If JSON or settings are invalid, the app keeps using the
+previous settings. Apply changes after the sign-in process has finished.
 
-Пример всех параметров находится в [config.example.json](config/config.example.json)
-и рядом с установленным приложением. Установщик сохраняет резервную копию
-существующего `config.json` рядом с файлом.
+An example of all settings is available in
+[config.example.json](config/config.example.json) and next to the installed app.
+The installer saves a backup of an existing `config.json` alongside the file.
 
-Имена свойств чувствительны к регистру, неизвестные свойства не допускаются.
-Допускаются комментарии `//` и `/* ... */`; поставляемый английский комментарий
-показывает пример второго аккаунта. `accounts` может быть пустым; в этом случае
-на панели показана кнопка добавления. Папки профилей должны быть уникальными
-внутри каждого провайдера.
-Для нескольких читаемых иконок задайте `widget.iconWidthPx` примерно по 50
-пикселей на аккаунт.
+Property names are case-sensitive; unknown properties are not allowed.
+Comments using `//` and `/* ... */` are supported; the supplied English comment
+shows an example of a second account. `accounts` may be empty, in which case the
+panel shows an add-account button. Profile folders must be unique within each
+provider.
+For multiple readable icons, set `widget.iconWidthPx` to approximately 50 pixels
+per account.
 
-| Параметр | Значение |
+| Setting | Value |
 |---|---|
-| `accounts[].name` | Подпись аккаунта, до 60 символов; её первая буква показана на значке Windows |
-| `accounts[].provider` | `codex` (по умолчанию для старых конфигураций) или `claude` |
-| `accounts[].codexHome` | Абсолютный путь к профилю Codex; только для `codex` |
-| `accounts[].claudeConfigDir` | Абсолютный путь к профилю Claude Code; только для `claude` |
-| `widget.displayMode` | `icons` — компактная панель с подсказками (по умолчанию); `cards` — постоянно открытые карточки всех аккаунтов |
-| `widget.iconWidthPx`, `widget.iconHeightPx` | Размер всей компактной панели иконок в физических пикселях: по умолчанию 88×44, от 64×32 до 4096×2160; игнорируется в режиме `cards` |
-| `widget.cardWidthPx`, `widget.cardHeightPx` | Размер каждой постоянно открытой карточки в физических пикселях: 64×32–4096×2160; `0` — автоматический размер по соответствующей оси (по умолчанию оба `0`); игнорируется в режиме `icons` |
+| `accounts[].name` | Account label, up to 60 characters; its first letter appears on the Windows icon |
+| `accounts[].provider` | `codex` (the default for older configurations) or `claude` |
+| `accounts[].codexHome` | Absolute path to the Codex profile; only for `codex` |
+| `accounts[].claudeConfigDir` | Absolute path to the Claude Code profile; only for `claude` |
+| `widget.displayMode` | `icons` — compact panel with detail popups (default); `cards` — always-visible cards for all accounts |
+| `widget.iconWidthPx`, `widget.iconHeightPx` | Size of the entire compact icon panel in physical pixels: default 88×44, from 64×32 to 4096×2160; ignored in `cards` mode |
+| `widget.cardWidthPx`, `widget.cardHeightPx` | Size of each always-visible card in physical pixels: 64×32–4096×2160; `0` means automatic sizing on that axis (both default to `0`); ignored in `icons` mode |
 | `widget.edge` | `top`, `bottom`, `left`, `right` |
-| `widget.offsetPx` | Для top/bottom — от левого края вправо; для left/right — от верхнего края вниз |
-| `widget.marginPx` | Отступ от выбранного края, от -4096 до 100000; положительный — внутрь, отрицательный — наружу (для bottom: вниз, поверх панели задач) |
-| `widget.monitor` | `primary` либо имя Windows, например `\\.\DISPLAY2` (в JSON: `"\\\\.\\DISPLAY2"`) |
-| `widget.alwaysOnTop` | Поверх обычных окон; не гарантируется поверх эксклюзивного полноэкранного режима |
-| `widget.respectTaskbar` | `true` — отсчёт от рабочей области без панели задач; `false` — от физических границ экрана |
-| `refreshSeconds` | Интервал обновления, от 30 до 3600 секунд, по умолчанию 60; для Claude минимум 300 секунд |
-| `notifyOnLimitReset` | `true` — воспроизвести короткие фанфары, когда при успешном обновлении лимит меняется с менее 100% на 100%; по умолчанию `false` |
-| `proxy.enabled` | Использовать указанный proxy для всех аккаунтов Windows; по умолчанию `false`; переключается в меню |
-| `proxy.url` | Полный адрес HTTP/HTTPS proxy без логина и пароля; по умолчанию пустая строка; обязателен при включении |
+| `widget.offsetPx` | For top/bottom: rightward from the left edge; for left/right: downward from the top edge |
+| `widget.marginPx` | Offset from the selected edge, from -4096 to 100000; positive means inward, negative means outward (for bottom: downward, over the taskbar) |
+| `widget.monitor` | `primary` or a Windows display name, such as `\\.\DISPLAY2` (in JSON: `"\\\\.\\DISPLAY2"`) |
+| `widget.alwaysOnTop` | Keep above normal windows; not guaranteed over exclusive fullscreen mode |
+| `widget.respectTaskbar` | `true` — position relative to the work area excluding the taskbar; `false` — relative to the physical screen bounds |
+| `refreshSeconds` | Refresh interval, from 30 to 3600 seconds, default 60; Claude uses a minimum of 300 seconds |
+| `notifyOnLimitReset` | `true` — play a short fanfare when a successful refresh changes a limit from below 100% to 100%; default `false` |
+| `proxy.enabled` | Use the specified proxy for all Windows accounts; default `false`; toggled in the menu |
+| `proxy.url` | Full HTTP/HTTPS proxy address without a username or password; empty by default; required when enabled |
 
-Положение ограничивается границами выбранного экрана. Если монитор отключён,
-приложение временно использует основной. При смене DPI и конфигурации экранов
-позиция пересчитывается. На всех четырёх краях настроенные иконки располагаются рядом.
-В режиме `icons` подсказка открывается под верхним краем, над нижним, справа от
-левого и слева от правого. В режиме `cards` аккаунты идут в порядке массива
-`accounts`: в строку для `top`/`bottom`, в столбец для `left`/`right`.
-Автоматическая ширина карточки — 302 логических пикселя с учётом масштаба Windows,
-автоматическая высота зависит от содержимого. Если заданной высоты не хватает,
-содержимое карточки прокручивается; если вся панель не помещается на экране,
-появляется прокрутка панели.
+Position is constrained to the selected screen's bounds. If that monitor is
+disconnected, the app temporarily uses the primary monitor. Position is
+recalculated when DPI or display configuration changes. Icons remain next to
+each other along all four edges.
+In `icons` mode, details open below the top edge, above the bottom edge, to the
+right of the left edge and to the left of the right edge. In `cards` mode,
+accounts follow the order in the `accounts` array: a row for `top`/`bottom`,
+or a column for `left`/`right`.
+Automatic card width is 302 logical pixels, adjusted for Windows scaling;
+automatic height depends on the content. If the configured height is too small,
+the card content scrolls; if the whole panel does not fit on screen, the panel
+becomes scrollable.
 
-Чтобы показать карточки, установите `widget.displayMode` в `"cards"` и нажмите
-**Применить конфигурацию**. Например, `cardWidthPx: 380` и `cardHeightPx: 400`
-задают каждой карточке размер 380×400 физических пикселей. Для автоматической
-высоты оставьте `cardHeightPx: 0`. Для возврата к иконкам выберите `"icons"`.
-Этот режим также можно переключить из контекстного меню виджета или его значка в трее.
+To show cards, set `widget.displayMode` to `"cards"` and click
+**Apply configuration**. For example, `cardWidthPx: 380` and `cardHeightPx: 400`
+give each card a size of 380×400 physical pixels. Leave `cardHeightPx: 0` for
+automatic height. To return to icons, choose `"icons"`.
+You can also switch modes from the widget or tray icon context menu.
 
-Панель иконок и карточки можно перетаскивать левой кнопкой мыши. У карточек тяните
-за фон или текст, кроме кнопки входа и полосы прокрутки. После отпускания кнопки
-монитор и позиция сохраняются в `monitor`, `offsetPx` и `marginPx` и восстанавливаются
-при следующем запуске. Перетаскивание устанавливает `respectTaskbar: false`, чтобы
-можно было расположить окно и поверх панели задач. Значение `edge` и ориентация
-карточек сохраняются. В режиме `--demo` перетаскивание не записывает конфигурацию.
+Drag the icon panel or cards with the left mouse button. For cards, drag the
+background or text, excluding the sign-in button and scrollbar. When you release
+the button, the monitor and position are saved in `monitor`, `offsetPx` and
+`marginPx` and restored on the next launch. Dragging sets `respectTaskbar: false`
+so the window can also be placed over the taskbar. The `edge` value and card
+orientation are preserved. In `--demo` mode, dragging does not save configuration.
 
-Произвольный конфигурационный файл:
+Use a custom configuration file:
 
 ```powershell
 .\AIUsageMonitor.exe --config "D:\Settings\ai-usage-monitor.json"
 ```
 
-Просмотр интерфейса с явно обозначенными демонстрационными данными, без Codex и Claude,
-входа и сетевых запросов:
+Preview the interface with clearly labeled demo data, without Codex or Claude,
+sign-in or network requests:
 
 ```powershell
 .\AIUsageMonitor.exe --demo
 ```
 
-## Структура репозитория
+## Repository structure
 
-| Каталог | Назначение |
+| Directory | Purpose |
 |---|---|
-| `src/AIUsageMonitor` | Исходный код приложения |
-| `android` | Исходный код и сценарий сборки Android-приложения |
-| `tests/AIUsageMonitor.Checks` | Исполняемые проверки логики, интеграции и интерфейса |
-| `packaging/windows` | Сценарии установки и обновления конфигурации |
-| `config` | Эталонная конфигурация |
-| `docs` | Изображения и материалы README |
-| `.github/workflows` | Сборка, проверка и публикация установщика |
+| `src/AIUsageMonitor` | Application source code |
+| `android` | Android app source code and build script |
+| `tests/AIUsageMonitor.Checks` | Runnable logic, integration and UI checks |
+| `packaging/windows` | Installation and configuration update scripts |
+| `config` | Reference configuration |
+| `docs` | README images and supporting materials |
+| `.github/workflows` | Installer build, verification and publication |
 
-`AIUsageMonitor.sln` объединяет приложение и проверки для IDE и командной строки.
+`AIUsageMonitor.sln` groups the app and checks for IDE and command-line use.
 
-## Данные и лимиты Windows
+## Windows data and limits
 
-В Windows каждому аккаунту нужна отдельная папка профиля Codex; по умолчанию
-используется `%LOCALAPPDATA%\AIUsageMonitor\profiles\personal`. Вход выполняется
-через ChatGPT. Приложение хранит токены в `codex-auth.dat`, зашифрованном средствами
-Windows для текущего пользователя, и самостоятельно обновляет их. Старый `auth.json`
-импортируется при первом чтении профиля, если своего хранилища ещё нет; исходный файл
-не изменяется. Старый параметр `codexExecutable` игнорируется.
-**Папки профилей и файлы авторизации нельзя публиковать или пересылать.**
-Как Android, приложение использует внутренний сервис ChatGPT: его адреса и формат
-ответов могут потребовать обновления приложения при изменениях сервиса.
-API-ключ не заменяет вход через ChatGPT. Приложение не вызывает модель и не
-запускает задачи Codex.
+On Windows, each Codex account needs a separate profile folder; the default is
+`%LOCALAPPDATA%\AIUsageMonitor\profiles\personal`. Sign-in happens through ChatGPT.
+The app stores tokens in `codex-auth.dat`, encrypted by Windows for the current
+user, and refreshes them itself. An old `auth.json` is imported on the first
+profile read if the app's own storage does not yet exist; the original file is
+not modified. The old `codexExecutable` setting is ignored.
+**Do not publish or share profile folders or authentication files.**
+As on Android, the app uses an internal ChatGPT service: changes to its addresses
+or response formats may require an app update.
+An API key does not replace ChatGPT sign-in. The app does not call a model or
+run Codex tasks.
 
-Показываются основные 5-часовой и недельный лимиты Codex, а не квоты отдельных
-моделей. Если сервис не вернул значение, отображается `—`. При ошибке обновления
-последние удачно полученные данные остаются на экране с пометкой «Данные устарели»;
-после перезапуска они не сохраняются. Когда срок сброса прошёл, для изменения
-процента всё равно нужен новый ответ сервиса.
+The app shows the main Codex 5-hour and weekly limits, not individual model quotas.
+If the service does not return a value, `—` appears. If a refresh fails, the last
+successfully retrieved data remains on screen with a **Stale data** label; it is
+not preserved across restarts. Even after a reset time has passed, a new service
+response is needed to update the percentage.
 
-## Сборка и проверки
+## Build and checks
 
-Для сборки Windows-версии нужен .NET SDK 8. Сторонних NuGet-пакетов нет.
+Building the Windows version requires .NET SDK 8. There are no third-party
+NuGet packages.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-Результат: `dist\AIUsageMonitor-Setup_v<major>.<minor>.exe`. Для запуска
-установленного приложения нужен .NET Desktop Runtime 8. Установщики публикуются
-на странице релизов и не хранятся в Git.
+Output: `dist\AIUsageMonitor-Setup_v<major>.<minor>.exe`. The installed app needs
+.NET Desktop Runtime 8. Installers are published on the releases page and are
+not stored in Git.
 
-Запуск локальных проверок Windows-версии:
+Run the local Windows checks:
 
 ```powershell
 dotnet run --project tests/AIUsageMonitor.Checks/AIUsageMonitor.Checks.csproj -c Release
