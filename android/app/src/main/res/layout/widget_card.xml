@@ -2,6 +2,7 @@
     android:id="@+id/widget_card_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:minHeight="180dp"
     android:orientation="vertical"
     android:padding="11dp"
     android:layout_marginBottom="5dp"
@@ -22,6 +23,7 @@
         android:textColor="#AABBC8"
         android:textSize="11sp" />
     <LinearLayout
+        android:id="@+id/widget_card_five_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
@@ -57,6 +59,7 @@
         android:textColor="#AABBC8"
         android:textSize="11sp" />
     <LinearLayout
+        android:id="@+id/widget_card_week_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"

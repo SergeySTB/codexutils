@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.12] — 2026-10-05
+
+### Fixed
+
+- Windows and Android account cards omit limits without data instead of showing
+  a dash and empty progress bar.
+- Windows cards keep a common height when accounts have different available
+  limits; Android app cards and home screen widget use consistent card sizing.
+
 ## [6.8] — 2026-09-30
 
 ### Added

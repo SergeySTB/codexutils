@@ -16,6 +16,10 @@ Existing account names are preserved as user data.
 
 On Windows, the compact panel shows one circular icon per account. Hover over an
 icon to see a card with the plan, percentages, reset times and last update time.
+Cards show only limits with available data; a missing limit has no label, bar or
+placeholder. In `cards` mode, accounts share the same card height even when they
+have different numbers of available limits.
+
 You can position the panel along any monitor edge, with its size and offset set
 in physical pixels.
 
@@ -39,7 +43,7 @@ The origin of the graphics is described in [this note](docs/brand-icons.md).
 
 ## Windows
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.11/AIUsageMonitor-Setup_v6.11.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.12/AIUsageMonitor-Setup_v6.12.exe)
 
 The installer first lets you start or cancel installation. After you click
 **Install**, it requests administrator privileges, installs the app in
@@ -53,9 +57,10 @@ available on the [releases page](https://github.com/SergeySTB/codexutils/release
 
 ## Android
 
-[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.11/AIUsageMonitor-Android_v6.11-debug.apk)
+[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.12/AIUsageMonitor-Android_v6.12-debug.apk)
 
 The app runs on Android 8 and later without a computer once accounts are set up.
+Account cards in the app and home screen widget also hide unavailable limits.
 For Codex, sign in through ChatGPT using a device code. For Claude, run
 `claude setup-token` on a computer, then choose **Add Claude** in the phone app menu
 and enter an account name and the resulting OAuth token. The token is stored in

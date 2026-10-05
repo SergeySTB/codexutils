@@ -129,8 +129,8 @@ final class WidgetRenderer {
         String name = (account.provider.equals("claude") ? "Claude" : "GPT Codex") + ", " +
             (account.email.isEmpty() ? context.getString(R.string.localized_009) : account.email);
         Usage usage = account.usage;
-        return name + context.getString(R.string.localized_069) + value(context, usage == null ? null : usage.fiveHour) +
-            context.getString(R.string.localized_070) + value(context, usage == null ? null : usage.weekly) +
+        return name + (usage == null || usage.fiveHour == null ? "" : context.getString(R.string.localized_069) + value(context, usage.fiveHour)) +
+            (usage == null || usage.weekly == null ? "" : context.getString(R.string.localized_070) + value(context, usage.weekly)) +
             (account.error == null ? "" : usage == null ? context.getString(R.string.localized_071) : context.getString(R.string.localized_072));
     }
 

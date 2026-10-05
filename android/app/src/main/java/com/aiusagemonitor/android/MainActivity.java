@@ -226,23 +226,29 @@ public final class MainActivity extends Activity {
                 card.addView(reauth);
             }
         }
+        cards.post(() -> {
+            int height = 0;
+            for (int i = 0; i < cards.getChildCount(); i++) height = Math.max(height, cards.getChildAt(i).getMeasuredHeight());
+            for (int i = 0; i < cards.getChildCount(); i++) cards.getChildAt(i).setMinimumHeight(height);
+        });
     }
 
     private void limit(LinearLayout card, String name, Usage.Window window, int color) {
+        if (window == null) return;
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(0, dp(16), 0, dp(5));
         row.addView(text(name, 15, TEXT), new LinearLayout.LayoutParams(0, -2, 1));
-        row.addView(text(window == null ? "—" : window.remaining + "%", 20, color));
+        row.addView(text(window.remaining + "%", 20, color));
         card.addView(row);
         ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         bar.setMax(100);
-        bar.setProgress(window == null ? 0 : window.remaining);
+        bar.setProgress(window.remaining);
         bar.setProgressTintList(android.content.res.ColorStateList.valueOf(color));
         bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(BACKGROUND));
-        bar.setContentDescription(name + ": " + (window == null ? getString(R.string.localized_017) : window.remaining + getString(R.string.localized_018)));
+        bar.setContentDescription(name + ": " + window.remaining + getString(R.string.localized_018));
         card.addView(bar, new LinearLayout.LayoutParams(-1, dp(7)));
-        if (window != null && window.resetsAt > 0)
+        if (window.resetsAt > 0)
             card.addView(text(getString(R.string.localized_019) + formatTime(window.resetsAt * 1000), 12, MUTED));
     }
 

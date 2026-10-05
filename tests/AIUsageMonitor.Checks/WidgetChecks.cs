@@ -174,8 +174,9 @@ internal static class WidgetChecks
                             var text = string.Join("\n", Texts(card));
                             Require(text.Contains(expectedEmails[i]) &&
                                 !expectedEmails.Where((_, index) => index != i).Any(text.Contains), "card belongs to hovered account");
-                            Require(text.Contains(i == 1 ? "PLUS" : "PRO") && text.Contains("5 часов") && text.Contains("Неделя") && text.Contains("Сброс через") &&
-                                text.Contains(i == 1 ? "Нет данных" : "72%"), "limits, missing window and reset shown");
+                            Require(text.Contains(i == 1 ? "PLUS" : "PRO") && (i == 1 ? !text.Contains("5 часов") : text.Contains("5 часов")) &&
+                                text.Contains("Неделя") && text.Contains("Сброс через") && !text.Contains("Нет данных об этом лимите"),
+                                "only available limits and their reset times are shown");
                             Require(new ButtonAutomationPeer(icon).GetName().Contains(configuredAccounts[i].Name), "accessible account name");
                             Save(tip, Path.Combine(outputDirectory, edge + "-account-" + i + ".png"));
                             var outside = window.PointToScreen(new Point(-30, -30));
@@ -300,13 +301,19 @@ internal static class WidgetChecks
                 foreach (Border card in strip.Children)
                 {
                     var panel = (StackPanel)((ScrollViewer)card.Child).Content;
-                    Require(Texts(panel).Any(text => text.Contains("5 часов")) && Texts(panel).Any(text => text.Contains("Неделя")), "both quotas are visible in card content");
+                    Require(Texts(panel).Any(text => text.Contains("Неделя")), "weekly quota is visible in card content");
                     Require(panel.Children.OfType<Button>().All(button => button.Visibility == Visibility.Collapsed), "signed-in demo cards contain no visible icon or login button");
                 }
                 if (!fixedSize) Require(scroll.ScrollableWidth < 1, "automatic card width reserves vertical scrollbar space");
                 if (count == 3)
                 {
                     var next = (Border)strip.Children[1];
+                    Require(Math.Abs(first.ActualHeight - next.ActualHeight) < 1 &&
+                        Math.Abs(next.ActualHeight - ((Border)strip.Children[2]).ActualHeight) < 1,
+                        "cards have equal heights with different available limits");
+                    var second = (StackPanel)((ScrollViewer)next.Child).Content;
+                    Require(!Texts(second).Any(text => text.Contains("5 часов") || text.Contains("Нет данных об этом лимите")),
+                        "missing five-hour quota is absent from card");
                     var a = first.TranslatePoint(new Point(), strip);
                     var b = next.TranslatePoint(new Point(), strip);
                     Require(edge is "left" or "right" ? b.Y > a.Y && b.X == a.X : b.X > a.X && b.Y == a.Y, "cards are arranged in a column or row");
@@ -356,6 +363,8 @@ internal static class WidgetChecks
             Require(login.Visibility == Visibility.Visible && login.IsEnabled &&
                 new ButtonAutomationPeer(login).GetName().Contains("Войти"), "signed-out card provides accessible login button");
             Require(Texts(panel).Any(text => text.Contains("Нужен вход через ChatGPT")), "connection error remains visible in card");
+            Require(!Texts(panel).Any(text => text.Contains("5 часов") || text.Contains("Неделя") || text.Contains("Нет данных об этом лимите")),
+                "signed-out card has no empty limit rows");
         }
         finally { signedOut.Close(); }
         var authProfile = Path.Combine(outputDirectory, "unauth");
@@ -385,6 +394,7 @@ internal static class WidgetChecks
 
     private static IEnumerable<string> Texts(DependencyObject root)
     {
+        if (root is FrameworkElement { Visibility: not Visibility.Visible }) yield break;
         if (root is TextBlock text) yield return text.Text;
         foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
             foreach (var value in Texts(child)) yield return value;

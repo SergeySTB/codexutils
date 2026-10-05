@@ -62,6 +62,8 @@ public sealed class WidgetWindow : Window
         public TextBlock[] Values = [new(), new()];
         public TextBlock[] Resets = [new(), new()];
         public ProgressBar[] Bars = [new(), new()];
+        public StackPanel[] LimitSections = [new(), new()];
+        public Grid LimitsArea = new();
         public ShapePath[] Rings = [new(), new()];
     }
 
@@ -305,17 +307,23 @@ public sealed class WidgetWindow : Window
         AutomationProperties.SetName(account.Reauth, (string)account.Reauth.Content + ": " + account.Config.Name);
         account.Reauth.Click += async (_, _) => await SignInAsync(account);
         panel.Children.Add(account.Reauth);
+        account.LimitsArea = new Grid { MinHeight = 154 };
+        var limits = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        account.LimitsArea.Children.Add(limits);
+        panel.Children.Add(account.LimitsArea);
         for (int i = 0; i < 2; i++)
         {
+            var section = account.LimitSections[i] = new StackPanel();
             var line = new DockPanel { Margin = new Thickness(0, 10, 0, 4) };
             line.Children.Add(new TextBlock { Text = i == 0 ? UiText.T("5 часов", "5 hours") : UiText.T("Неделя", "Week"), Foreground = Muted, FontSize = 12, VerticalAlignment = VerticalAlignment.Center });
             account.Values[i] = new TextBlock { FontSize = 18, FontWeight = FontWeights.SemiBold, Foreground = i == 0 ? Mint : Purple, TextAlignment = TextAlignment.Right };
             line.Children.Add(account.Values[i]);
-            panel.Children.Add(line);
+            section.Children.Add(line);
             account.Bars[i] = new ProgressBar { Minimum = 0, Maximum = 100, Height = 4, BorderThickness = new Thickness(0), Foreground = i == 0 ? Mint : Purple, Background = Brush("#303A49") };
-            panel.Children.Add(account.Bars[i]);
+            section.Children.Add(account.Bars[i]);
             account.Resets[i] = new TextBlock { FontSize = 11, Foreground = Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 0) };
-            panel.Children.Add(account.Resets[i]);
+            section.Children.Add(account.Resets[i]);
+            limits.Children.Add(section);
         }
         account.Footer = new TextBlock { FontSize = 10, Foreground = Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 13, 0, 0) };
         panel.Children.Add(account.Footer);
@@ -505,18 +513,21 @@ public sealed class WidgetWindow : Window
             for (int i = 0; i < 2; i++)
             {
                 var limit = windows[i];
-                account.Values[i].Text = limit is null ? "—" : $"{Math.Floor(limit.Remaining):0}%";
+                account.LimitSections[i].Visibility = limit is null ? Visibility.Collapsed : Visibility.Visible;
+                account.Values[i].Text = limit is null ? "" : $"{Math.Floor(limit.Remaining):0}%";
                 account.Bars[i].Value = limit?.Remaining ?? 0;
                 account.Rings[i].Data = RingGeometry(limit?.Remaining ?? 0, i == 0 ? 15 : 11.5);
                 account.Values[i].Opacity = account.Bars[i].Opacity = account.Failed ? 0.45 : 1;
-                string detail = limit is null ? UiText.T("Нет данных об этом лимите", "No data for this limit") :
+                string detail = limit is null ? "" :
                     Limits.ResetText(limit, DateTimeOffset.Now) +
                     (limit.ResetsAt is { } reset ? $"\n{reset.ToLocalTime():dd.MM.yyyy HH:mm}" : "");
                 account.Resets[i].Text = detail;
-                AutomationProperties.SetName(account.Bars[i], account.Config.Name + (i == 0 ? UiText.T(", 5 часов. ", ", 5 hours. ") : UiText.T(", неделя. ", ", week. ")) + detail);
+                AutomationProperties.SetName(account.Bars[i], limit is null ? "" : account.Config.Name + (i == 0 ? UiText.T(", 5 часов. ", ", 5 hours. ") : UiText.T(", неделя. ", ", week. ")) + detail);
             }
             if (cardsPanel == null)
-                AutomationProperties.SetName(account.Name, $"{(account.Config.Provider == "claude" ? "Claude" : "GPT Codex")}, {account.Config.Name}. {account.Caption.Text}. {UiText.T("5 часов", "5 hours")}: {account.Values[0].Text}. {UiText.T("Неделя", "Week")}: {account.Values[1].Text}");
+                AutomationProperties.SetName(account.Name, $"{(account.Config.Provider == "claude" ? "Claude" : "GPT Codex")}, {account.Config.Name}. {account.Caption.Text}" +
+                    (windows[0] is null ? "" : $". {UiText.T("5 часов", "5 hours")}: {account.Values[0].Text}") +
+                    (windows[1] is null ? "" : $". {UiText.T("Неделя", "Week")}: {account.Values[1].Text}"));
         }
         if (cardsPanel != null && IsLoaded) Place();
     }
@@ -851,6 +862,15 @@ public sealed class WidgetWindow : Window
                     card.Width = settings.Widget.CardWidthPx == 0 ? 302 : settings.Widget.CardWidthPx / scale;
                     card.Height = settings.Widget.CardHeightPx == 0 ? double.NaN : settings.Widget.CardHeightPx / scale;
                     ((StackPanel)((ScrollViewer)card.Child).Content).Width = Math.Max(0, card.Width - 30);
+                }
+                if (settings.Widget.CardHeightPx == 0)
+                {
+                    double commonHeight = cardsPanel.Children.Cast<Border>().Max(card =>
+                    {
+                        card.Measure(new Size(card.Width, double.PositiveInfinity));
+                        return card.DesiredSize.Height - card.Margin.Top - card.Margin.Bottom;
+                    });
+                    foreach (Border card in cardsPanel.Children) card.Height = commonHeight;
                 }
                 cardsPanel.InvalidateMeasure();
                 cardsPanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));

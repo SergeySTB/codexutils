@@ -58,12 +58,18 @@ public final class WidgetCardsService extends RemoteViewsService {
             Usage usage = account.usage;
             Usage.Window five = usage == null ? null : usage.fiveHour;
             Usage.Window week = usage == null ? null : usage.weekly;
-            card.setTextViewText(R.id.widget_card_five, five == null ? "—" : five.remaining + "%");
-            card.setTextViewText(R.id.widget_card_week, week == null ? "—" : week.remaining + "%");
+            card.setViewVisibility(R.id.widget_card_five_row, five == null ? android.view.View.GONE : android.view.View.VISIBLE);
+            card.setViewVisibility(R.id.widget_card_five_bar, five == null ? android.view.View.GONE : android.view.View.VISIBLE);
+            card.setViewVisibility(R.id.widget_card_five_reset, five == null ? android.view.View.GONE : android.view.View.VISIBLE);
+            card.setViewVisibility(R.id.widget_card_week_row, week == null ? android.view.View.GONE : android.view.View.VISIBLE);
+            card.setViewVisibility(R.id.widget_card_week_bar, week == null ? android.view.View.GONE : android.view.View.VISIBLE);
+            card.setViewVisibility(R.id.widget_card_week_reset, week == null ? android.view.View.GONE : android.view.View.VISIBLE);
+            if (five != null) card.setTextViewText(R.id.widget_card_five, five.remaining + "%");
+            if (week != null) card.setTextViewText(R.id.widget_card_week, week.remaining + "%");
             card.setProgressBar(R.id.widget_card_five_bar, 100, five == null ? 0 : five.remaining, false);
             card.setProgressBar(R.id.widget_card_week_bar, 100, week == null ? 0 : week.remaining, false);
-            card.setTextViewText(R.id.widget_card_five_reset, resetText(five));
-            card.setTextViewText(R.id.widget_card_week_reset, resetText(week));
+            if (five != null) card.setTextViewText(R.id.widget_card_five_reset, resetText(five));
+            if (week != null) card.setTextViewText(R.id.widget_card_week_reset, resetText(week));
             String status = account.updatedAt == 0 ? context.getString(R.string.localized_057) : context.getString(R.string.localized_015) +
                 DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
                     .format(new Date(account.updatedAt));
@@ -76,7 +82,7 @@ public final class WidgetCardsService extends RemoteViewsService {
         }
 
         private String resetText(Usage.Window window) {
-            return window == null ? context.getString(R.string.localized_058) : window.resetsAt <= 0 ?
+            return window.resetsAt <= 0 ?
                 context.getString(R.string.localized_059) : context.getString(R.string.localized_019) +
                 DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
                     .format(new Date(window.resetsAt * 1000));

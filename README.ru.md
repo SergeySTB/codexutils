@@ -17,6 +17,10 @@ Windows всегда следует языку системы.
 В Windows компактная панель показывает по одной круглой иконке на аккаунт.
 При наведении открывается карточка с тарифом, процентами, временем сброса и
 последнего обновления.
+Если данных по отдельному лимиту нет, карточка не показывает его название,
+полосу или прочерк. В режиме `cards` все карточки имеют одинаковую высоту,
+даже когда число доступных лимитов различается.
+
 Панель можно закрепить у любого края монитора с размером и смещением в физических
 пикселях.
 
@@ -40,7 +44,7 @@ Windows всегда следует языку системы.
 
 ## Windows
 
-[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.11/AIUsageMonitor-Setup_v6.11.exe)
+[![Download for Windows](docs/design/download-windows.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.12/AIUsageMonitor-Setup_v6.12.exe)
 
 Сначала установщик предложит начать установку или отменить её. После нажатия
 «Установить» он запросит права администратора, установит приложение в
@@ -54,9 +58,10 @@ Windows всегда следует языку системы.
 
 ## Android
 
-[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.11/AIUsageMonitor-Android_v6.11-debug.apk)
+[![Download for Android](docs/design/download-android.svg)](https://github.com/SergeySTB/codexutils/releases/download/v6.12/AIUsageMonitor-Android_v6.12-debug.apk)
 
 Приложение работает на Android 8 и новее без компьютера после настройки аккаунтов.
+Карточки в приложении и виджете на домашнем экране также скрывают лимиты без данных.
 Для Codex войдите через ChatGPT по коду устройства. Для Claude выполните
 `claude setup-token` на компьютере, затем выберите **Добавить Claude** в меню
 телефона и введите название аккаунта и полученный OAuth-токен. Токен хранится
