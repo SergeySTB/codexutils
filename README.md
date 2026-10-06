@@ -116,11 +116,12 @@ Native navigation adopts Liquid Glass when built with Xcode 26+ and run on a
 supporting iOS version. iOS schedules background refreshes; widgets show the latest
 saved reading rather than guaranteeing a fixed network refresh interval.
 
-No iOS installer or TestFlight release is available yet. Xcode compilation and
-device behavior remain unverified. You can edit the sources on Windows and use
-the manual **iOS build and checks** GitHub Actions workflow on a macOS runner
-after deliberately pushing them. It produces an unsigned simulator app, not an
-installable iPhone IPA. Device distribution additionally requires Apple signing.
+No iOS installer or TestFlight release is available yet. Simulator compilation
+has succeeded in CI; device behavior remains unverified. You can edit the
+sources on Windows and use the manual **iOS build and checks** GitHub Actions
+workflow on a macOS runner after deliberately pushing them. It is configured
+to produce a locally signed simulator app, not an installable iPhone IPA.
+Device distribution additionally requires Apple signing.
 See the [build and verification instructions](ios/README.md).
 
 ## Using the Windows app

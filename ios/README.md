@@ -1,10 +1,10 @@
 # AI Usage Monitor for iOS
 
 Native, standalone iPhone and iPad source project (iOS 17+). No Windows companion
-or hosted backend is required. This is an **unreleased implementation**: the
-initial Windows-side checks do not establish that Xcode compilation, device
-sign-in or background refresh works. Complete the Mac/CI checks below before
-distributing a build.
+or hosted backend is required. This is an **unreleased implementation**:
+simulator compilation has succeeded in CI, while device sign-in and background
+refresh remain unverified. Complete the Mac/CI checks below before distributing
+a build.
 
 ## Features
 
@@ -56,7 +56,9 @@ bash ios/build.sh
 ```
 
 The script runs the pure Swift package tests, generates the Xcode project from
-`project.yml`, then builds the app and extension without signing for the simulator.
+`project.yml`, then requests local ad-hoc signing for the simulator. This
+ad-hoc signature needs no Apple development certificate or device provisioning
+profile, and cannot be used to install the app on an iPhone.
 Generated files and build outputs are ignored. Asset catalogs are already present;
 to recreate them using the existing repository artwork, run
 `python3 ios/scripts/make_assets.py` from the repository root.
