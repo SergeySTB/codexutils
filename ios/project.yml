@@ -1,0 +1,93 @@
+name: AIUsageMonitor
+options:
+  minimumXcodeGenVersion: 2.44.0
+  deploymentTarget:
+    iOS: '17.0'
+  developmentLanguage: en
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    SWIFT_STRICT_CONCURRENCY: complete
+    IPHONEOS_DEPLOYMENT_TARGET: '17.0'
+    TARGETED_DEVICE_FAMILY: '1,2'
+    MARKETING_VERSION: '6.12'
+    CURRENT_PROJECT_VERSION: '1'
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ''
+    APP_BUNDLE_ID: com.aiusagemonitor.ios
+    APP_GROUP_ID: group.com.aiusagemonitor.ios
+packages:
+  UsageCore:
+    path: UsageCore
+targets:
+  AIUsageMonitor:
+    type: application
+    platform: iOS
+    sources: [App, Shared, Resources]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - package: UsageCore
+      - target: UsageWidgets
+        embed: true
+    entitlements:
+      path: Configuration/App.entitlements
+      properties:
+        com.apple.security.application-groups: ['$(APP_GROUP_ID)']
+    info:
+      path: Configuration/App-Info.plist
+      properties:
+        CFBundleDisplayName: AI Usage Monitor
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: ['$(PRODUCT_BUNDLE_IDENTIFIER).refresh']
+        SharedAppGroup: $(APP_GROUP_ID)
+        CFBundleURLTypes:
+          - CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER)
+            CFBundleURLSchemes: [aiusagemonitor]
+        ITSAppUsesNonExemptEncryption: false
+  UsageWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [Widgets, Shared, Resources]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).widgets
+        APPLICATION_EXTENSION_API_ONLY: true
+        SKIP_INSTALL: true
+    dependencies:
+      - package: UsageCore
+    entitlements:
+      path: Configuration/Widgets.entitlements
+      properties:
+        com.apple.security.application-groups: ['$(APP_GROUP_ID)']
+    info:
+      path: Configuration/Widgets-Info.plist
+      properties:
+        CFBundleDisplayName: AI Usage Monitor Widgets
+        SharedAppGroup: $(APP_GROUP_ID)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+  AIUsageMonitorUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: AIUsageMonitor
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).uitests
+        GENERATE_INFOPLIST_FILE: true
+schemes:
+  AIUsageMonitor:
+    build:
+      targets:
+        AIUsageMonitor: all
+    test:
+      targets: [AIUsageMonitorUITests]

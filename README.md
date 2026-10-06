@@ -107,6 +107,22 @@ as a debug APK, or set `ANDROID_HOME` and run
 You need Android SDK Platform 35, Build Tools 35 and JDK 17 or later. The script
 creates `dist/AIUsageMonitor-Android_v<major>.<minor>-debug.apk`.
 
+## iOS (unreleased source preview)
+
+The [native iOS project](ios/README.md) adds a standalone SwiftUI app for iPhone
+and iPad (iOS 17+): Codex/Claude accounts, device-code sign-in, Keychain storage,
+usage rings and cards, Home Screen widgets, and English/Russian settings.
+Native navigation adopts Liquid Glass when built with Xcode 26+ and run on a
+supporting iOS version. iOS schedules background refreshes; widgets show the latest
+saved reading rather than guaranteeing a fixed network refresh interval.
+
+No iOS installer or TestFlight release is available yet. Xcode compilation and
+device behavior remain unverified. You can edit the sources on Windows and use
+the manual **iOS build and checks** GitHub Actions workflow on a macOS runner
+after deliberately pushing them. It produces an unsigned simulator app, not an
+installable iPhone IPA. Device distribution additionally requires Apple signing.
+See the [build and verification instructions](ios/README.md).
+
 ## Using the Windows app
 
 Requires Windows 11 and .NET Desktop Runtime 8 (x64 for the provided x64 build).

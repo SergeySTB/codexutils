@@ -1,0 +1,43 @@
+name: iOS build and checks
+
+# Manual only: no release publication, signing credentials, or automatic paid runs.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install project generator
+        run: brew install xcodegen
+      - name: Select an available iPhone simulator
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          runtimes = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))['devices']
+          phones = [device for runtime, devices in runtimes.items() if 'iOS' in runtime for device in devices if device['name'].startswith('iPhone')]
+          if not phones:
+              raise SystemExit('No available iPhone simulator on this runner')
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write('IOS_TEST_DESTINATION=platform=iOS Simulator,id=' + phones[0]['udid'] + '\n')
+          PY
+      - name: Test core, build app and widgets, run UI smoke test
+        run: bash ios/build.sh
+      - name: Package simulator app
+        run: ditto -c -k --keepParent ios/build/Build/Products/Debug-iphonesimulator/AIUsageMonitor.app ios/AIUsageMonitor-simulator.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: AIUsageMonitor-iOS-simulator-${{ github.sha }}
+          path: ios/AIUsageMonitor-simulator.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: iOS-test-results-${{ github.sha }}
+          path: ios/build/UITests.xcresult
+          if-no-files-found: ignore
