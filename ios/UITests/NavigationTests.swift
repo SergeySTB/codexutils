@@ -1,6 +1,7 @@
 import XCTest
 
 final class NavigationTests: XCTestCase {
+    @MainActor
     func testEmptyStateNavigationAndCancelledLogin() {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
@@ -14,7 +15,9 @@ final class NavigationTests: XCTestCase {
         let add = app.navigationBars.buttons["Add account"]
         XCTAssertTrue(add.waitForExistence(timeout: 5))
         add.tap()
-        app.buttons["Add Claude"].tap()
+        let addClaude = app.descendants(matching: .any)["Add Claude"]
+        XCTAssertTrue(addClaude.waitForExistence(timeout: 5), app.debugDescription)
+        addClaude.tap()
         XCTAssertTrue(app.secureTextFields["OAuth token"].waitForExistence(timeout: 5))
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.navigationBars["Overview"].exists)
